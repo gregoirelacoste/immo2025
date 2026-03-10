@@ -128,8 +128,8 @@ export default function PropertyForm({ existingProperty }: Props) {
       const { propertyId, error, warning } = await scrapeAndSaveProperty(url);
 
       if (propertyId) {
-        // Sauvegardé automatiquement → redirection hard vers la fiche
-        window.location.href = `/property/${propertyId}`;
+        // Sauvegardé automatiquement → redirection vers la page d'édition
+        window.location.href = `/property/${propertyId}/edit`;
         return;
       }
 
