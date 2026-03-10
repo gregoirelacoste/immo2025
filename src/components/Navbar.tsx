@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
 
@@ -35,14 +37,35 @@ export default function Navbar() {
                 + Nouveau bien
               </Link>
             </div>
+            {session?.user && (
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-gray-600">
+                  {session.user.name || session.user.email}
+                </span>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Déconnexion
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </nav>
 
       {/* Mobile top bar */}
       <nav className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-40" style={{ paddingTop: "var(--sat)" }}>
-        <div className="flex items-center justify-center h-12 px-4">
+        <div className="flex items-center justify-between h-12 px-4">
           <span className="text-lg font-bold text-indigo-600">Immo2025</span>
+          {session?.user && (
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              Déconnexion
+            </button>
+          )}
         </div>
       </nav>
 

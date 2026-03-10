@@ -26,6 +26,8 @@ export interface Property {
   airbnb_price_per_night: number;
   airbnb_occupancy_rate: number; // en %
   airbnb_charges: number;
+  // Ownership
+  user_id: string;
   // Metadata
   source_url: string;
   image_urls: string; // JSON array of image URLs

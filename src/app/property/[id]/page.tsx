@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { getPropertyById } from "@/lib/db";
 import Navbar from "@/components/Navbar";
 import PropertyDetail from "@/components/PropertyDetail";
@@ -10,8 +11,11 @@ export default async function PropertyPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+
   const { id } = await params;
-  const property = await getPropertyById(id);
+  const property = await getPropertyById(id, session.user.id);
 
   if (!property) {
     notFound();

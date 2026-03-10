@@ -7,6 +7,7 @@ import {
   deleteProperty,
   getPropertyBySourceUrl,
 } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { calculateNotaryFees } from "@/lib/calculations";
 import { scrapeUrl } from "@/lib/scraping/orchestrator";
 import { getMarketData, MarketData } from "@/lib/market-data";
@@ -14,17 +15,34 @@ import { Property } from "@/types/property";
 
 type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at">;
 
+async function requireUserId(): Promise<string> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Non authentifié");
+  return session.user.id;
+}
+
+function stripMeta(p: Property) {
+  const { id, user_id, created_at, updated_at, ...rest } = p;
+  void id; void user_id; void created_at; void updated_at;
+  return rest;
+}
+
 export async function saveProperty(
   formData: PropertyFormData,
   existingId?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const userId = await requireUserId();
+
     // Garantir que property_type est valide (CHECK constraint SQLite)
     const propertyType: "ancien" | "neuf" =
       formData.property_type === "neuf" ? "neuf" : "ancien";
 
+    const { user_id: _uid, ...formWithoutUserId } = formData;
+    void _uid;
+
     const payload = {
-      ...formData,
+      ...formWithoutUserId,
       property_type: propertyType,
       notary_fees:
         formData.notary_fees > 0
@@ -33,9 +51,9 @@ export async function saveProperty(
     };
 
     if (existingId) {
-      await updateProperty(existingId, payload);
+      await updateProperty(existingId, userId, payload);
     } else {
-      await createProperty(payload);
+      await createProperty({ ...payload, user_id: userId });
     }
 
     revalidatePath("/dashboard");
@@ -46,15 +64,17 @@ export async function saveProperty(
 }
 
 export async function removeProperty(id: string): Promise<void> {
-  await deleteProperty(id);
+  const userId = await requireUserId();
+  await deleteProperty(id, userId);
   revalidatePath("/dashboard");
 }
 
 export async function rescrapeProperty(
   id: string
 ): Promise<{ success: boolean; error?: string }> {
+  const userId = await requireUserId();
   const { getPropertyById } = await import("@/lib/db");
-  const property = await getPropertyById(id);
+  const property = await getPropertyById(id, userId);
   if (!property || !property.source_url) {
     return { success: false, error: "Pas d'URL source pour ce bien." };
   }
@@ -91,8 +111,9 @@ export async function rescrapeProperty(
   if (d.address) existingPrefill.address = { source: scrapeLabel, value: d.address };
   if (d.postal_code) existingPrefill.postal_code = { source: scrapeLabel, value: d.postal_code };
 
-  await updateProperty(id, {
-    ...property,
+  const baseData = stripMeta(property);
+  await updateProperty(id, userId, {
+    ...baseData,
     ...(d.purchase_price != null && { purchase_price: d.purchase_price }),
     ...(d.surface != null && { surface: d.surface }),
     ...(d.city != null && { city: d.city }),
@@ -113,8 +134,10 @@ export async function rescrapeProperty(
 export async function scrapeAndSaveProperty(
   url: string
 ): Promise<{ propertyId?: string; error?: string; warning?: string }> {
+  const userId = await requireUserId();
+
   // Vérifier si l'URL existe déjà en DB
-  const existing = await getPropertyBySourceUrl(url);
+  const existing = await getPropertyBySourceUrl(url, userId);
   if (existing) {
     return { propertyId: existing.id };
   }
@@ -190,6 +213,7 @@ export async function scrapeAndSaveProperty(
   };
 
   const id = await createProperty({
+    user_id: userId,
     address: d.address || "",
     city,
     postal_code: d.postal_code || "",
@@ -232,10 +256,11 @@ export async function extractAndUpdateFromText(
   rawText: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const userId = await requireUserId();
     const { extractFromText } = await import("@/lib/scraping/text-extractor");
     const { getPropertyById } = await import("@/lib/db");
 
-    const property = await getPropertyById(propertyId);
+    const property = await getPropertyById(propertyId, userId);
     if (!property) return { success: false, error: "Bien introuvable." };
 
     const d = await extractFromText(rawText);
@@ -282,8 +307,9 @@ export async function extractAndUpdateFromText(
       } catch { /* pas de données marché */ }
     }
 
-    await updateProperty(propertyId, {
-      ...property,
+    const baseData = stripMeta(property);
+    await updateProperty(propertyId, userId, {
+      ...baseData,
       ...(d.purchase_price != null && { purchase_price: d.purchase_price }),
       ...(d.surface != null && { surface: d.surface }),
       ...(d.city && { city: d.city }),

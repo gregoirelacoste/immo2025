@@ -15,6 +15,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at">;
 
 const defaultFormData: PropertyFormData = {
+  user_id: "",
   address: "",
   city: "",
   postal_code: "",
