@@ -1,6 +1,5 @@
 export interface Property {
   id: string;
-  user_id: string;
   // Infos du bien
   address: string;
   city: string;
@@ -27,6 +26,7 @@ export interface Property {
   airbnb_occupancy_rate: number; // en %
   airbnb_charges: number;
   // Metadata
+  source_url: string;
   created_at: string;
   updated_at: string;
 }

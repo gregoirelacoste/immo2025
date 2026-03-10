@@ -1,8 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect, notFound } from "next/navigation";
-import { Property } from "@/types/property";
+import { notFound } from "next/navigation";
+import { getPropertyById } from "@/lib/db";
 import Navbar from "@/components/Navbar";
 import PropertyForm from "@/components/PropertyForm";
+
+export const dynamic = "force-dynamic";
 
 export default async function EditPropertyPage({
   params,
@@ -10,21 +11,7 @@ export default async function EditPropertyPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/auth/login");
-  }
-
-  const { data: property } = await supabase
-    .from("properties")
-    .select("*")
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .single();
+  const property = getPropertyById(id);
 
   if (!property) {
     notFound();
@@ -37,7 +24,7 @@ export default async function EditPropertyPage({
         <h1 className="text-2xl font-bold text-gray-900 mb-6">
           Modifier le bien
         </h1>
-        <PropertyForm existingProperty={property as Property} />
+        <PropertyForm existingProperty={property} />
       </main>
     </div>
   );

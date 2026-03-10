@@ -1,18 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import PropertyForm from "@/components/PropertyForm";
 
-export default async function NewPropertyPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/auth/login");
-  }
-
+export default function NewPropertyPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />

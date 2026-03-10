@@ -1,8 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect, notFound } from "next/navigation";
-import { Property } from "@/types/property";
+import { notFound } from "next/navigation";
+import { getPropertyById } from "@/lib/db";
 import Navbar from "@/components/Navbar";
 import PropertyDetail from "@/components/PropertyDetail";
+
+export const dynamic = "force-dynamic";
 
 export default async function PropertyPage({
   params,
@@ -10,21 +11,7 @@ export default async function PropertyPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/auth/login");
-  }
-
-  const { data: property } = await supabase
-    .from("properties")
-    .select("*")
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .single();
+  const property = getPropertyById(id);
 
   if (!property) {
     notFound();
@@ -34,7 +21,7 @@ export default async function PropertyPage({
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <PropertyDetail property={property as Property} />
+        <PropertyDetail property={property} />
       </main>
     </div>
   );

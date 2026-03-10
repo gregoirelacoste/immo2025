@@ -1,1 +1,33 @@
 @import "tailwindcss";
+
+/* Safe areas for PWA standalone mode */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+/* Prevent pull-to-refresh in standalone */
+@media (display-mode: standalone) {
+  html {
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* Bottom nav spacing on pages */
+.pb-safe {
+  padding-bottom: calc(4.5rem + var(--sab));
+}
+
+/* Disable text selection on nav elements for app-like feel */
+nav {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Tap highlight removal on mobile */
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
