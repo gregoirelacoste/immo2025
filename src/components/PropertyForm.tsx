@@ -16,6 +16,7 @@ type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at">;
 
 const defaultFormData: PropertyFormData = {
   user_id: "",
+  visibility: "public",
   address: "",
   city: "",
   postal_code: "",
@@ -350,6 +351,19 @@ export default function PropertyForm({ existingProperty }: Props) {
                 : "—"}
             </label>
             <input disabled className={inputClass + " bg-gray-50"} value="Calculé automatiquement" />
+          </div>
+          <div>
+            <label className={labelClass}>Visibilité</label>
+            <select
+              value={form.visibility}
+              onChange={(e) =>
+                updateField("visibility", e.target.value as "public" | "private")
+              }
+              className={inputClass}
+            >
+              <option value="public">Public — visible par tous</option>
+              <option value="private">Privé — visible uniquement par vous</option>
+            </select>
           </div>
           <div className="md:col-span-2">
             <label className={labelClass}>Description / Notes</label>

@@ -29,7 +29,7 @@ export default function Navbar() {
                 Dashboard
               </Link>
               <Link
-                href="/property/new"
+                href={session ? "/property/new" : "/login"}
                 className={`text-sm font-medium ${
                   isActive("/property/new") ? "text-indigo-600" : "text-gray-600 hover:text-gray-900"
                 }`}
@@ -37,7 +37,7 @@ export default function Navbar() {
                 + Nouveau bien
               </Link>
             </div>
-            {session?.user && (
+            {session?.user ? (
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-600">
                   {session.user.name || session.user.email}
@@ -49,6 +49,10 @@ export default function Navbar() {
                   Déconnexion
                 </button>
               </div>
+            ) : (
+              <Link href="/login" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                Connexion
+              </Link>
             )}
           </div>
         </div>
@@ -58,13 +62,17 @@ export default function Navbar() {
       <nav className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-40" style={{ paddingTop: "var(--sat)" }}>
         <div className="flex items-center justify-between h-12 px-4">
           <span className="text-lg font-bold text-indigo-600">Immo2025</span>
-          {session?.user && (
+          {session?.user ? (
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
               className="text-xs text-gray-500 hover:text-gray-700"
             >
               Déconnexion
             </button>
+          ) : (
+            <Link href="/login" className="text-xs font-medium text-indigo-600">
+              Connexion
+            </Link>
           )}
         </div>
       </nav>
@@ -89,7 +97,7 @@ export default function Navbar() {
             <span className="text-xs mt-0.5 font-medium">Dashboard</span>
           </Link>
           <Link
-            href="/property/new"
+            href={session ? "/property/new" : "/login"}
             className={`flex-1 flex flex-col items-center justify-center py-2 min-h-[56px] ${
               isActive("/property/new")
                 ? "text-indigo-600"

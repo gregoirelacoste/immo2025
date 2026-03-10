@@ -73,7 +73,7 @@ export async function rescrapeProperty(
   id: string
 ): Promise<{ success: boolean; error?: string }> {
   const userId = await requireUserId();
-  const { getPropertyById } = await import("@/lib/db");
+  const { getOwnPropertyById: getPropertyById } = await import("@/lib/db");
   const property = await getPropertyById(id, userId);
   if (!property || !property.source_url) {
     return { success: false, error: "Pas d'URL source pour ce bien." };
@@ -214,6 +214,7 @@ export async function scrapeAndSaveProperty(
 
   const id = await createProperty({
     user_id: userId,
+    visibility: "public",
     address: d.address || "",
     city,
     postal_code: d.postal_code || "",
@@ -258,7 +259,7 @@ export async function extractAndUpdateFromText(
   try {
     const userId = await requireUserId();
     const { extractFromText } = await import("@/lib/scraping/text-extractor");
-    const { getPropertyById } = await import("@/lib/db");
+    const { getOwnPropertyById: getPropertyById } = await import("@/lib/db");
 
     const property = await getPropertyById(propertyId, userId);
     if (!property) return { success: false, error: "Bien introuvable." };

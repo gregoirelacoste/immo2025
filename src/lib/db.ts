@@ -33,6 +33,7 @@ async function getDb(): Promise<Client> {
       CREATE TABLE IF NOT EXISTS properties (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL DEFAULT '',
+        visibility TEXT NOT NULL DEFAULT 'public' CHECK (visibility IN ('public', 'private')),
         address TEXT DEFAULT '',
         city TEXT NOT NULL,
         postal_code TEXT DEFAULT '',
@@ -81,7 +82,9 @@ async function getDb(): Promise<Client> {
       "ALTER TABLE properties ADD COLUMN postal_code TEXT DEFAULT ''",
       "ALTER TABLE properties ADD COLUMN prefill_sources TEXT DEFAULT '{}'",
       "ALTER TABLE properties ADD COLUMN user_id TEXT NOT NULL DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'",
       "CREATE INDEX IF NOT EXISTS idx_properties_user_id ON properties(user_id)",
+      "CREATE INDEX IF NOT EXISTS idx_properties_visibility ON properties(visibility)",
     ]) {
       try { await client.execute(stmt); } catch { /* already exists */ }
     }
@@ -158,18 +161,46 @@ export async function upsertOAuthUser(user: {
   };
 }
 
-// ─── Properties (scoped by user_id) ───
+// ─── Properties ───
 
-export async function getAllProperties(userId: string): Promise<Property[]> {
+/** All visible properties: public + user's own private (if logged in) */
+export async function getVisibleProperties(userId?: string): Promise<Property[]> {
   const db = await getDb();
-  const result = await db.execute({
-    sql: "SELECT * FROM properties WHERE user_id = ? ORDER BY created_at DESC",
-    args: [userId],
-  });
+  if (userId) {
+    const result = await db.execute({
+      sql: "SELECT * FROM properties WHERE visibility = 'public' OR user_id = ? ORDER BY created_at DESC",
+      args: [userId],
+    });
+    return result.rows.map((r) => rowAs<Property>(r));
+  }
+  const result = await db.execute(
+    "SELECT * FROM properties WHERE visibility = 'public' ORDER BY created_at DESC"
+  );
   return result.rows.map((r) => rowAs<Property>(r));
 }
 
+/** Get a property if it's public or owned by the user */
 export async function getPropertyById(
+  id: string,
+  userId?: string
+): Promise<Property | undefined> {
+  const db = await getDb();
+  if (userId) {
+    const result = await db.execute({
+      sql: "SELECT * FROM properties WHERE id = ? AND (visibility = 'public' OR user_id = ?)",
+      args: [id, userId],
+    });
+    return result.rows[0] ? rowAs<Property>(result.rows[0]) : undefined;
+  }
+  const result = await db.execute({
+    sql: "SELECT * FROM properties WHERE id = ? AND visibility = 'public'",
+    args: [id],
+  });
+  return result.rows[0] ? rowAs<Property>(result.rows[0]) : undefined;
+}
+
+/** Strict ownership check — for edit/delete */
+export async function getOwnPropertyById(
   id: string,
   userId: string
 ): Promise<Property | undefined> {
@@ -204,13 +235,13 @@ export async function createProperty(
   await db.execute({
     sql: `
       INSERT INTO properties (
-        id, user_id, address, city, postal_code, purchase_price, surface, property_type, description,
+        id, user_id, visibility, address, city, postal_code, purchase_price, surface, property_type, description,
         loan_amount, interest_rate, loan_duration, personal_contribution,
         insurance_rate, loan_fees, notary_fees, monthly_rent, condo_charges,
         property_tax, vacancy_rate, airbnb_price_per_night, airbnb_occupancy_rate,
         airbnb_charges, source_url, image_urls, prefill_sources, created_at, updated_at
       ) VALUES (
-        $id, $user_id, $address, $city, $postal_code, $purchase_price, $surface, $property_type, $description,
+        $id, $user_id, $visibility, $address, $city, $postal_code, $purchase_price, $surface, $property_type, $description,
         $loan_amount, $interest_rate, $loan_duration, $personal_contribution,
         $insurance_rate, $loan_fees, $notary_fees, $monthly_rent, $condo_charges,
         $property_tax, $vacancy_rate, $airbnb_price_per_night, $airbnb_occupancy_rate,
@@ -234,7 +265,7 @@ export async function updateProperty(
   await db.execute({
     sql: `
       UPDATE properties SET
-        address = $address, city = $city, postal_code = $postal_code,
+        visibility = $visibility, address = $address, city = $city, postal_code = $postal_code,
         purchase_price = $purchase_price, surface = $surface,
         property_type = $property_type, description = $description,
         loan_amount = $loan_amount, interest_rate = $interest_rate,

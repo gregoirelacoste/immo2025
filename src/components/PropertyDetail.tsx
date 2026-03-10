@@ -10,9 +10,10 @@ import type { MarketData } from "@/lib/market-data";
 
 interface Props {
   property: Property;
+  isOwner?: boolean;
 }
 
-export default function PropertyDetail({ property }: Props) {
+export default function PropertyDetail({ property, isOwner }: Props) {
   const router = useRouter();
   const calcs = calculateAll(property);
   const [rescraping, setRescraping] = useState(false);
@@ -118,20 +119,22 @@ export default function PropertyDetail({ property }: Props) {
             </a>
           )}
         </div>
-        <div className="flex gap-2 shrink-0">
-          <Link
-            href={`/property/${property.id}/edit`}
-            className="px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 min-h-[44px] flex items-center"
-          >
-            Modifier
-          </Link>
-          <button
-            onClick={handleDelete}
-            className="px-4 py-2.5 bg-red-50 text-red-600 rounded-lg text-sm hover:bg-red-100 min-h-[44px] flex items-center"
-          >
-            Supprimer
-          </button>
-        </div>
+        {isOwner && (
+          <div className="flex gap-2 shrink-0">
+            <Link
+              href={`/property/${property.id}/edit`}
+              className="px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 min-h-[44px] flex items-center"
+            >
+              Modifier
+            </Link>
+            <button
+              onClick={handleDelete}
+              className="px-4 py-2.5 bg-red-50 text-red-600 rounded-lg text-sm hover:bg-red-100 min-h-[44px] flex items-center"
+            >
+              Supprimer
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Photos du bien */}
@@ -426,7 +429,7 @@ export default function PropertyDetail({ property }: Props) {
       {/* Actions : rescrape, paste fallback, retour */}
       <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
         <div className="flex flex-col items-center gap-3">
-          {property.source_url && (
+          {isOwner && property.source_url && (
             <div className="flex flex-wrap justify-center gap-2">
               <button
                 onClick={handleRescrape}
@@ -454,7 +457,7 @@ export default function PropertyDetail({ property }: Props) {
             </div>
           )}
 
-          {!property.source_url && (
+          {isOwner && !property.source_url && (
             <button
               onClick={() => setShowPasteForm(!showPasteForm)}
               className="px-5 py-3 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100 transition-colors min-h-[44px]"

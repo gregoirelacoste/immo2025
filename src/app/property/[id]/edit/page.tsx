@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getPropertyById } from "@/lib/db";
+import { getOwnPropertyById } from "@/lib/db";
 import Navbar from "@/components/Navbar";
 import PropertyForm from "@/components/PropertyForm";
 
@@ -16,7 +16,7 @@ export default async function EditPropertyPage({
   if (!session?.user?.id) redirect("/login");
 
   const { id } = await params;
-  const property = await getPropertyById(id, session.user.id);
+  const property = await getOwnPropertyById(id, session.user.id);
 
   if (!property) {
     notFound();
