@@ -1,5 +1,7 @@
-const CACHE_NAME = "immo2025-v1";
+const CACHE_NAME = "immo2025-v2";
 const PRECACHE_URLS = ["/dashboard", "/property/new"];
+// Ne jamais cacher les redirections de partage ni les API
+const NO_CACHE_PATTERNS = ["/share", "/api/"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -21,6 +23,13 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  const url = new URL(event.request.url);
+
+  // Ne pas cacher /share et /api — toujours fetch réseau
+  if (NO_CACHE_PATTERNS.some((p) => url.pathname.startsWith(p))) {
+    return;
+  }
 
   event.respondWith(
     fetch(event.request)

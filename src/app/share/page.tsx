@@ -1,57 +1,30 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Suspense } from "react";
+export default async function SharePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ url?: string; text?: string; title?: string }>;
+}) {
+  const params = await searchParams;
 
-function ShareHandler() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  // Extraire l'URL : Android la met souvent dans "text", iOS dans "url"
+  let url = params.url || "";
+  const text = params.text || "";
+  const title = params.title || "";
 
-  useEffect(() => {
-    // Extraire l'URL depuis les paramètres de partage
-    // Android partage souvent dans "text", iOS dans "url"
-    const sharedUrl = searchParams.get("url");
-    const sharedText = searchParams.get("text") || "";
-    const sharedTitle = searchParams.get("title") || "";
-
-    // Trouver une URL dans le texte partagé
-    let url = sharedUrl || "";
-    if (!url && sharedText) {
-      const urlMatch = sharedText.match(/https?:\/\/[^\s]+/);
-      if (urlMatch) {
-        url = urlMatch[0];
-      }
+  if (!url && text) {
+    const urlMatch = text.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      url = urlMatch[0];
     }
+  }
 
-    // Combiner titre + texte pour l'IA (infos partagées par l'app source)
-    const combinedText = [sharedTitle, sharedText].filter(Boolean).join("\n");
+  // Combiner titre + texte pour l'IA (infos partagées par l'app source)
+  const combinedText = [title, text].filter(Boolean).join("\n");
 
-    const params = new URLSearchParams();
-    if (url) params.set("url", url);
-    if (combinedText) params.set("sharedText", combinedText);
+  const redirectParams = new URLSearchParams();
+  if (url) redirectParams.set("url", url);
+  if (combinedText) redirectParams.set("sharedText", combinedText);
 
-    router.replace(`/property/new?${params.toString()}`);
-  }, [searchParams, router]);
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4" />
-        <p className="text-gray-600">Import de l&apos;annonce...</p>
-      </div>
-    </div>
-  );
-}
-
-export default function SharePage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full" />
-      </div>
-    }>
-      <ShareHandler />
-    </Suspense>
-  );
+  redirect(`/property/new?${redirectParams.toString()}`);
 }
