@@ -3,6 +3,7 @@ export interface Property {
   // Infos du bien
   address: string;
   city: string;
+  postal_code: string;
   purchase_price: number;
   surface: number;
   property_type: "ancien" | "neuf";
@@ -27,6 +28,8 @@ export interface Property {
   airbnb_charges: number;
   // Metadata
   source_url: string;
+  image_urls: string; // JSON array of image URLs
+  prefill_sources: string; // JSON: { field: { source, value } }
   created_at: string;
   updated_at: string;
 }

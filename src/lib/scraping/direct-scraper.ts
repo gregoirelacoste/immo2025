@@ -69,9 +69,10 @@ export function directScrape(
     }
   }
 
-  if (!allRequiredFound) {
-    return { data: null, allRequiredFound: false };
-  }
+  const hasAnyData = Object.keys(data).length > 0;
 
-  return { data: data as ScrapedPropertyData, allRequiredFound: true };
+  return {
+    data: hasAnyData ? (data as ScrapedPropertyData) : null,
+    allRequiredFound,
+  };
 }

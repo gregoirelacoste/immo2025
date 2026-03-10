@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getPropertyById } from "@/lib/db";
 import Navbar from "@/components/Navbar";
@@ -11,7 +12,7 @@ export default async function EditPropertyPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const property = getPropertyById(id);
+  const property = await getPropertyById(id);
 
   if (!property) {
     notFound();
@@ -24,7 +25,9 @@ export default async function EditPropertyPage({
         <h1 className="text-2xl font-bold text-gray-900 mb-6">
           Modifier le bien
         </h1>
-        <PropertyForm existingProperty={property} />
+        <Suspense fallback={<div className="text-gray-400">Chargement...</div>}>
+          <PropertyForm existingProperty={property} />
+        </Suspense>
       </main>
     </div>
   );

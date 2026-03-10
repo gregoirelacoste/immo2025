@@ -4,8 +4,8 @@ import DashboardClient from "@/components/DashboardClient";
 
 export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
-  const properties = getAllProperties();
+export default async function DashboardPage() {
+  const properties = await getAllProperties();
 
   return (
     <div className="min-h-screen bg-gray-50">

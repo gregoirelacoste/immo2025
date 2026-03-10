@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import PropertyForm from "@/components/PropertyForm";
 
@@ -9,7 +10,9 @@ export default function NewPropertyPage() {
         <h1 className="text-2xl font-bold text-gray-900 mb-6">
           Ajouter un bien
         </h1>
-        <PropertyForm />
+        <Suspense fallback={<div className="text-gray-400">Chargement...</div>}>
+          <PropertyForm />
+        </Suspense>
       </main>
     </div>
   );

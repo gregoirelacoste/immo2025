@@ -151,8 +151,21 @@ export default function DashboardClient({ properties }: Props) {
               <Link
                 key={p.id}
                 href={`/property/${p.id}`}
-                className="block bg-white rounded-xl border border-gray-200 p-4 active:bg-gray-50 transition-colors"
+                className="block bg-white rounded-xl border border-gray-200 overflow-hidden active:bg-gray-50 transition-colors"
               >
+                {(() => {
+                  try {
+                    const imgs: string[] = JSON.parse(p.image_urls || "[]");
+                    if (imgs.length === 0) return null;
+                    return (
+                      <div className="aspect-[16/9] bg-gray-100">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={imgs[0]} alt={p.city} className="w-full h-full object-cover" loading="lazy" />
+                      </div>
+                    );
+                  } catch { return null; }
+                })()}
+                <div className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="font-semibold text-gray-900">{p.city}</h3>
@@ -208,6 +221,7 @@ export default function DashboardClient({ properties }: Props) {
                     </p>
                   </div>
                 </div>
+                </div>
               </Link>
             ))}
           </div>
@@ -242,15 +256,31 @@ export default function DashboardClient({ properties }: Props) {
                 {sorted.map(({ property: p, calcs: c }) => (
                   <tr key={p.id} className="hover:bg-gray-50">
                     <td className="px-3 py-4 text-sm font-medium text-gray-900">
-                      <Link
-                        href={`/property/${p.id}`}
-                        className="hover:text-indigo-600"
-                      >
-                        {p.city}
-                      </Link>
-                      {p.address && (
-                        <div className="text-xs text-gray-400">{p.address}</div>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {(() => {
+                          try {
+                            const imgs: string[] = JSON.parse(p.image_urls || "[]");
+                            if (imgs.length === 0) return null;
+                            return (
+                              <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={imgs[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
+                              </div>
+                            );
+                          } catch { return null; }
+                        })()}
+                        <div>
+                          <Link
+                            href={`/property/${p.id}`}
+                            className="hover:text-indigo-600"
+                          >
+                            {p.city}
+                          </Link>
+                          {p.address && (
+                            <div className="text-xs text-gray-400">{p.address}</div>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-700">
                       {formatCurrency(p.purchase_price)}

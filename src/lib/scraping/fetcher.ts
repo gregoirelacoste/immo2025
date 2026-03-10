@@ -53,6 +53,69 @@ export function extractJsonLd(html: string): Record<string, unknown>[] {
   return results;
 }
 
+/** Extrait les URLs d'images depuis og:image et JSON-LD */
+export function extractImages(
+  html: string,
+  jsonLdBlocks: Record<string, unknown>[],
+  baseUrl: string
+): string[] {
+  const images: string[] = [];
+  const seen = new Set<string>();
+
+  function addImage(url: string | undefined | null) {
+    if (!url || typeof url !== "string") return;
+    // Résoudre les URLs relatives
+    try {
+      const absolute = new URL(url, baseUrl).href;
+      if (!seen.has(absolute) && /^https?:/.test(absolute)) {
+        seen.add(absolute);
+        images.push(absolute);
+      }
+    } catch {
+      // URL invalide
+    }
+  }
+
+  // 1. og:image meta tags
+  const ogRegex =
+    /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*\/?>/gi;
+  const ogRegex2 =
+    /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["'][^>]*\/?>/gi;
+  let m;
+  while ((m = ogRegex.exec(html)) !== null) addImage(m[1]);
+  while ((m = ogRegex2.exec(html)) !== null) addImage(m[1]);
+
+  // 2. JSON-LD image fields
+  for (const block of jsonLdBlocks) {
+    const img = block.image;
+    if (typeof img === "string") {
+      addImage(img);
+    } else if (Array.isArray(img)) {
+      for (const item of img) {
+        if (typeof item === "string") addImage(item);
+        else if (item && typeof item === "object" && (item as Record<string, unknown>).url) {
+          addImage(String((item as Record<string, unknown>).url));
+        }
+      }
+    } else if (img && typeof img === "object" && (img as Record<string, unknown>).url) {
+      addImage(String((img as Record<string, unknown>).url));
+    }
+
+    // Also check photos/photo field
+    const photos = block.photo || block.photos;
+    if (Array.isArray(photos)) {
+      for (const p of photos) {
+        if (typeof p === "string") addImage(p);
+        else if (p && typeof p === "object" && (p as Record<string, unknown>).contentUrl) {
+          addImage(String((p as Record<string, unknown>).contentUrl));
+        }
+      }
+    }
+  }
+
+  return images.slice(0, 10); // Max 10 images
+}
+
 /** Tente d'extraire les données immobilières depuis les JSON-LD */
 export function parseJsonLdProperty(
   jsonLdBlocks: Record<string, unknown>[]

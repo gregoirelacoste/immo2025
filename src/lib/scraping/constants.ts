@@ -1,5 +1,7 @@
 export const FAILURE_THRESHOLD = 3;
 
+export const MAX_AI_RETRIES = 3;
+
 export const FETCH_TIMEOUT_MS = 15000;
 
 export const USER_AGENT =
@@ -13,6 +15,7 @@ export const PROPERTY_FIELDS = [
   "purchase_price",
   "surface",
   "city",
+  "postal_code",
   "address",
   "description",
   "property_type",

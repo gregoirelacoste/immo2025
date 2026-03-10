@@ -26,9 +26,11 @@ export interface ScrapedPropertyData {
   purchase_price?: number;
   surface?: number;
   city?: string;
+  postal_code?: string;
   address?: string;
   description?: string;
   property_type?: "ancien" | "neuf";
+  image_urls?: string[];
 }
 
 /** Résultat retourné au client */
