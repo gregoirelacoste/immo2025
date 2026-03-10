@@ -95,7 +95,7 @@ async function getDb(): Promise<Client> {
 }
 
 function rowAs<T>(row: Row): T {
-  return row as unknown as T;
+  return { ...row } as unknown as T;
 }
 
 // ─── Users ───
