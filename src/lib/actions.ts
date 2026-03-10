@@ -21,6 +21,11 @@ async function requireUserId(): Promise<string> {
   return session.user.id;
 }
 
+async function getOptionalUserId(): Promise<string> {
+  const session = await auth();
+  return session?.user?.id || "";
+}
+
 function stripMeta(p: Property) {
   const { id, user_id, created_at, updated_at, ...rest } = p;
   void id; void user_id; void created_at; void updated_at;
@@ -32,8 +37,6 @@ export async function saveProperty(
   existingId?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const userId = await requireUserId();
-
     // Garantir que property_type est valide (CHECK constraint SQLite)
     const propertyType: "ancien" | "neuf" =
       formData.property_type === "neuf" ? "neuf" : "ancien";
@@ -51,8 +54,12 @@ export async function saveProperty(
     };
 
     if (existingId) {
+      // Modification → nécessite d'être propriétaire
+      const userId = await requireUserId();
       await updateProperty(existingId, userId, payload);
     } else {
+      // Création → anonyme ou connecté
+      const userId = await getOptionalUserId();
       await createProperty({ ...payload, user_id: userId });
     }
 
@@ -95,7 +102,6 @@ export async function rescrapeProperty(
   const typeChanged = d.property_type != null && d.property_type !== property.property_type;
   let newNotaryFees = property.notary_fees;
   if ((priceChanged || typeChanged) && property.notary_fees === 0) {
-    // Notaire était auto-calculé (0 = auto) → on le laisse à 0 pour recalcul auto
     newNotaryFees = 0;
   }
 
@@ -132,14 +138,17 @@ export async function rescrapeProperty(
 }
 
 export async function scrapeAndSaveProperty(
-  url: string
+  url: string,
+  sharedText?: string
 ): Promise<{ propertyId?: string; error?: string; warning?: string }> {
-  const userId = await requireUserId();
+  const userId = await getOptionalUserId();
 
-  // Vérifier si l'URL existe déjà en DB
-  const existing = await getPropertyBySourceUrl(url, userId);
-  if (existing) {
-    return { propertyId: existing.id };
+  // Vérifier si l'URL existe déjà en DB (seulement si connecté)
+  if (userId) {
+    const existing = await getPropertyBySourceUrl(url, userId);
+    if (existing) {
+      return { propertyId: existing.id };
+    }
   }
 
   let result;
@@ -149,7 +158,22 @@ export async function scrapeAndSaveProperty(
     result = { success: false, data: null, method: "manual" as const, source_url: url };
   }
 
-  const d = result.data ?? {};
+  let d = result.data ?? {};
+
+  // Si le scraping a échoué et qu'on a du texte partagé, essayer l'extraction IA
+  if (!result.success && sharedText && sharedText.trim().length > 10) {
+    try {
+      const { extractFromText } = await import("@/lib/scraping/text-extractor");
+      const extracted = await extractFromText(sharedText);
+      if (extracted && (extracted.purchase_price || extracted.city || extracted.surface)) {
+        d = { ...d, ...extracted };
+        result.method = "ai" as const;
+      }
+    } catch {
+      // Extraction IA échouée → on continue avec ce qu'on a
+    }
+  }
+
   const propertyType: "ancien" | "neuf" =
     d.property_type === "neuf" ? "neuf" : "ancien";
   const price = d.purchase_price || 0;
@@ -190,11 +214,9 @@ export async function scrapeAndSaveProperty(
           : "Estimation DVF (5.5%)";
         monthlyRent = Math.round(market.avgRentPerM2 * surface);
         prefill.monthly_rent = { source: rentSource, value: monthlyRent };
-        // Taxe foncière estimée ~1.5 mois de loyer
         propertyTax = Math.round(monthlyRent * 1.5);
         prefill.property_tax = { source: "Estimation (~1.5× loyer)", value: propertyTax };
       }
-      // Charges copro estimées ~2.5 €/m²/mois (appartement ancien)
       if (propertyType === "ancien") {
         condoCharges = Math.round(surface * 2.5);
         prefill.condo_charges = { source: "Estimation (2.5 €/m²)", value: condoCharges };

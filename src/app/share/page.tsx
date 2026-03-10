@@ -13,6 +13,7 @@ function ShareHandler() {
     // Android partage souvent dans "text", iOS dans "url"
     const sharedUrl = searchParams.get("url");
     const sharedText = searchParams.get("text") || "";
+    const sharedTitle = searchParams.get("title") || "";
 
     // Trouver une URL dans le texte partagé
     let url = sharedUrl || "";
@@ -23,13 +24,14 @@ function ShareHandler() {
       }
     }
 
-    if (url) {
-      // Rediriger vers le formulaire avec l'URL pré-remplie
-      router.replace(`/property/new?url=${encodeURIComponent(url)}`);
-    } else {
-      // Pas d'URL trouvée, rediriger vers le formulaire vide
-      router.replace("/property/new");
-    }
+    // Combiner titre + texte pour l'IA (infos partagées par l'app source)
+    const combinedText = [sharedTitle, sharedText].filter(Boolean).join("\n");
+
+    const params = new URLSearchParams();
+    if (url) params.set("url", url);
+    if (combinedText) params.set("sharedText", combinedText);
+
+    router.replace(`/property/new?${params.toString()}`);
   }, [searchParams, router]);
 
   return (

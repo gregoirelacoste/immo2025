@@ -119,13 +119,13 @@ export default function PropertyForm({ existingProperty }: Props) {
     updateField(field, isNaN(num) ? 0 : num);
   }
 
-  async function doScrapeAndSave(url: string) {
+  async function doScrapeAndSave(url: string, sharedText?: string) {
     setScraping(true);
     setScrapeStatus({ type: "idle" });
     setError("");
 
     try {
-      const { propertyId, error, warning } = await scrapeAndSaveProperty(url);
+      const { propertyId, error, warning } = await scrapeAndSaveProperty(url, sharedText);
 
       if (propertyId) {
         // Sauvegardé automatiquement → redirection vers la page d'édition
@@ -158,10 +158,11 @@ export default function PropertyForm({ existingProperty }: Props) {
   // Auto-scrape quand une URL est passée en query param (partage PWA)
   useEffect(() => {
     const urlParam = searchParams.get("url");
+    const sharedTextParam = searchParams.get("sharedText") || undefined;
     if (urlParam && !existingProperty && !autoScrapeTriggered.current) {
       autoScrapeTriggered.current = true;
       setScrapeUrl(urlParam);
-      doScrapeAndSave(urlParam);
+      doScrapeAndSave(urlParam, sharedTextParam);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
