@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { getUserByEmail, upsertOAuthUser } from "@/domains/auth/repository";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: process.env.AUTH_SECRET || "dev-secret-change-in-production",
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,

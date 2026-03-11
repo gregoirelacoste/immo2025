@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { scrapeAndSaveProperty, createPropertyFromText, extractAndUpdateFromText } from "@/domains/scraping/actions";
-import { rescrapeProperty } from "@/domains/property/actions";
+import { rescrapeProperty, savePropertyPhotos } from "@/domains/property/actions";
 import { CollectMode, PhotoMetadata } from "@/domains/collect/types";
 import CollectorPhotoMode from "@/components/collect/CollectorPhotoMode";
 import Alert from "@/components/ui/Alert";
@@ -12,9 +12,11 @@ import Spinner from "@/components/ui/Spinner";
 interface Props {
   /** If provided, updates existing property instead of creating new */
   existingPropertyId?: string;
+  /** Existing photos on the property (URLs or data URIs) */
+  existingPhotos?: string[];
   /** Called after successful collection */
   onSuccess?: (result: { propertyId: string; mode: string }) => void;
-  /** Compact mode for dashboard (no photo tab, smaller) */
+  /** Compact mode for dashboard (smaller textarea) */
   compact?: boolean;
 }
 
@@ -32,18 +34,16 @@ const TABS: Tab[] = [
   { mode: "photo", label: "Photo", icon: "\uD83D\uDCF7" },
 ];
 
-export default function SmartCollector({ existingPropertyId, onSuccess, compact }: Props) {
+export default function SmartCollector({ existingPropertyId, existingPhotos, onSuccess, compact }: Props) {
   const [activeMode, setActiveMode] = useState<CollectMode>("url");
   const [urlValue, setUrlValue] = useState("");
   const [textValue, setTextValue] = useState("");
-  const [photoData, setPhotoData] = useState<{ imageData: string; metadata: PhotoMetadata } | null>(null);
+  const [photos, setPhotos] = useState<string[]>(existingPhotos || []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const visibleTabs = compact ? TABS.filter((t) => t.mode !== "photo") : TABS;
 
   const handleTabChange = useCallback((mode: CollectMode) => {
     setActiveMode(mode);
@@ -62,7 +62,6 @@ export default function SmartCollector({ existingPropertyId, onSuccess, compact 
     setError("");
     setSuccess("");
 
-    // Smart detection: auto-switch to URL mode if a URL is pasted
     if (isUrl(v)) {
       setActiveMode("url");
       setUrlValue(v.trim());
@@ -72,17 +71,39 @@ export default function SmartCollector({ existingPropertyId, onSuccess, compact 
 
     setTextValue(v);
 
-    // Auto-resize textarea
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
   }
 
-  function handlePhotoCapture(imageData: string, metadata: PhotoMetadata) {
-    setPhotoData({ imageData, metadata });
+  function handlePhotoCapture(imageData: string, _metadata: PhotoMetadata) {
+    setPhotos((prev) => [...prev, imageData]);
     setError("");
     setSuccess("");
+
+    // Auto-save photos if editing an existing property
+    if (existingPropertyId) {
+      const updated = [...photos, imageData];
+      savePropertyPhotos(existingPropertyId, JSON.stringify(updated)).then((result) => {
+        if (result.success) {
+          setSuccess(`Photo ajoutee (${updated.length}/5)`);
+        }
+      });
+    }
+  }
+
+  function handlePhotoRemove(index: number) {
+    const updated = photos.filter((_, i) => i !== index);
+    setPhotos(updated);
+
+    if (existingPropertyId) {
+      savePropertyPhotos(existingPropertyId, JSON.stringify(updated)).then((result) => {
+        if (result.success) {
+          setSuccess("Photo supprimee");
+        }
+      });
+    }
   }
 
   function handleUrlKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -93,7 +114,6 @@ export default function SmartCollector({ existingPropertyId, onSuccess, compact 
   }
 
   function handleTextKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    // Submit on Enter without Shift in compact mode (single-line feel)
     if (e.key === "Enter" && !e.shiftKey && compact) {
       e.preventDefault();
       handleSubmit();
@@ -102,8 +122,7 @@ export default function SmartCollector({ existingPropertyId, onSuccess, compact 
 
   const canSubmit =
     (activeMode === "url" && urlValue.trim().length > 0) ||
-    (activeMode === "text" && textValue.trim().length > 0) ||
-    (activeMode === "photo" && photoData != null);
+    (activeMode === "text" && textValue.trim().length > 0);
 
   async function handleSubmit() {
     if (!canSubmit || loading) return;
@@ -115,66 +134,66 @@ export default function SmartCollector({ existingPropertyId, onSuccess, compact 
       if (activeMode === "url") {
         const trimmedUrl = urlValue.trim();
         if (existingPropertyId) {
-          // Rescrape existing property
           const result = await rescrapeProperty(existingPropertyId);
           if (result.success) {
-            setSuccess("Bien mis à jour avec les nouvelles données.");
+            setSuccess("Bien mis a jour avec les nouvelles donnees.");
             onSuccess?.({ propertyId: existingPropertyId, mode: "url" });
             router.refresh();
           } else {
             setError(result.error || "Impossible de re-scraper cette URL.");
           }
         } else {
-          // Create new from URL
           const { propertyId, warning, error: err } = await scrapeAndSaveProperty(trimmedUrl);
           if (propertyId) {
+            // Save collected photos to the new property
+            if (photos.length > 0) {
+              await savePropertyPhotos(propertyId, JSON.stringify(photos));
+            }
             onSuccess?.({ propertyId, mode: "url" });
             router.push(`/property/${propertyId}/edit`);
             return;
           }
-          setError(warning || err || "Impossible d'extraire les données de cette URL.");
+          setError(warning || err || "Impossible d'extraire les donnees de cette URL.");
         }
       } else if (activeMode === "text") {
         const trimmedText = textValue.trim();
         if (existingPropertyId) {
-          // Update existing from text
           const result = await extractAndUpdateFromText(existingPropertyId, trimmedText);
           if (result.success) {
-            setSuccess("Bien mis à jour avec les données extraites.");
+            setSuccess("Bien mis a jour avec les donnees extraites.");
             onSuccess?.({ propertyId: existingPropertyId, mode: "text" });
             router.refresh();
           } else {
-            setError(result.error || "Impossible d'extraire les données du texte.");
+            setError(result.error || "Impossible d'extraire les donnees du texte.");
           }
         } else {
-          // Create new from text
           const { propertyId, error: err } = await createPropertyFromText(trimmedText);
           if (propertyId) {
+            if (photos.length > 0) {
+              await savePropertyPhotos(propertyId, JSON.stringify(photos));
+            }
             onSuccess?.({ propertyId, mode: "text" });
             router.push(`/property/${propertyId}/edit`);
             return;
           }
-          setError(err || "Impossible d'extraire les données du texte.");
+          setError(err || "Impossible d'extraire les donnees du texte.");
         }
-      } else if (activeMode === "photo") {
-        // Photo mode: not yet implemented
-        setError("Bientôt disponible — l'analyse de photos arrive prochainement.");
       }
     } catch {
-      setError("Erreur inattendue, réessayez.");
+      setError("Erreur inattendue, reessayez.");
     }
 
     setLoading(false);
   }
 
   const buttonLabel =
-    activeMode === "url" ? "Importer" : activeMode === "text" ? "Analyser" : "Analyser";
+    activeMode === "url" ? "Importer" : "Analyser";
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-5">
       {/* Tab bar */}
       <div className="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1">
-        {visibleTabs.map((tab) => (
+        {TABS.map((tab) => (
           <button
             key={tab.mode}
             type="button"
@@ -222,7 +241,7 @@ export default function SmartCollector({ existingPropertyId, onSuccess, compact 
               value={textValue}
               onChange={handleTextChange}
               onKeyDown={handleTextKeyDown}
-              placeholder="Collez le texte d'une annonce immobilière..."
+              placeholder="Collez le texte d'une annonce immobiliere..."
               rows={compact ? 2 : 4}
               disabled={loading}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none overflow-hidden min-h-[44px] leading-relaxed"
@@ -239,22 +258,12 @@ export default function SmartCollector({ existingPropertyId, onSuccess, compact 
         )}
 
         {activeMode === "photo" && (
-          <>
-            <CollectorPhotoMode
-              onCapture={handlePhotoCapture}
-              disabled={loading}
-            />
-            {photoData && (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={loading}
-                className="w-full px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[44px] flex items-center justify-center gap-2"
-              >
-                {loading ? <><Spinner /> Analyse...</> : buttonLabel}
-              </button>
-            )}
-          </>
+          <CollectorPhotoMode
+            onCapture={handlePhotoCapture}
+            photos={photos}
+            onRemove={handlePhotoRemove}
+            disabled={loading}
+          />
         )}
       </div>
 

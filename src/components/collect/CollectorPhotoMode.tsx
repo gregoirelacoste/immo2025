@@ -3,18 +3,26 @@
 import { useState, useRef, useCallback } from "react";
 import { PhotoMetadata } from "@/domains/collect/types";
 
+const MAX_PHOTOS = 5;
+
 interface Props {
+  /** Called when a new photo is captured/uploaded */
   onCapture: (imageData: string, metadata: PhotoMetadata) => void;
+  /** Already captured photos (data URLs or remote URLs) */
+  photos?: string[];
+  /** Called to remove a photo by index */
+  onRemove?: (index: number) => void;
   disabled?: boolean;
 }
 
-export default function CollectorPhotoMode({ onCapture, disabled }: Props) {
-  const [preview, setPreview] = useState<string | null>(null);
+export default function CollectorPhotoMode({ onCapture, photos = [], onRemove, disabled }: Props) {
   const [capturing, setCapturing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const canAddMore = photos.length < MAX_PHOTOS;
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -35,7 +43,6 @@ export default function CollectorPhotoMode({ onCapture, disabled }: Props) {
           onCapture(imageData, meta);
         },
         () => {
-          // Permission refusee ou erreur → envoyer sans GPS
           onCapture(imageData, meta);
         },
         { timeout: 5000 }
@@ -53,7 +60,6 @@ export default function CollectorPhotoMode({ onCapture, disabled }: Props) {
       streamRef.current = stream;
       setCapturing(true);
 
-      // Wait for next tick so videoRef is rendered
       requestAnimationFrame(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -61,8 +67,7 @@ export default function CollectorPhotoMode({ onCapture, disabled }: Props) {
         }
       });
     } catch {
-      // Camera non disponible
-      alert("Impossible d'accéder à la caméra.");
+      alert("Impossible d'acceder a la camera.");
     }
   }
 
@@ -78,145 +83,136 @@ export default function CollectorPhotoMode({ onCapture, disabled }: Props) {
     const imageData = canvas.toDataURL("image/jpeg", 0.85);
 
     stopCamera();
-    setPreview(imageData);
     getGeoAndFinalize(imageData);
   }
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const imageData = reader.result as string;
-      setPreview(imageData);
-      getGeoAndFinalize(imageData);
-    };
-    reader.readAsDataURL(file);
-  }
+    const remaining = MAX_PHOTOS - photos.length;
+    const toProcess = Array.from(files).slice(0, remaining);
 
-  function handleReset() {
-    setPreview(null);
-    stopCamera();
-  }
+    toProcess.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const imageData = reader.result as string;
+        getGeoAndFinalize(imageData);
+      };
+      reader.readAsDataURL(file);
+    });
 
-  if (preview) {
-    return (
-      <div className="space-y-3">
-        <div className="relative rounded-lg overflow-hidden border border-gray-200">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={preview}
-            alt="Aperçu de la photo"
-            className="w-full max-h-48 object-cover"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={handleReset}
-          disabled={disabled}
-          className="text-sm text-indigo-600 hover:text-indigo-700 font-medium min-h-[44px]"
-        >
-          Reprendre une photo
-        </button>
-      </div>
-    );
-  }
-
-  if (capturing) {
-    return (
-      <div className="space-y-3">
-        <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-black">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full max-h-48 object-cover"
-          />
-        </div>
-        <canvas ref={canvasRef} className="hidden" />
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={handleTakePhoto}
-            className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors min-h-[44px]"
-          >
-            Capturer
-          </button>
-          <button
-            type="button"
-            onClick={stopCamera}
-            className="px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 min-h-[44px]"
-          >
-            Annuler
-          </button>
-        </div>
-      </div>
-    );
+    // Reset input so same file can be re-selected
+    e.target.value = "";
   }
 
   return (
     <div className="space-y-3">
-      <button
-        type="button"
-        onClick={handleStartCamera}
-        disabled={disabled}
-        className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[44px] flex items-center justify-center gap-2"
-      >
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
-        Prendre une photo
-      </button>
+      {/* Photo grid */}
+      {photos.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {photos.map((photo, i) => (
+            <div key={i} className="relative rounded-lg overflow-hidden border border-gray-200 aspect-square">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo}
+                alt={`Photo ${i + 1}`}
+                className="w-full h-full object-cover"
+              />
+              {onRemove && (
+                <button
+                  type="button"
+                  onClick={() => onRemove(i)}
+                  disabled={disabled}
+                  className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center text-xs hover:bg-black/80"
+                  aria-label={`Supprimer photo ${i + 1}`}
+                >
+                  x
+                </button>
+              )}
+              {i === 0 && (
+                <span className="absolute bottom-1 left-1 bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded font-medium">
+                  Couverture
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
-      <button
-        type="button"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={disabled}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 min-h-[44px] flex items-center justify-center gap-2"
-      >
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
-        </svg>
-        Importer une image
-      </button>
+      {/* Camera viewfinder */}
+      {capturing && (
+        <>
+          <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-black">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full max-h-48 object-cover"
+            />
+          </div>
+          <canvas ref={canvasRef} className="hidden" />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleTakePhoto}
+              className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors min-h-[44px]"
+            >
+              Capturer
+            </button>
+            <button
+              type="button"
+              onClick={stopCamera}
+              className="px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 min-h-[44px]"
+            >
+              Annuler
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Action buttons */}
+      {!capturing && canAddMore && (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleStartCamera}
+            disabled={disabled}
+            className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[44px] flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Prendre une photo
+          </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled}
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 min-h-[44px] flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Importer
+          </button>
+        </div>
+      )}
 
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         onChange={handleFileUpload}
         className="hidden"
       />
 
       <p className="text-xs text-gray-400 text-center">
-        Prenez en photo une vitrine d&apos;agence ou une annonce papier
+        {photos.length}/{MAX_PHOTOS} photos
+        {canAddMore ? " — ajoutez des photos du bien ou d'une annonce" : " — maximum atteint"}
       </p>
     </div>
   );

@@ -27,16 +27,16 @@ export default function LoanSection({ form, onChange, onLoanChange, calcs, month
         </div>
         <div>
           <label className={labelClass}>Montant emprunté</label>
-          <input type="number" inputMode="numeric" value={form.loan_amount || ""} onChange={(e) => onLoanChange(e.target.value)} required className={inputClass} placeholder="190000" />
+          <input type="number" inputMode="numeric" value={form.loan_amount || ""} onChange={(e) => onLoanChange(e.target.value)} className={inputClass} placeholder="190000" />
           {prefillHint("loan_amount")}
         </div>
         <div>
           <label className={labelClass}>Taux d&apos;intérêt (%)</label>
-          <input type="number" inputMode="decimal" step="0.01" value={form.interest_rate || ""} onChange={(e) => onChange("interest_rate", parseFloat(e.target.value) || 0)} required className={inputClass} placeholder="3.5" />
+          <input type="number" inputMode="decimal" step="0.01" value={form.interest_rate || ""} onChange={(e) => onChange("interest_rate", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="3.5" />
         </div>
         <div>
           <label className={labelClass}>Durée (années)</label>
-          <input type="number" inputMode="numeric" value={form.loan_duration || ""} onChange={(e) => onChange("loan_duration", parseInt(e.target.value, 10) || 0)} required className={inputClass} placeholder="20" />
+          <input type="number" inputMode="numeric" value={form.loan_duration || ""} onChange={(e) => onChange("loan_duration", parseInt(e.target.value, 10) || 0)} className={inputClass} placeholder="20" />
         </div>
         <div>
           <label className={labelClass}>Assurance emprunteur (% /an)</label>

@@ -146,7 +146,11 @@ export default function PropertyForm({ existingProperty }: Props) {
       {error && <Alert variant="error">{error}</Alert>}
 
       {existingProperty ? (
-        <SmartCollector existingPropertyId={existingProperty.id} onSuccess={() => router.refresh()} />
+        <SmartCollector
+          existingPropertyId={existingProperty.id}
+          existingPhotos={(() => { try { return JSON.parse(existingProperty.image_urls || "[]"); } catch { return []; } })()}
+          onSuccess={() => router.refresh()}
+        />
       ) : (
         <SmartCollector />
       )}

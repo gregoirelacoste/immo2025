@@ -66,6 +66,39 @@ export async function removeProperty(id: string): Promise<{ success: boolean; er
   }
 }
 
+export async function savePropertyPhotos(
+  propertyId: string,
+  imageUrlsJson: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Validate and enforce max 5 photos
+    let images: string[];
+    try {
+      images = JSON.parse(imageUrlsJson);
+      if (!Array.isArray(images)) images = [];
+      images = images.slice(0, 5);
+    } catch {
+      return { success: false, error: "Format d'images invalide." };
+    }
+
+    const { property, userId } = await getOwnerOrAllowOrphan(propertyId);
+    const baseData = stripMeta(property);
+    const payload = { ...baseData, image_urls: JSON.stringify(images) };
+
+    if (userId === null) {
+      await updateOrphanProperty(propertyId, payload);
+    } else {
+      await updateProperty(propertyId, userId, payload);
+    }
+
+    revalidatePath(`/property/${propertyId}`);
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
 export async function rescrapeProperty(
   id: string
 ): Promise<{ success: boolean; error?: string }> {
