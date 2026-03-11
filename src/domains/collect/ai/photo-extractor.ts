@@ -1,16 +1,33 @@
-"use server";
-
 import { callGeminiVision } from "@/infrastructure/ai/gemini";
-import { ScrapedPropertyData } from "@/domains/scraping/types";
+import { PhotoExtractionResult, PhotoExtractedListing } from "@/domains/collect/types";
 
-/**
- * Result of photo analysis — may contain multiple listings (vitrine d'agence)
- */
-export interface PhotoExtractionResult {
-  /** Is this a multi-listing image (agency storefront, screenshot with multiple properties)? */
-  isMultiListing: boolean;
-  /** Extracted listings — usually 1, but can be many for vitrines */
-  listings: ScrapedPropertyData[];
+/** Sanitize a raw key-value object into a typed PhotoExtractedListing */
+export function parseRawListing(item: Record<string, unknown>): PhotoExtractedListing {
+  const data: PhotoExtractedListing = {};
+
+  if (item.purchase_price != null) {
+    const n = parseInt(String(item.purchase_price).replace(/\D/g, ""), 10);
+    if (n > 0) data.purchase_price = n;
+  }
+  if (item.surface != null) {
+    const n = parseFloat(String(item.surface).replace(/[^\d.,]/g, "").replace(",", "."));
+    if (n > 0) data.surface = n;
+  }
+  if (item.monthly_rent != null) {
+    const n = parseInt(String(item.monthly_rent).replace(/\D/g, ""), 10);
+    if (n > 0) data.monthly_rent = n;
+  }
+  if (item.city) data.city = String(item.city).trim();
+  if (item.postal_code) {
+    const pc = String(item.postal_code).replace(/\D/g, "").slice(0, 5);
+    if (pc.length === 5) data.postal_code = pc;
+  }
+  if (item.address) data.address = String(item.address).trim();
+  if (item.description) data.description = String(item.description).trim().slice(0, 1000);
+  if (item.property_type === "neuf") data.property_type = "neuf";
+  else if (item.property_type === "ancien") data.property_type = "ancien";
+
+  return data;
 }
 
 const PHOTO_PROMPT = `Tu es un expert en immobilier français. Analyse cette photo/capture d'écran et extrais les informations immobilières.
@@ -60,33 +77,7 @@ export async function extractFromPhoto(
   const isMultiListing = parsed.is_multi_listing === true;
   const rawListings = Array.isArray(parsed.listings) ? parsed.listings : [];
 
-  const listings: ScrapedPropertyData[] = rawListings.map((item: Record<string, unknown>) => {
-    const data: ScrapedPropertyData = {};
-
-    if (item.purchase_price != null) {
-      const n = parseInt(String(item.purchase_price).replace(/\D/g, ""), 10);
-      if (n > 0) data.purchase_price = n;
-    }
-    if (item.surface != null) {
-      const n = parseFloat(String(item.surface).replace(/[^\d.,]/g, "").replace(",", "."));
-      if (n > 0) data.surface = n;
-    }
-    if (item.monthly_rent != null) {
-      const n = parseInt(String(item.monthly_rent).replace(/\D/g, ""), 10);
-      if (n > 0) (data as Record<string, unknown>).monthly_rent = n;
-    }
-    if (item.city) data.city = String(item.city).trim();
-    if (item.postal_code) {
-      const pc = String(item.postal_code).replace(/\D/g, "").slice(0, 5);
-      if (pc.length === 5) data.postal_code = pc;
-    }
-    if (item.address) data.address = String(item.address).trim();
-    if (item.description) data.description = String(item.description).trim().slice(0, 1000);
-    if (item.property_type === "neuf") data.property_type = "neuf";
-    else if (item.property_type === "ancien") data.property_type = "ancien";
-
-    return data;
-  });
+  const listings = rawListings.map((item: Record<string, unknown>) => parseRawListing(item));
 
   return { isMultiListing, listings };
 }

@@ -1,3 +1,5 @@
+import { ScrapedPropertyData } from "@/domains/scraping/types";
+
 /** The 3 modes of data collection */
 export type CollectMode = "url" | "text" | "photo";
 
@@ -12,4 +14,15 @@ export interface PhotoMetadata {
   address?: string;
   city?: string;
   postalCode?: string;
+}
+
+/** Data extracted from a photo — extends ScrapedPropertyData with monthly_rent */
+export interface PhotoExtractedListing extends ScrapedPropertyData {
+  monthly_rent?: number;
+}
+
+/** Result of photo analysis — may contain multiple listings (vitrine d'agence) */
+export interface PhotoExtractionResult {
+  isMultiListing: boolean;
+  listings: PhotoExtractedListing[];
 }
