@@ -7,11 +7,15 @@ import {
   updateEnrichmentFields,
 } from "@/domains/property/repository";
 
-export async function enrichProperty(
+/**
+ * Run enrichment pipeline (internal, no revalidation).
+ * Used by fire-and-forget calls from other server actions.
+ * Does NOT call revalidatePath to avoid "revalidate during render" errors.
+ */
+export async function enrichPropertyQuiet(
   propertyId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Mark as running
     await updateEnrichmentFields(propertyId, {
       enrichment_status: "running",
       enrichment_error: "",
@@ -27,11 +31,8 @@ export async function enrichProperty(
     }
 
     const result = await runEnrichmentPipeline(property);
-
     await updateEnrichmentFields(propertyId, result);
 
-    revalidatePath(`/property/${propertyId}`);
-    revalidatePath("/dashboard");
     return { success: true };
   } catch (e) {
     await updateEnrichmentFields(propertyId, {
@@ -43,8 +44,19 @@ export async function enrichProperty(
   }
 }
 
+/**
+ * Run enrichment + revalidate paths.
+ * Called directly from the client (e.g. "Actualiser" button).
+ */
 export async function refreshEnrichment(
   propertyId: string
 ): Promise<{ success: boolean; error?: string }> {
-  return enrichProperty(propertyId);
+  const result = await enrichPropertyQuiet(propertyId);
+
+  if (result.success) {
+    revalidatePath(`/property/${propertyId}`);
+    revalidatePath("/dashboard");
+  }
+
+  return result;
 }

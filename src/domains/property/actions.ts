@@ -15,7 +15,7 @@ import { calculateNotaryFees } from "@/lib/calculations";
 import { scrapeUrl } from "@/domains/scraping/pipeline/orchestrator";
 import { Property, PropertyFormData } from "@/domains/property/types";
 import { mergeRescrapeIntoPrefill, parsePrefill } from "@/domains/property/prefill";
-import { enrichProperty } from "@/domains/enrich/actions";
+import { enrichPropertyQuiet } from "@/domains/enrich/actions";
 
 export async function saveProperty(
   formData: PropertyFormData,
@@ -53,7 +53,7 @@ export async function saveProperty(
 
     // Re-enrich after save (address/city may have changed)
     const propId = existingId || undefined;
-    if (propId) enrichProperty(propId).catch(() => {});
+    if (propId) enrichPropertyQuiet(propId).catch(() => {});
 
     return { success: true };
   } catch (e) {
@@ -159,7 +159,7 @@ export async function rescrapeProperty(
   revalidatePath("/dashboard");
 
   // Re-enrich after rescrape
-  enrichProperty(id).catch(() => {});
+  enrichPropertyQuiet(id).catch(() => {});
 
   return { success: true };
 }
