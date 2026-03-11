@@ -8,6 +8,7 @@ import {
   getPropertyBySourceUrl,
   stripMeta,
   getOwnerOrAllowOrphan,
+  updateCollectFields,
 } from "@/domains/property/repository";
 import { getOptionalUserId } from "@/lib/auth-actions";
 import { calculateNotaryFees } from "@/lib/calculations";
@@ -124,6 +125,12 @@ export async function scrapeAndSaveProperty(
     prefill_sources: JSON.stringify(prefill),
   });
 
+  // Set collect_urls with this URL
+  await updateCollectFields(id, {
+    collect_urls: JSON.stringify([url]),
+    source_url: url,
+  });
+
   revalidatePath("/dashboard");
 
   // Fire-and-forget enrichment
@@ -210,6 +217,11 @@ export async function createPropertyFromText(
       source_url: "",
       image_urls: "[]",
       prefill_sources: JSON.stringify(prefill),
+    });
+
+    // Set collect_texts with this text
+    await updateCollectFields(id, {
+      collect_texts: JSON.stringify([rawText]),
     });
 
     revalidatePath("/dashboard");

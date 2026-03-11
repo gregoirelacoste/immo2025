@@ -39,15 +39,18 @@ export interface Property {
   enrichment_status: string; // "pending" | "running" | "done" | "error"
   enrichment_error: string;
   enrichment_at: string;
+  // Collecte (URLs et textes ajoutés par l'utilisateur)
+  collect_urls: string;  // JSON: string[] — toutes les URLs ajoutées
+  collect_texts: string; // JSON: string[] — tous les textes collés
   // Metadata
-  source_url: string;
-  image_urls: string; // JSON array of image URLs
+  source_url: string;    // URL active (= première de collect_urls, utilisée pour le scraping)
+  image_urls: string;    // JSON array of image URLs
   prefill_sources: string; // JSON: { field: { source, value } }
   created_at: string;
   updated_at: string;
 }
 
-export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "socioeconomic_data" | "enrichment_status" | "enrichment_error" | "enrichment_at">;
+export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "socioeconomic_data" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "collect_urls" | "collect_texts">;
 
 export interface PropertyCalculations {
   // Prêt

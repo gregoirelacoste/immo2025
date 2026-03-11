@@ -69,6 +69,7 @@ export default function PropertyForm({ existingProperty }: Props) {
         latitude: _lat, longitude: _lng, market_data: _md,
         investment_score: _is, score_breakdown: _sb, socioeconomic_data: _sed,
         enrichment_status: _es, enrichment_error: _ee, enrichment_at: _ea,
+        collect_urls: _cu, collect_texts: _ct,
         ...rest
       } = existingProperty;
       return rest;
@@ -112,6 +113,7 @@ export default function PropertyForm({ existingProperty }: Props) {
     latitude: null, longitude: null, market_data: "",
     investment_score: null, score_breakdown: "{}", socioeconomic_data: "",
     enrichment_status: "pending", enrichment_error: "", enrichment_at: "",
+    collect_urls: "[]", collect_texts: "[]",
     ...form,
   };
   const calcs = calculateAll(fakeProperty);
@@ -163,6 +165,9 @@ export default function PropertyForm({ existingProperty }: Props) {
         <SmartCollector
           existingPropertyId={existingProperty.id}
           existingPhotos={(() => { try { return JSON.parse(existingProperty.image_urls || "[]"); } catch { return []; } })()}
+          existingCollectUrls={(() => { try { return JSON.parse(existingProperty.collect_urls || "[]"); } catch { return []; } })()}
+          existingCollectTexts={(() => { try { return JSON.parse(existingProperty.collect_texts || "[]"); } catch { return []; } })()}
+          sourceUrl={existingProperty.source_url}
           onSuccess={() => router.refresh()}
         />
       ) : (
@@ -185,12 +190,6 @@ export default function PropertyForm({ existingProperty }: Props) {
         />
       ) : (
         <InvestmentScorePreview calcs={calcs} />
-      )}
-
-      {form.source_url && (
-        <div className="text-xs text-gray-400 text-center">
-          Source : <a href={form.source_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">{form.source_url}</a>
-        </div>
       )}
 
       <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">

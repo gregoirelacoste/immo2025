@@ -2,8 +2,9 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { scrapeAndSaveProperty, createPropertyFromText, extractAndUpdateFromText } from "@/domains/scraping/actions";
-import { rescrapeProperty, savePropertyPhotos } from "@/domains/property/actions";
+import { scrapeAndSaveProperty, createPropertyFromText } from "@/domains/scraping/actions";
+import { savePropertyPhotos } from "@/domains/property/actions";
+import { addCollectUrl, removeCollectUrl, addCollectText, removeCollectText } from "@/domains/collect/actions";
 import { CollectMode, PhotoMetadata } from "@/domains/collect/types";
 import CollectorPhotoMode from "@/components/collect/CollectorPhotoMode";
 import Alert from "@/components/ui/Alert";
@@ -15,6 +16,9 @@ const JPEG_QUALITY = 0.7;
 interface Props {
   existingPropertyId?: string;
   existingPhotos?: string[];
+  existingCollectUrls?: string[];
+  existingCollectTexts?: string[];
+  sourceUrl?: string;
   onSuccess?: (result: { propertyId: string; mode: string }) => void;
   compact?: boolean;
 }
@@ -25,7 +29,6 @@ function isUrl(input: string): boolean {
   return URL_REGEX.test(input.trim());
 }
 
-/** Resize a file to a compressed JPEG data URL */
 function resizeFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -61,11 +64,22 @@ const TABS: Tab[] = [
   { mode: "photo", label: "Photo", icon: "📷" },
 ];
 
-export default function SmartCollector({ existingPropertyId, existingPhotos, onSuccess, compact }: Props) {
+export default function SmartCollector({
+  existingPropertyId,
+  existingPhotos,
+  existingCollectUrls,
+  existingCollectTexts,
+  sourceUrl,
+  onSuccess,
+  compact,
+}: Props) {
   const [activeMode, setActiveMode] = useState<CollectMode>("url");
   const [urlValue, setUrlValue] = useState("");
   const [textValue, setTextValue] = useState("");
   const [photos, setPhotos] = useState<string[]>(existingPhotos || []);
+  const [collectUrls, setCollectUrls] = useState<string[]>(existingCollectUrls || []);
+  const [collectTexts, setCollectTexts] = useState<string[]>(existingCollectTexts || []);
+  const [currentSourceUrl, setCurrentSourceUrl] = useState(sourceUrl || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -92,7 +106,6 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
       }
       return updated;
     });
-    // Auto-switch to photo tab so user sees the result
     setActiveMode("photo");
     setError("");
   }
@@ -111,12 +124,11 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
     }
   }
 
-  // --- Paste: intercept images from clipboard on any tab ---
+  // --- Paste: intercept images ---
 
   async function handlePaste(e: React.ClipboardEvent) {
     const items = e.clipboardData?.items;
     if (!items) return;
-
     for (const item of Array.from(items)) {
       if (item.type.startsWith("image/")) {
         e.preventDefault();
@@ -129,32 +141,24 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
         return;
       }
     }
-    // No image found → let default paste behavior proceed (text goes into input/textarea)
   }
 
-  // --- Drag & drop: accept images on the whole component ---
+  // --- Drag & drop ---
 
   function handleDragOver(e: React.DragEvent) {
     e.preventDefault();
-    if (e.dataTransfer.types.includes("Files")) {
-      setIsDragOver(true);
-    }
+    if (e.dataTransfer.types.includes("Files")) setIsDragOver(true);
   }
 
   function handleDragLeave(e: React.DragEvent) {
-    // Only reset if leaving the component (not a child)
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setIsDragOver(false);
-    }
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragOver(false);
   }
 
   async function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setIsDragOver(false);
-
     const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
     if (files.length === 0) return;
-
     const remaining = 5 - photos.length;
     for (const file of files.slice(0, remaining)) {
       try {
@@ -164,7 +168,7 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
     }
   }
 
-  // --- Text/URL handlers ---
+  // --- Input handlers ---
 
   function handleUrlChange(e: React.ChangeEvent<HTMLInputElement>) {
     setUrlValue(e.target.value);
@@ -176,16 +180,13 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
     const v = e.target.value;
     setError("");
     setSuccess("");
-
     if (isUrl(v)) {
       setActiveMode("url");
       setUrlValue(v.trim());
       setTextValue("");
       return;
     }
-
     setTextValue(v);
-
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
@@ -193,17 +194,11 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
   }
 
   function handleUrlKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSubmit();
-    }
+    if (e.key === "Enter") { e.preventDefault(); handleSubmit(); }
   }
 
   function handleTextKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey && compact) {
-      e.preventDefault();
-      handleSubmit();
-    }
+    if (e.key === "Enter" && !e.shiftKey && compact) { e.preventDefault(); handleSubmit(); }
   }
 
   // --- Submit ---
@@ -221,16 +216,27 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
     try {
       if (activeMode === "url") {
         const trimmedUrl = urlValue.trim();
+
         if (existingPropertyId) {
-          const result = await rescrapeProperty(existingPropertyId);
+          // Add URL to existing property
+          const result = await addCollectUrl(existingPropertyId, trimmedUrl);
           if (result.success) {
-            setSuccess("Bien mis à jour avec les nouvelles données.");
+            setCollectUrls((prev) => [...prev, trimmedUrl]);
+            if (collectUrls.length === 0) {
+              // First URL → became source
+              setCurrentSourceUrl(trimmedUrl);
+              setSuccess("URL importée et données mises à jour.");
+            } else {
+              setSuccess("URL ajoutée.");
+            }
+            setUrlValue("");
             onSuccess?.({ propertyId: existingPropertyId, mode: "url" });
             router.refresh();
           } else {
-            setError(result.error || "Impossible de re-scraper cette URL.");
+            setError(result.error || "Erreur lors de l'ajout de l'URL.");
           }
         } else {
+          // New property: scrape + create
           const { propertyId, warning, error: err } = await scrapeAndSaveProperty(trimmedUrl);
           if (propertyId) {
             if (photos.length > 0) {
@@ -244,16 +250,21 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
         }
       } else if (activeMode === "text") {
         const trimmedText = textValue.trim();
+
         if (existingPropertyId) {
-          const result = await extractAndUpdateFromText(existingPropertyId, trimmedText);
+          // Add text to existing property
+          const result = await addCollectText(existingPropertyId, trimmedText);
           if (result.success) {
-            setSuccess("Bien mis à jour avec les données extraites.");
+            setCollectTexts((prev) => [...prev, trimmedText]);
+            setSuccess("Texte analysé et données mises à jour.");
+            setTextValue("");
             onSuccess?.({ propertyId: existingPropertyId, mode: "text" });
             router.refresh();
           } else {
-            setError(result.error || "Impossible d'extraire les données du texte.");
+            setError(result.error || "Erreur lors de l'analyse du texte.");
           }
         } else {
+          // New property: create from text
           const { propertyId, error: err } = await createPropertyFromText(trimmedText);
           if (propertyId) {
             if (photos.length > 0) {
@@ -273,14 +284,53 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
     setLoading(false);
   }
 
-  const buttonLabel = activeMode === "url" ? "Importer" : "Analyser";
+  // --- Remove handlers ---
+
+  async function handleRemoveUrl(index: number) {
+    if (!existingPropertyId || loading) return;
+    setLoading(true);
+    setError("");
+
+    const result = await removeCollectUrl(existingPropertyId, index);
+    if (result.success) {
+      const newUrls = collectUrls.filter((_, i) => i !== index);
+      setCollectUrls(newUrls);
+      setCurrentSourceUrl(newUrls.length > 0 ? newUrls[0] : "");
+      if (newUrls.length > 0 && index === 0) {
+        setSuccess("URL source mise à jour — rescraping en cours...");
+      }
+      router.refresh();
+    } else {
+      setError(result.error || "Erreur lors de la suppression.");
+    }
+    setLoading(false);
+  }
+
+  async function handleRemoveText(index: number) {
+    if (!existingPropertyId || loading) return;
+    setLoading(true);
+    setError("");
+
+    const result = await removeCollectText(existingPropertyId, index);
+    if (result.success) {
+      setCollectTexts((prev) => prev.filter((_, i) => i !== index));
+      router.refresh();
+    } else {
+      setError(result.error || "Erreur lors de la suppression.");
+    }
+    setLoading(false);
+  }
+
+  // --- Render ---
+
+  const buttonLabel = activeMode === "url"
+    ? (existingPropertyId ? "Ajouter" : "Importer")
+    : "Analyser";
 
   return (
     <div
       className={`bg-white rounded-xl shadow-sm border p-4 md:p-5 transition-colors ${
-        isDragOver
-          ? "border-indigo-400 border-dashed border-2 bg-indigo-50"
-          : "border-gray-200"
+        isDragOver ? "border-indigo-400 border-dashed border-2 bg-indigo-50" : "border-gray-200"
       }`}
       onPaste={handlePaste}
       onDragOver={handleDragOver}
@@ -307,22 +357,33 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
                 {photos.length}
               </span>
             )}
+            {tab.mode === "url" && collectUrls.length > 0 && (
+              <span className="ml-1 text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">
+                {collectUrls.length}
+              </span>
+            )}
+            {tab.mode === "text" && collectTexts.length > 0 && (
+              <span className="ml-1 text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">
+                {collectTexts.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Drag overlay hint */}
+      {/* Drag overlay */}
       {isDragOver && (
         <div className="text-center py-6 text-indigo-500 font-medium text-sm">
           Déposez votre image ici
         </div>
       )}
 
-      {/* Content area */}
+      {/* Content */}
       {!isDragOver && (
         <div className="space-y-3">
+          {/* URL tab */}
           {activeMode === "url" && (
-            <div className="flex gap-2 items-start">
+            <>
               <input
                 type="url"
                 value={urlValue}
@@ -330,19 +391,69 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
                 onKeyDown={handleUrlKeyDown}
                 placeholder="https://www.leboncoin.fr/ad/ventes_immobilieres/..."
                 disabled={loading}
-                className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[44px]"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[44px]"
               />
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading || !urlValue.trim()}
-                className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[44px] min-w-[100px] shrink-0 flex items-center justify-center gap-2"
+                className="w-full px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[44px] flex items-center justify-center gap-2"
               >
                 {loading ? <><Spinner /> Import...</> : buttonLabel}
               </button>
-            </div>
+
+              {/* URL list */}
+              {collectUrls.length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  <p className="text-xs font-medium text-gray-500">URLs collectées</p>
+                  {collectUrls.map((url, i) => {
+                    const isSource = url === currentSourceUrl;
+                    return (
+                      <div
+                        key={i}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                          isSource
+                            ? "bg-indigo-50 border border-indigo-200"
+                            : "bg-gray-50 border border-gray-200"
+                        }`}
+                      >
+                        {isSource && (
+                          <span className="shrink-0 text-[10px] font-semibold bg-indigo-600 text-white px-1.5 py-0.5 rounded">
+                            SOURCE
+                          </span>
+                        )}
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`flex-1 truncate hover:underline ${
+                            isSource ? "text-indigo-700 font-medium" : "text-gray-600"
+                          }`}
+                        >
+                          {url.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60)}
+                        </a>
+                        {existingPropertyId && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveUrl(i)}
+                            disabled={loading}
+                            className="shrink-0 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                            aria-label="Supprimer cette URL"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
 
+          {/* Text tab */}
           {activeMode === "text" && (
             <>
               <textarea
@@ -363,9 +474,40 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
               >
                 {loading ? <><Spinner /> Analyse...</> : buttonLabel}
               </button>
+
+              {/* Text list (folded) */}
+              {collectTexts.length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  <p className="text-xs font-medium text-gray-500">Textes collectés</p>
+                  {collectTexts.map((text, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm"
+                    >
+                      <p className="flex-1 text-gray-600 line-clamp-2 text-xs leading-relaxed">
+                        {text.slice(0, 150)}{text.length > 150 ? "…" : ""}
+                      </p>
+                      {existingPropertyId && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveText(i)}
+                          disabled={loading}
+                          className="shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                          aria-label="Supprimer ce texte"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
 
+          {/* Photo tab */}
           {activeMode === "photo" && (
             <CollectorPhotoMode
               onCapture={handlePhotoCapture}
@@ -378,12 +520,8 @@ export default function SmartCollector({ existingPropertyId, existingPhotos, onS
       )}
 
       {/* Feedback */}
-      {error && (
-        <Alert variant="error" className="mt-3">{error}</Alert>
-      )}
-      {success && (
-        <Alert variant="success" className="mt-3">{success}</Alert>
-      )}
+      {error && <Alert variant="error" className="mt-3">{error}</Alert>}
+      {success && <Alert variant="success" className="mt-3">{success}</Alert>}
     </div>
   );
 }

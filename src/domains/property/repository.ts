@@ -5,8 +5,17 @@ import { Property } from "./types";
 
 /** Strip metadata fields from a Property, returning only the mutable data fields. */
 export function stripMeta(p: Property) {
-  const { id, user_id, created_at, updated_at, ...rest } = p;
+  const {
+    id, user_id, created_at, updated_at,
+    latitude, longitude, market_data, investment_score, score_breakdown,
+    socioeconomic_data, enrichment_status, enrichment_error, enrichment_at,
+    collect_urls, collect_texts,
+    ...rest
+  } = p;
   void id; void user_id; void created_at; void updated_at;
+  void latitude; void longitude; void market_data; void investment_score;
+  void score_breakdown; void socioeconomic_data; void enrichment_status;
+  void enrichment_error; void enrichment_at; void collect_urls; void collect_texts;
   return rest;
 }
 
@@ -103,7 +112,7 @@ export async function getPropertyBySourceUrl(
 }
 
 export async function createProperty(
-  property: Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data">
+  property: Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts">
 ): Promise<string> {
   const db = await getDb();
   const id = crypto.randomUUID();
@@ -134,7 +143,7 @@ export async function createProperty(
 export async function updateProperty(
   id: string,
   userId: string,
-  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data">
+  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts">
 ): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
@@ -163,7 +172,7 @@ export async function updateProperty(
 /** Update an orphaned property (no owner check — only for user_id = '' or NULL) */
 export async function updateOrphanProperty(
   id: string,
-  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data">
+  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts">
 ): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
@@ -212,6 +221,33 @@ export async function updateEnrichmentFields(
   const db = await getDb();
   const setClauses: string[] = [];
   const args: (string | number | null)[] = [];
+
+  for (const [key, value] of Object.entries(fields)) {
+    setClauses.push(`${key} = ?`);
+    args.push(value ?? null);
+  }
+
+  if (setClauses.length === 0) return;
+
+  args.push(id);
+  await db.execute({
+    sql: `UPDATE properties SET ${setClauses.join(", ")}, updated_at = datetime('now') WHERE id = ?`,
+    args,
+  });
+}
+
+/** Update collect fields (URLs and texts lists) + source_url */
+export async function updateCollectFields(
+  id: string,
+  fields: Partial<{
+    collect_urls: string;
+    collect_texts: string;
+    source_url: string;
+  }>
+): Promise<void> {
+  const db = await getDb();
+  const setClauses: string[] = [];
+  const args: (string | null)[] = [];
 
   for (const [key, value] of Object.entries(fields)) {
     setClauses.push(`${key} = ?`);
