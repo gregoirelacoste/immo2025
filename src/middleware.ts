@@ -1,16 +1,12 @@
 import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
 
-export default auth((req) => {
-  if (!req.auth) {
-    const loginUrl = new URL("/login", req.nextUrl.origin);
-    const callbackUrl = req.nextUrl.pathname + req.nextUrl.search;
-    loginUrl.searchParams.set("callbackUrl", callbackUrl);
-    return NextResponse.redirect(loginUrl);
-  }
+// Middleware: only attaches session to request, never redirects.
+// Auth checks are handled by individual pages/actions.
+export default auth(() => {
+  // No redirect — all routes are accessible
 });
 
 export const config = {
-  // No routes require login — pages handle auth checks themselves
-  matcher: [],
+  // Only run middleware on pages that need session info, skip static/api
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icons|sw.js|manifest.json|api/auth).*)"],
 };
