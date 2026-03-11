@@ -1,8 +1,9 @@
 /**
- * INSEE Données Locales - Demographics (Recensement de la Population)
- * Dataset: RP (Recensement de la Population)
+ * INSEE Données Locales — Demographics (Recensement de la Population)
+ * Dataset: GEO2023RP2020
+ * Variables: SEXE-AGE15_15_90 → age bands 0-14, 15-29, 30-44, 45-59, 60-74, 75-89, 90+
  */
-import { inseeGet, isInseeConfigured } from "./client";
+import { inseeGetData } from "./client";
 import { AgeDistribution } from "../socioeconomic-types";
 
 interface InseeDemographics {
@@ -11,114 +12,100 @@ interface InseeDemographics {
 }
 
 /**
- * Fetch population and age distribution from INSEE Données Locales
- * Uses the "Dossier complet" endpoint which provides pre-aggregated commune data
+ * Fetch population and age distribution from INSEE RP (Recensement).
+ * No authentication required.
  */
 export async function fetchInseeDemographics(communeCode: string): Promise<InseeDemographics> {
-  if (!isInseeConfigured()) {
-    return { population: null, ageDistribution: null };
-  }
+  // AGE15_15_90 gives age bands: 0-14, 15-29, 30-44, 45-59, 60-74, 75-89, 90+
+  // .all.all = all sexes x all age bands
+  const data = await inseeGetData("SEXE-AGE15_15_90", "GEO2023RP2020", communeCode, ".all.all");
 
-  try {
-    // Dossier complet gives us a comprehensive data sheet per commune
-    const res = await inseeGet(
-      `/donnees-locales/V0.1/donnees/geo-COM@${communeCode}.all/GEO2024RP2021-POPLEG-POP1B`
-    );
+  if (!data) return { population: null, ageDistribution: null };
 
-    if (!res.ok) {
-      // Try simpler population endpoint
-      return await fetchSimplePopulation(communeCode);
-    }
-
-    const data = await res.json();
-    return parsePopulationData(data);
-  } catch {
-    // Fallback to geo API population
-    return { population: null, ageDistribution: null };
-  }
+  return parsePopulationData(data);
 }
 
-async function fetchSimplePopulation(communeCode: string): Promise<InseeDemographics> {
-  try {
-    const res = await inseeGet(
-      `/donnees-locales/V0.1/donnees/geo-COM@${communeCode}.all/GEO2024RP2021-POPLEG-POP1A`
-    );
-    if (!res.ok) return { population: null, ageDistribution: null };
-
-    const data = await res.json();
-    const pop = extractTotalPopulation(data);
-    return { population: pop, ageDistribution: null };
-  } catch {
-    return { population: null, ageDistribution: null };
-  }
-}
-
-function extractTotalPopulation(data: Record<string, unknown>): number | null {
-  try {
-    // INSEE données locales returns Cellule array with Mesure/Modalite
-    const cellules = (data as { Cellule?: Array<{ Mesure: { "@code": string }; Valeur: string }> }).Cellule;
-    if (!cellules) return null;
-
-    // Look for total population value
-    for (const cell of cellules) {
-      if (cell.Mesure?.["@code"] === "POP" || cell.Mesure?.["@code"] === "POPTOT") {
-        const val = parseFloat(cell.Valeur);
-        if (!isNaN(val)) return Math.round(val);
-      }
-    }
-    // If no specific code, take first numeric value
-    const firstVal = parseFloat(cellules[0]?.Valeur);
-    return isNaN(firstVal) ? null : Math.round(firstVal);
-  } catch {
-    return null;
-  }
+interface CelluleItem {
+  Mesure?: { "@code"?: string };
+  Modalite?: Array<{ "@code"?: string; "@variable"?: string }> | { "@code"?: string; "@variable"?: string };
+  Valeur?: string;
 }
 
 function parsePopulationData(data: Record<string, unknown>): InseeDemographics {
   try {
-    const cellules = (data as { Cellule?: Array<{ Mesure: { "@code": string }; Modalite?: { "@code": string }; Valeur: string }> }).Cellule;
-    if (!cellules) return { population: null, ageDistribution: null };
+    const cellules = (data as { Cellule?: CelluleItem[] }).Cellule;
+    if (!cellules || !Array.isArray(cellules)) return { population: null, ageDistribution: null };
 
-    let total = 0;
-    const ageBuckets: Record<string, number> = {};
+    // Accumulate population by age band, summing both sexes
+    // AGE15_15_90 codes: 0 (0-14), 15 (15-29), 30 (30-44), 45 (45-59), 60 (60-74), 75 (75-89), 90 (90+)
+    const ageTotals: Record<string, number> = {};
+    let totalPop = 0;
 
     for (const cell of cellules) {
-      const val = parseFloat(cell.Valeur);
+      const val = parseFloat(cell.Valeur || "");
       if (isNaN(val)) continue;
 
-      const ageCode = cell.Modalite?.["@code"] || "";
-      ageBuckets[ageCode] = val;
-      total += val;
-    }
+      // Find the age modalite
+      const modalites = Array.isArray(cell.Modalite) ? cell.Modalite : [cell.Modalite];
+      const ageModalite = modalites.find((m) => m?.["@variable"] === "AGE15_15_90");
+      const sexeModalite = modalites.find((m) => m?.["@variable"] === "SEXE");
 
-    if (total === 0) return { population: null, ageDistribution: null };
+      // Only count "ensemble" (both sexes) to avoid double counting
+      // SEXE code "0" or "ENS" = ensemble
+      const sexeCode = sexeModalite?.["@code"] || "";
+      if (sexeCode && sexeCode !== "0" && sexeCode !== "ENS") continue;
 
-    // Map INSEE age codes to our buckets
-    // Typical codes: 0-19, 20-39, 40-59, 60+
-    let under20 = 0, age20to39 = 0, age40to59 = 0, over60 = 0;
+      const ageCode = ageModalite?.["@code"] || "total";
 
-    for (const [code, val] of Object.entries(ageBuckets)) {
-      const num = parseInt(code.replace(/\D/g, ""));
-      if (isNaN(num)) {
-        // Skip total rows
-        continue;
+      if (ageCode === "total" || ageCode === "ENS") {
+        // This is the grand total
+        totalPop = Math.max(totalPop, val);
+      } else {
+        ageTotals[ageCode] = (ageTotals[ageCode] || 0) + val;
       }
-      if (num < 20) under20 += val;
-      else if (num < 40) age20to39 += val;
-      else if (num < 60) age40to59 += val;
-      else over60 += val;
     }
 
-    const popTotal = under20 + age20to39 + age40to59 + over60;
-    if (popTotal === 0) return { population: Math.round(total), ageDistribution: null };
+    // If no explicit total, sum all age bands
+    if (totalPop === 0) {
+      totalPop = Object.values(ageTotals).reduce((s, v) => s + v, 0);
+    }
+
+    if (totalPop === 0) return { population: null, ageDistribution: null };
+
+    // Map to our age groups:
+    // under20: codes 0 (0-14) + part of 15 (15-29) → approximate: code 0 + code 15 * 1/3
+    // Actually, let's map cleanly:
+    // under20 ≈ code 0 (0-14) — close enough, 0-14 vs 0-19
+    // age20to39 ≈ code 15 (15-29) + code 30 (30-44) * ~0.5 → approximate
+    // Better: just use the bands as-is and map to closest
+    const age0_14 = ageTotals["0"] || 0;
+    const age15_29 = ageTotals["15"] || 0;
+    const age30_44 = ageTotals["30"] || 0;
+    const age45_59 = ageTotals["45"] || 0;
+    const age60_74 = ageTotals["60"] || 0;
+    const age75_89 = ageTotals["75"] || 0;
+    const age90plus = ageTotals["90"] || 0;
+
+    // Map to our 4 buckets:
+    // < 20 ans ≈ 0-14 + 1/3 of 15-29
+    // 20-39 ≈ 2/3 of 15-29 + 2/3 of 30-44
+    // 40-59 ≈ 1/3 of 30-44 + 45-59
+    // 60+ ≈ 60-74 + 75-89 + 90+
+    const under20 = age0_14 + age15_29 * (1 / 3);
+    const age20to39 = age15_29 * (2 / 3) + age30_44 * (2 / 3);
+    const age40to59 = age30_44 * (1 / 3) + age45_59;
+    const over60 = age60_74 + age75_89 + age90plus;
+
+    const sumBuckets = under20 + age20to39 + age40to59 + over60;
+    if (sumBuckets === 0) return { population: Math.round(totalPop), ageDistribution: null };
 
     return {
-      population: Math.round(total),
+      population: Math.round(totalPop),
       ageDistribution: {
-        under20Pct: Math.round((under20 / popTotal) * 1000) / 10,
-        age20to39Pct: Math.round((age20to39 / popTotal) * 1000) / 10,
-        age40to59Pct: Math.round((age40to59 / popTotal) * 1000) / 10,
-        over60Pct: Math.round((over60 / popTotal) * 1000) / 10,
+        under20Pct: Math.round((under20 / sumBuckets) * 1000) / 10,
+        age20to39Pct: Math.round((age20to39 / sumBuckets) * 1000) / 10,
+        age40to59Pct: Math.round((age40to59 / sumBuckets) * 1000) / 10,
+        over60Pct: Math.round((over60 / sumBuckets) * 1000) / 10,
       },
     };
   } catch {

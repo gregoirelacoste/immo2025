@@ -72,7 +72,7 @@ export async function fetchSocioEconomicData(
     communeCode,
     communeName: geoPopulation.communeName || commune.nom,
     population,
-    populationYear: inseeDemographics.population ? 2021 : null,
+    populationYear: inseeDemographics.population ? 2020 : null,
     ageDistribution: inseeDemographics.ageDistribution,
     medianIncome: inseeEconomics.medianIncome,
     povertyRate: inseeEconomics.povertyRate,

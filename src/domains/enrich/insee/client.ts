@@ -1,64 +1,38 @@
 /**
- * INSEE API client
- * Auth: Bearer token from consumer key/secret (OAuth2 client credentials)
- * Docs: https://api.insee.fr/catalogue
+ * INSEE Données Locales API client
+ * NO authentication required — fully open API
+ * Docs: https://api.insee.fr/catalogue/site/themes/wso2/subthemes/insee/pages/item-info.jag?name=DonneesLocales&version=V0.1
+ *
+ * Endpoint pattern:
+ *   GET https://api.insee.fr/donnees-locales/donnees/geo-{variables}@{dataset}/{nivgeo}-{codegeo}{modalites}
+ *
+ * Examples:
+ *   Population by age: geo-SEXE-AGE15_15_90@GEO2023RP2020/COM-75056.all.all
+ *   Income: geo-INDICS_FILO_DISP_DET@GEO2022FILO2019/COM-75056.all
  */
 
-let _cachedToken: { token: string; expiresAt: number } | null = null;
+const BASE_URL = "https://api.insee.fr/donnees-locales/donnees";
 
-/** Get a Bearer token using OAuth2 client credentials flow */
-async function getToken(): Promise<string> {
-  const consumerKey = process.env.INSEE_CONSUMER_KEY;
-  const consumerSecret = process.env.INSEE_CONSUMER_SECRET;
+/**
+ * Fetch data from INSEE Données Locales.
+ * Returns parsed JSON or null on error.
+ */
+export async function inseeGetData(
+  variables: string,
+  dataset: string,
+  communeCode: string,
+  modalites: string = ".all"
+): Promise<Record<string, unknown> | null> {
+  const url = `${BASE_URL}/geo-${variables}@${dataset}/COM-${communeCode}${modalites}`;
 
-  if (!consumerKey || !consumerSecret) {
-    throw new Error("INSEE_CONSUMER_KEY / INSEE_CONSUMER_SECRET non configurés");
+  try {
+    const res = await fetch(url, {
+      headers: { "Accept": "application/json" },
+    });
+
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
   }
-
-  // Return cached token if still valid (with 60s margin)
-  if (_cachedToken && _cachedToken.expiresAt > Date.now() + 60_000) {
-    return _cachedToken.token;
-  }
-
-  const credentials = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
-  const res = await fetch("https://api.insee.fr/token", {
-    method: "POST",
-    headers: {
-      "Authorization": `Basic ${credentials}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
-  });
-
-  if (!res.ok) {
-    throw new Error(`INSEE auth failed: ${res.status}`);
-  }
-
-  const data = await res.json();
-  _cachedToken = {
-    token: data.access_token,
-    expiresAt: Date.now() + (data.expires_in ?? 86400) * 1000,
-  };
-
-  return _cachedToken.token;
-}
-
-/** Make an authenticated request to the INSEE API */
-export async function inseeGet(path: string): Promise<Response> {
-  const token = await getToken();
-  const url = path.startsWith("http") ? path : `https://api.insee.fr${path}`;
-
-  const res = await fetch(url, {
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Accept": "application/json",
-    },
-  });
-
-  return res;
-}
-
-/** Check if INSEE API keys are configured */
-export function isInseeConfigured(): boolean {
-  return !!(process.env.INSEE_CONSUMER_KEY && process.env.INSEE_CONSUMER_SECRET);
 }

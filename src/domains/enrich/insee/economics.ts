@@ -1,9 +1,11 @@
 /**
- * INSEE Données Locales - Economic data
- * - Filosofi (revenus)
- * - Emploi
+ * INSEE Données Locales — Economic data
+ * - Filosofi (revenus, pauvreté) — dataset GEO2022FILO2019
+ * - Emploi (RP) — dataset GEO2023RP2020
+ *
+ * No authentication required.
  */
-import { inseeGet, isInseeConfigured } from "./client";
+import { inseeGetData } from "./client";
 
 interface InseeEconomics {
   medianIncome: number | null;
@@ -12,125 +14,107 @@ interface InseeEconomics {
   totalJobs: number | null;
 }
 
+interface CelluleItem {
+  Mesure?: { "@code"?: string };
+  Modalite?: Array<{ "@code"?: string; "@variable"?: string }> | { "@code"?: string; "@variable"?: string };
+  Valeur?: string;
+}
+
 /**
- * Fetch income data from INSEE Filosofi dataset
+ * Fetch income and poverty data from Filosofi.
+ * INDICS_FILO_DISP_DET returns: MEDIANE (median income), TP60 (poverty rate), D1, D9, etc.
  */
 async function fetchIncome(communeCode: string): Promise<{ medianIncome: number | null; povertyRate: number | null }> {
+  const data = await inseeGetData("INDICS_FILO_DISP_DET", "GEO2022FILO2019", communeCode, ".all");
+
+  if (!data) return { medianIncome: null, povertyRate: null };
+
   try {
-    // Filosofi - revenus et pauvreté
-    const res = await inseeGet(
-      `/donnees-locales/V0.1/donnees/geo-COM@${communeCode}.all/GEO2024FILO2021-REVME-MED`
-    );
-
-    if (!res.ok) return { medianIncome: null, povertyRate: null };
-
-    const data = await res.json();
-    const cellules = (data as { Cellule?: Array<{ Mesure?: { "@code": string }; Valeur: string }> }).Cellule;
+    const cellules = (data as { Cellule?: CelluleItem[] }).Cellule;
     if (!cellules) return { medianIncome: null, povertyRate: null };
 
     let medianIncome: number | null = null;
+    let povertyRate: number | null = null;
 
     for (const cell of cellules) {
-      const val = parseFloat(cell.Valeur);
+      const val = parseFloat(cell.Valeur || "");
       if (isNaN(val)) continue;
-      const code = cell.Mesure?.["@code"] || "";
-      if (code === "MED" || code === "REVMED" || code.includes("MED")) {
+
+      const mesureCode = cell.Mesure?.["@code"] || "";
+
+      if (mesureCode === "MEDIANE" || mesureCode === "MED") {
         medianIncome = Math.round(val);
-        break;
+      }
+      if (mesureCode === "TP60") {
+        povertyRate = Math.round(val * 10) / 10;
       }
     }
 
-    // If no specific code matched, try the first value
-    if (medianIncome === null && cellules.length > 0) {
-      const val = parseFloat(cellules[0].Valeur);
-      if (!isNaN(val) && val > 1000 && val < 100000) {
-        medianIncome = Math.round(val);
-      }
-    }
-
-    return { medianIncome, povertyRate: null };
+    return { medianIncome, povertyRate };
   } catch {
     return { medianIncome: null, povertyRate: null };
   }
 }
 
 /**
- * Fetch poverty rate from Filosofi
- */
-async function fetchPoverty(communeCode: string): Promise<number | null> {
-  try {
-    const res = await inseeGet(
-      `/donnees-locales/V0.1/donnees/geo-COM@${communeCode}.all/GEO2024FILO2021-PAUV-TP60`
-    );
-
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    const cellules = (data as { Cellule?: Array<{ Valeur: string }> }).Cellule;
-    if (!cellules || cellules.length === 0) return null;
-
-    const val = parseFloat(cellules[0].Valeur);
-    return isNaN(val) ? null : Math.round(val * 10) / 10;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Fetch employment data
+ * Fetch employment data from RP.
+ * TACTR_2 = type d'activité (actifs occupés, chômeurs, inactifs)
  */
 async function fetchEmployment(communeCode: string): Promise<{ unemploymentRate: number | null; totalJobs: number | null }> {
+  // SEXE-TACTR_2: activity type by sex
+  const data = await inseeGetData("SEXE-TACTR_2", "GEO2023RP2020", communeCode, ".all.all");
+
+  if (!data) return { unemploymentRate: null, totalJobs: null };
+
   try {
-    // Emploi au lieu de travail
-    const res = await inseeGet(
-      `/donnees-locales/V0.1/donnees/geo-COM@${communeCode}.all/GEO2024RP2021-EMP-EMP1`
-    );
-
-    if (!res.ok) return { unemploymentRate: null, totalJobs: null };
-
-    const data = await res.json();
-    const cellules = (data as { Cellule?: Array<{ Mesure?: { "@code": string }; Valeur: string }> }).Cellule;
+    const cellules = (data as { Cellule?: CelluleItem[] }).Cellule;
     if (!cellules) return { unemploymentRate: null, totalJobs: null };
 
-    let totalJobs: number | null = null;
-    let unemploymentRate: number | null = null;
+    let employed = 0;
+    let unemployed = 0;
 
     for (const cell of cellules) {
-      const val = parseFloat(cell.Valeur);
+      const val = parseFloat(cell.Valeur || "");
       if (isNaN(val)) continue;
-      const code = cell.Mesure?.["@code"] || "";
-      if (code === "EMPLT" || code.includes("EMP")) {
-        totalJobs = Math.round(val);
-      }
-      if (code === "TCHOM" || code.includes("CHOM")) {
-        unemploymentRate = Math.round(val * 10) / 10;
-      }
+
+      // Filter for ensemble (both sexes)
+      const modalites = Array.isArray(cell.Modalite) ? cell.Modalite : [cell.Modalite];
+      const sexeModalite = modalites.find((m) => m?.["@variable"] === "SEXE");
+      const sexeCode = sexeModalite?.["@code"] || "";
+      if (sexeCode && sexeCode !== "0" && sexeCode !== "ENS") continue;
+
+      const actModalite = modalites.find((m) => m?.["@variable"] === "TACTR_2");
+      const actCode = actModalite?.["@code"] || "";
+
+      // TACTR_2 codes: 11 = actifs ayant un emploi, 12 = chômeurs, 2 = inactifs
+      if (actCode === "11") employed += val;
+      if (actCode === "12") unemployed += val;
     }
 
-    return { unemploymentRate, totalJobs };
+    const active = employed + unemployed;
+    const unemploymentRate = active > 0 ? Math.round((unemployed / active) * 1000) / 10 : null;
+
+    return {
+      unemploymentRate,
+      totalJobs: employed > 0 ? Math.round(employed) : null,
+    };
   } catch {
     return { unemploymentRate: null, totalJobs: null };
   }
 }
 
 /**
- * Fetch all economic data for a commune
+ * Fetch all economic data for a commune (parallel requests)
  */
 export async function fetchInseeEconomics(communeCode: string): Promise<InseeEconomics> {
-  if (!isInseeConfigured()) {
-    return { medianIncome: null, povertyRate: null, unemploymentRate: null, totalJobs: null };
-  }
-
-  // Run in parallel
-  const [income, poverty, employment] = await Promise.all([
+  const [income, employment] = await Promise.all([
     fetchIncome(communeCode),
-    fetchPoverty(communeCode),
     fetchEmployment(communeCode),
   ]);
 
   return {
     medianIncome: income.medianIncome,
-    povertyRate: income.povertyRate ?? poverty,
+    povertyRate: income.povertyRate,
     unemploymentRate: employment.unemploymentRate,
     totalJobs: employment.totalJobs,
   };
