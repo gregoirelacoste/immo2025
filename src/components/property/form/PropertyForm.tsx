@@ -54,6 +54,18 @@ const defaultFormData: PropertyFormData = {
   prefill_sources: "{}",
 };
 
+function stripToFormData(p: Property): PropertyFormData {
+  const {
+    id: _id, created_at: _created_at, updated_at: _updated_at,
+    latitude: _lat, longitude: _lng, market_data: _md,
+    investment_score: _is, score_breakdown: _sb, socioeconomic_data: _sed,
+    enrichment_status: _es, enrichment_error: _ee, enrichment_at: _ea,
+    collect_urls: _cu, collect_texts: _ct,
+    ...rest
+  } = p;
+  return rest;
+}
+
 interface Props {
   existingProperty?: Property;
 }
@@ -65,20 +77,21 @@ export default function PropertyForm({ existingProperty }: Props) {
   const [error, setError] = useState("");
   const autoScrapeTriggered = useRef(false);
 
-  const [form, setForm] = useState<PropertyFormData>(() => {
-    if (existingProperty) {
-      const {
-        id: _id, created_at: _created_at, updated_at: _updated_at,
-        latitude: _lat, longitude: _lng, market_data: _md,
-        investment_score: _is, score_breakdown: _sb, socioeconomic_data: _sed,
-        enrichment_status: _es, enrichment_error: _ee, enrichment_at: _ea,
-        collect_urls: _cu, collect_texts: _ct,
-        ...rest
-      } = existingProperty;
-      return rest;
+  const [form, setForm] = useState<PropertyFormData>(() =>
+    existingProperty ? stripToFormData(existingProperty) : defaultFormData
+  );
+
+  // Sync form state when existingProperty changes (after router.refresh())
+  const lastUpdatedAt = useRef(existingProperty?.updated_at);
+  useEffect(() => {
+    if (
+      existingProperty &&
+      existingProperty.updated_at !== lastUpdatedAt.current
+    ) {
+      lastUpdatedAt.current = existingProperty.updated_at;
+      setForm(stripToFormData(existingProperty));
     }
-    return defaultFormData;
-  });
+  }, [existingProperty]);
 
   const { setLoanManuallySet } = useLoanAutoCalc(form, setForm);
   const { setRentManuallySet } = useRentAutoCalc(form, setForm);
@@ -107,12 +120,6 @@ export default function PropertyForm({ existingProperty }: Props) {
   // Photo GPS → auto-fill address/city if empty
   const handlePhotoGeo = useCallback(async (metadata: PhotoMetadata) => {
     if (!metadata.latitude || !metadata.longitude) return;
-
-    // Only auto-fill if address and city are both empty
-    setForm((prev) => {
-      if (prev.address && prev.city) return prev; // Already filled, don't override
-      return prev; // We'll update async below
-    });
 
     try {
       const geo = await reverseGeocode(metadata.latitude, metadata.longitude);

@@ -7,7 +7,7 @@ import { estimateMonthlyRent } from "@/domains/market/actions";
 /**
  * Auto-estimate monthly rent when city + surface are set and rent is 0.
  * Fetches market data server-side and fills monthly_rent.
- * User can override manually — auto-calc won't overwrite non-zero values.
+ * User can override manually — auto-calc won't overwrite.
  */
 export function useRentAutoCalc(
   form: PropertyFormData,
@@ -16,37 +16,41 @@ export function useRentAutoCalc(
   const [rentManuallySet, setRentManuallySet] = useState(
     () => form.monthly_rent > 0
   );
-  const lastCity = useRef(form.city);
-  const lastSurface = useRef(form.surface);
+  const pendingRef = useRef(false);
+
+  // Reset manual flag when form is synced with new server data
+  // (e.g. after text extraction fills monthly_rent)
+  useEffect(() => {
+    if (form.monthly_rent > 0) {
+      setRentManuallySet(true);
+    }
+  }, [form.monthly_rent]);
 
   useEffect(() => {
-    // Only auto-estimate if rent is not manually set
     if (rentManuallySet) return;
 
     const city = form.city.trim();
     const surface = form.surface;
 
-    // Skip if no city or surface
     if (!city || surface <= 0) return;
 
-    // Skip if nothing changed
-    if (city === lastCity.current && surface === lastSurface.current) return;
-    lastCity.current = city;
-    lastSurface.current = surface;
-
-    // Debounce: wait 500ms after last change
+    // Debounce: wait 500ms
+    pendingRef.current = true;
     const timer = setTimeout(async () => {
+      if (!pendingRef.current) return;
       const result = await estimateMonthlyRent(city, surface);
-      if (result) {
+      if (result && pendingRef.current) {
         setForm((prev) => {
-          // Don't overwrite if user set it meanwhile
           if (prev.monthly_rent > 0) return prev;
           return { ...prev, monthly_rent: result.rent };
         });
       }
     }, 500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      pendingRef.current = false;
+      clearTimeout(timer);
+    };
   }, [form.city, form.surface, rentManuallySet, setForm]);
 
   return { rentManuallySet, setRentManuallySet };
