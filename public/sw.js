@@ -1,4 +1,4 @@
-const CACHE_NAME = "immo2025-v3";
+const CACHE_NAME = "immo2025-v4";
 const PRECACHE_URLS = ["/dashboard", "/property/new"];
 // Ne jamais cacher les redirections de partage ni les API
 const NO_CACHE_PATTERNS = ["/share", "/api/"];
@@ -19,6 +19,13 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+});
+
+// Écouter le message SKIP_WAITING pour forcer la mise à jour
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", (event) => {

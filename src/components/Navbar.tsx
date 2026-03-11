@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import AppVersion from "@/components/AppVersion";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -17,7 +18,7 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-8">
-              <Link href="/dashboard" className="text-xl font-bold text-indigo-600">
+              <Link href="/dashboard" className="text-xl font-bold text-indigo-600 flex items-baseline gap-1">
                 Immo2025
               </Link>
               <Link
@@ -110,7 +111,13 @@ export default function Navbar() {
             <span className="text-xs mt-0.5 font-medium">Nouveau</span>
           </Link>
         </div>
+        <AppVersion />
       </nav>
+
+      {/* Desktop footer version */}
+      <div className="hidden md:block fixed bottom-0 right-0 p-2">
+        <AppVersion />
+      </div>
     </>
   );
 }

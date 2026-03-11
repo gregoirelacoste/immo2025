@@ -39,7 +39,15 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js');
+                navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                  var refreshing = false;
+                  navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    if (!refreshing) {
+                      refreshing = true;
+                      window.location.reload();
+                    }
+                  });
+                });
               }
             `,
           }}
