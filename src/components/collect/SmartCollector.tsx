@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { scrapeAndSaveProperty, createPropertyFromText } from "@/domains/scraping/actions";
 import { savePropertyPhotos } from "@/domains/property/actions";
 import { addCollectUrl, removeCollectUrl, addCollectText, removeCollectText, analyzeCollectPhoto, applyPhotoListing } from "@/domains/collect/actions";
-import { CollectMode, PhotoMetadata } from "@/domains/collect/types";
-import { ScrapedPropertyData } from "@/domains/scraping/types";
+import { CollectMode, PhotoMetadata, PhotoExtractedListing } from "@/domains/collect/types";
 import CollectorPhotoMode from "@/components/collect/CollectorPhotoMode";
 import PhotoListingPicker from "@/components/collect/PhotoListingPicker";
 import Alert from "@/components/ui/Alert";
@@ -89,7 +88,7 @@ export default function SmartCollector({
   const [success, setSuccess] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
   const [analyzingPhotoIndex, setAnalyzingPhotoIndex] = useState<number | null>(null);
-  const [multiListings, setMultiListings] = useState<ScrapedPropertyData[] | null>(null);
+  const [multiListings, setMultiListings] = useState<PhotoExtractedListing[] | null>(null);
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -375,7 +374,7 @@ export default function SmartCollector({
     setAnalyzingPhotoIndex(null);
   }
 
-  async function handleSelectListing(listing: ScrapedPropertyData) {
+  async function handleSelectListing(listing: PhotoExtractedListing) {
     if (!existingPropertyId) return;
     setLoading(true);
     setError("");

@@ -1,5 +1,6 @@
 import { ScrapedPropertyData, ScrapeResult } from "@/domains/scraping/types";
 import { MarketData } from "@/domains/market/types";
+import { PhotoExtractedListing } from "@/domains/collect/types";
 
 type PrefillRecord = Record<string, { source: string; value: number | string }>;
 
@@ -96,7 +97,7 @@ export function mergeTextExtractionIntoPrefill(
 /** Merges existing prefill with fields extracted from photo analysis */
 export function mergePhotoExtractionIntoPrefill(
   existing: PrefillRecord,
-  data: ScrapedPropertyData & { monthly_rent?: number }
+  data: PhotoExtractedListing
 ): PrefillRecord {
   const merged = { ...existing };
 
@@ -105,7 +106,7 @@ export function mergePhotoExtractionIntoPrefill(
   if (data.city) merged.city = { source: "Photo (IA Vision)", value: data.city };
   if (data.address) merged.address = { source: "Photo (IA Vision)", value: data.address };
   if (data.postal_code) merged.postal_code = { source: "Photo (IA Vision)", value: data.postal_code };
-  if (data.monthly_rent) merged.monthly_rent = { source: "Photo (IA Vision)", value: data.monthly_rent };
+  if (data.monthly_rent != null) merged.monthly_rent = { source: "Photo (IA Vision)", value: data.monthly_rent };
 
   return merged;
 }

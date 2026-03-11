@@ -8,7 +8,6 @@ import {
   updateProperty,
   updateOrphanProperty,
 } from "@/domains/property/repository";
-import { ScrapedPropertyData } from "@/domains/scraping/types";
 import { scrapeUrl } from "@/domains/scraping/pipeline/orchestrator";
 import { extractFromText } from "@/domains/scraping/ai/text-extractor";
 import { getMarketData } from "@/domains/market/service";
@@ -18,7 +17,8 @@ import {
   mergeRescrapeIntoPrefill,
   parsePrefill,
 } from "@/domains/property/prefill";
-import { extractFromPhoto, PhotoExtractionResult } from "@/domains/collect/ai/photo-extractor";
+import { PhotoExtractionResult, PhotoExtractedListing } from "@/domains/collect/types";
+import { extractFromPhoto, parseRawListing } from "@/domains/collect/ai/photo-extractor";
 import { calculateNotaryFees } from "@/lib/calculations";
 import { enrichPropertyQuiet } from "@/domains/enrich/actions";
 
@@ -282,29 +282,7 @@ export async function applyPhotoListing(
   try {
     const { property, userId } = await getOwnerOrAllowOrphan(propertyId);
 
-    // Re-parse the listing data safely
-    const d: ScrapedPropertyData & { monthly_rent?: number } = {};
-    if (listing.purchase_price != null) {
-      const n = parseInt(String(listing.purchase_price).replace(/\D/g, ""), 10);
-      if (n > 0) d.purchase_price = n;
-    }
-    if (listing.surface != null) {
-      const n = parseFloat(String(listing.surface).replace(/[^\d.,]/g, "").replace(",", "."));
-      if (n > 0) d.surface = n;
-    }
-    if (listing.monthly_rent != null) {
-      const n = parseInt(String(listing.monthly_rent).replace(/\D/g, ""), 10);
-      if (n > 0) d.monthly_rent = n;
-    }
-    if (listing.city) d.city = String(listing.city).trim();
-    if (listing.postal_code) {
-      const pc = String(listing.postal_code).replace(/\D/g, "").slice(0, 5);
-      if (pc.length === 5) d.postal_code = pc;
-    }
-    if (listing.address) d.address = String(listing.address).trim();
-    if (listing.description) d.description = String(listing.description).trim().slice(0, 1000);
-    if (listing.property_type === "neuf") d.property_type = "neuf";
-    else if (listing.property_type === "ancien") d.property_type = "ancien";
+    const d = parseRawListing(listing);
 
     await mergePhotoDataIntoProperty(propertyId, d, property, userId);
 
@@ -319,7 +297,7 @@ export async function applyPhotoListing(
 /** Internal: merge photo-extracted data into property */
 async function mergePhotoDataIntoProperty(
   propertyId: string,
-  d: ScrapedPropertyData & { monthly_rent?: number },
+  d: PhotoExtractedListing,
   property: Awaited<ReturnType<typeof getOwnerOrAllowOrphan>>["property"],
   userId: string | null
 ) {

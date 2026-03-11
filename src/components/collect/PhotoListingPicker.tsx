@@ -1,11 +1,11 @@
 "use client";
 
-import { ScrapedPropertyData } from "@/domains/scraping/types";
+import { PhotoExtractedListing } from "@/domains/collect/types";
 import { formatCurrency } from "@/lib/calculations";
 
 interface Props {
-  listings: ScrapedPropertyData[];
-  onSelect: (listing: ScrapedPropertyData) => void;
+  listings: PhotoExtractedListing[];
+  onSelect: (listing: PhotoExtractedListing) => void;
   onCancel: () => void;
   loading?: boolean;
 }
@@ -57,7 +57,7 @@ export default function PhotoListingPicker({ listings, onSelect, onCancel, loadi
         type="button"
         onClick={onCancel}
         disabled={loading}
-        className="w-full px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+        className="w-full px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors min-h-[44px]"
       >
         Annuler
       </button>
