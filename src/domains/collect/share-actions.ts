@@ -14,6 +14,33 @@ import { enrichPropertyQuiet } from "@/domains/enrich/actions";
 import { PhotoExtractedListing } from "@/domains/collect/types";
 
 /**
+ * Fast path for URL-only shares (serverless-safe, no in-memory store).
+ * Scrapes the URL and creates a property directly.
+ */
+export async function processShareUrlDirect(
+  url: string,
+  text?: string,
+  title?: string
+): Promise<{ propertyId?: string; error?: string }> {
+  if (!url) {
+    return { error: "Aucune URL à traiter." };
+  }
+
+  try {
+    // Try scraping first
+    const sharedText = [title, text].filter(Boolean).join("\n") || undefined;
+    const result = await scrapeAndSaveProperty(url, sharedText);
+    if (result.propertyId) {
+      revalidatePath("/dashboard");
+      return { propertyId: result.propertyId };
+    }
+    return { error: result.error || "Impossible d'analyser cette URL." };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+}
+
+/**
  * Process shared data and create a property directly.
  * Priority: URL scraping → photo analysis → text extraction → hints.
  * Returns the created property ID or an error.

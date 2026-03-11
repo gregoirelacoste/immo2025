@@ -37,6 +37,16 @@ export async function POST(request: NextRequest) {
     // Detect source app and extract hints
     const { source, hints } = parseShareHints(resolvedUrl, text, title);
 
+    // Fast path: URL-only share → pass URL in query params (serverless-safe)
+    if (resolvedUrl && images.length === 0) {
+      const target = new URL("/share/preview", request.url);
+      target.searchParams.set("url", resolvedUrl);
+      if (text && text !== resolvedUrl) target.searchParams.set("text", text);
+      if (title) target.searchParams.set("title", title);
+      return NextResponse.redirect(target, 303);
+    }
+
+    // Full path: images present → use in-memory store (works in single-process only)
     const shareData: ShareData = {
       url: resolvedUrl,
       text,
@@ -49,7 +59,6 @@ export async function POST(request: NextRequest) {
 
     const sessionId = storeShareData(shareData);
 
-    // Redirect to preview page
     return NextResponse.redirect(
       new URL(`/share/preview?sessionId=${sessionId}`, request.url),
       303
