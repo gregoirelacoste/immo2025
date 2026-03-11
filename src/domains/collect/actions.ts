@@ -8,14 +8,17 @@ import {
   updateProperty,
   updateOrphanProperty,
 } from "@/domains/property/repository";
+import { ScrapedPropertyData } from "@/domains/scraping/types";
 import { scrapeUrl } from "@/domains/scraping/pipeline/orchestrator";
 import { extractFromText } from "@/domains/scraping/ai/text-extractor";
 import { getMarketData } from "@/domains/market/service";
 import {
   mergeTextExtractionIntoPrefill,
+  mergePhotoExtractionIntoPrefill,
   mergeRescrapeIntoPrefill,
   parsePrefill,
 } from "@/domains/property/prefill";
+import { extractFromPhoto, PhotoExtractionResult } from "@/domains/collect/ai/photo-extractor";
 import { calculateNotaryFees } from "@/lib/calculations";
 import { enrichPropertyQuiet } from "@/domains/enrich/actions";
 
@@ -230,6 +233,148 @@ export async function removeCollectText(
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }
+}
+
+// ─── Photo analysis ───
+
+/**
+ * Analyze a photo with Gemini Vision and merge extracted data into property.
+ * Returns the extraction result (which may contain multiple listings for vitrines).
+ */
+export async function analyzeCollectPhoto(
+  propertyId: string,
+  imageBase64: string,
+  mimeType: string = "image/jpeg"
+): Promise<{ success: boolean; result?: PhotoExtractionResult; error?: string }> {
+  try {
+    const { property, userId } = await getOwnerOrAllowOrphan(propertyId);
+
+    const result = await extractFromPhoto(imageBase64, mimeType);
+
+    if (result.listings.length === 0) {
+      return { success: true, result };
+    }
+
+    // For multi-listing, return results without auto-merging (user picks one)
+    if (result.isMultiListing && result.listings.length > 1) {
+      return { success: true, result };
+    }
+
+    // Single listing — merge directly into property
+    const d = result.listings[0];
+    await mergePhotoDataIntoProperty(propertyId, d, property, userId);
+
+    revalidatePath(`/property/${propertyId}`);
+    revalidatePath(`/property/${propertyId}/edit`);
+    return { success: true, result };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+/**
+ * Apply a selected listing from a multi-listing photo analysis.
+ */
+export async function applyPhotoListing(
+  propertyId: string,
+  listing: Record<string, unknown>
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { property, userId } = await getOwnerOrAllowOrphan(propertyId);
+
+    // Re-parse the listing data safely
+    const d: ScrapedPropertyData & { monthly_rent?: number } = {};
+    if (listing.purchase_price != null) {
+      const n = parseInt(String(listing.purchase_price).replace(/\D/g, ""), 10);
+      if (n > 0) d.purchase_price = n;
+    }
+    if (listing.surface != null) {
+      const n = parseFloat(String(listing.surface).replace(/[^\d.,]/g, "").replace(",", "."));
+      if (n > 0) d.surface = n;
+    }
+    if (listing.monthly_rent != null) {
+      const n = parseInt(String(listing.monthly_rent).replace(/\D/g, ""), 10);
+      if (n > 0) d.monthly_rent = n;
+    }
+    if (listing.city) d.city = String(listing.city).trim();
+    if (listing.postal_code) {
+      const pc = String(listing.postal_code).replace(/\D/g, "").slice(0, 5);
+      if (pc.length === 5) d.postal_code = pc;
+    }
+    if (listing.address) d.address = String(listing.address).trim();
+    if (listing.description) d.description = String(listing.description).trim().slice(0, 1000);
+    if (listing.property_type === "neuf") d.property_type = "neuf";
+    else if (listing.property_type === "ancien") d.property_type = "ancien";
+
+    await mergePhotoDataIntoProperty(propertyId, d, property, userId);
+
+    revalidatePath(`/property/${propertyId}`);
+    revalidatePath(`/property/${propertyId}/edit`);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+/** Internal: merge photo-extracted data into property */
+async function mergePhotoDataIntoProperty(
+  propertyId: string,
+  d: ScrapedPropertyData & { monthly_rent?: number },
+  property: Awaited<ReturnType<typeof getOwnerOrAllowOrphan>>["property"],
+  userId: string | null
+) {
+  const newPrice = d.purchase_price ?? property.purchase_price;
+  const newSurface = d.surface ?? property.surface;
+  const newType = d.property_type ?? property.property_type;
+  const newCity = d.city ?? property.city;
+  const notary = calculateNotaryFees(newPrice, newType);
+
+  let monthlyRent = d.monthly_rent ?? property.monthly_rent;
+  let propertyTax = property.property_tax;
+  let condoCharges = property.condo_charges;
+  let prefill = mergePhotoExtractionIntoPrefill(
+    parsePrefill(property.prefill_sources),
+    d
+  );
+
+  if (monthlyRent === 0 && newCity && newSurface > 0) {
+    try {
+      const market = await getMarketData(newCity);
+      if (market) {
+        const { applyMarketDataToPrefill } = await import("@/domains/property/prefill");
+        const applied = applyMarketDataToPrefill(prefill, market, newSurface, newType);
+        prefill = applied.prefill;
+        monthlyRent = applied.monthlyRent || monthlyRent;
+        propertyTax = applied.propertyTax || propertyTax;
+        condoCharges = applied.condoCharges || condoCharges;
+      }
+    } catch { /* no market data */ }
+  }
+
+  const baseData = stripMeta(property);
+  const updatePayload = {
+    ...baseData,
+    ...(d.purchase_price != null && { purchase_price: d.purchase_price }),
+    ...(d.surface != null && { surface: d.surface }),
+    ...(d.city && { city: d.city }),
+    ...(d.postal_code && { postal_code: d.postal_code }),
+    ...(d.address && { address: d.address }),
+    ...(d.description && { description: d.description }),
+    ...(d.property_type && { property_type: d.property_type }),
+    loan_amount: Math.max(0, newPrice + notary - property.personal_contribution),
+    monthly_rent: monthlyRent,
+    property_tax: propertyTax,
+    condo_charges: condoCharges,
+    prefill_sources: JSON.stringify(prefill),
+  };
+
+  if (userId === null) {
+    await updateOrphanProperty(propertyId, updatePayload);
+  } else {
+    await updateProperty(propertyId, userId, updatePayload);
+  }
+
+  enrichPropertyQuiet(propertyId).catch(() => {});
 }
 
 // ─── Internal: scrape URL and merge data into existing property ───

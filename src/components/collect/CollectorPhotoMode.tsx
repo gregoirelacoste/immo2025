@@ -48,12 +48,14 @@ function loadFileAsImage(file: File): Promise<HTMLImageElement> {
 
 interface Props {
   onCapture: (imageData: string, metadata: PhotoMetadata) => void;
+  onAnalyze?: (photoIndex: number) => void;
+  analyzingIndex?: number | null;
   photos?: string[];
   onRemove?: (index: number) => void;
   disabled?: boolean;
 }
 
-export default function CollectorPhotoMode({ onCapture, photos = [], onRemove, disabled }: Props) {
+export default function CollectorPhotoMode({ onCapture, onAnalyze, analyzingIndex, photos = [], onRemove, disabled }: Props) {
   const [capturing, setCapturing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -134,6 +136,26 @@ export default function CollectorPhotoMode({ onCapture, photos = [], onRemove, d
                   aria-label={`Supprimer photo ${i + 1}`}
                 >
                   x
+                </button>
+              )}
+              {onAnalyze && (
+                <button
+                  type="button"
+                  onClick={() => onAnalyze(i)}
+                  disabled={disabled || analyzingIndex != null}
+                  className="absolute bottom-1 right-1 bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-0.5"
+                  aria-label={`Analyser photo ${i + 1}`}
+                >
+                  {analyzingIndex === i ? (
+                    <span className="animate-pulse">Analyse...</span>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      IA
+                    </>
+                  )}
                 </button>
               )}
               {i === 0 && (

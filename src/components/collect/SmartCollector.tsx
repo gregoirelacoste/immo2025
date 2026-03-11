@@ -4,9 +4,11 @@ import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { scrapeAndSaveProperty, createPropertyFromText } from "@/domains/scraping/actions";
 import { savePropertyPhotos } from "@/domains/property/actions";
-import { addCollectUrl, removeCollectUrl, addCollectText, removeCollectText } from "@/domains/collect/actions";
+import { addCollectUrl, removeCollectUrl, addCollectText, removeCollectText, analyzeCollectPhoto, applyPhotoListing } from "@/domains/collect/actions";
 import { CollectMode, PhotoMetadata } from "@/domains/collect/types";
+import { ScrapedPropertyData } from "@/domains/scraping/types";
 import CollectorPhotoMode from "@/components/collect/CollectorPhotoMode";
+import PhotoListingPicker from "@/components/collect/PhotoListingPicker";
 import Alert from "@/components/ui/Alert";
 import Spinner from "@/components/ui/Spinner";
 
@@ -86,6 +88,8 @@ export default function SmartCollector({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
+  const [analyzingPhotoIndex, setAnalyzingPhotoIndex] = useState<number | null>(null);
+  const [multiListings, setMultiListings] = useState<ScrapedPropertyData[] | null>(null);
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -327,6 +331,67 @@ export default function SmartCollector({
     setLoading(false);
   }
 
+  // --- Photo analysis ---
+
+  async function handleAnalyzePhoto(photoIndex: number) {
+    if (!existingPropertyId || analyzingPhotoIndex != null) return;
+    const photo = photos[photoIndex];
+    if (!photo) return;
+
+    setAnalyzingPhotoIndex(photoIndex);
+    setError("");
+    setSuccess("");
+
+    try {
+      const result = await analyzeCollectPhoto(existingPropertyId, photo, "image/jpeg");
+
+      if (!result.success) {
+        setError(result.error || "Erreur lors de l'analyse de la photo.");
+        setAnalyzingPhotoIndex(null);
+        return;
+      }
+
+      if (!result.result || result.result.listings.length === 0) {
+        setSuccess("Aucune information immobilière détectée dans cette photo.");
+        setAnalyzingPhotoIndex(null);
+        return;
+      }
+
+      if (result.result.isMultiListing && result.result.listings.length > 1) {
+        // Show picker
+        setMultiListings(result.result.listings);
+        setAnalyzingPhotoIndex(null);
+        return;
+      }
+
+      // Single listing — already merged server-side
+      setSuccess("Photo analysée — données mises à jour.");
+      onSuccess?.({ propertyId: existingPropertyId, mode: "photo" });
+      router.refresh();
+    } catch {
+      setError("Erreur lors de l'analyse de la photo.");
+    }
+
+    setAnalyzingPhotoIndex(null);
+  }
+
+  async function handleSelectListing(listing: ScrapedPropertyData) {
+    if (!existingPropertyId) return;
+    setLoading(true);
+    setError("");
+
+    const result = await applyPhotoListing(existingPropertyId, listing as Record<string, unknown>);
+    if (result.success) {
+      setMultiListings(null);
+      setSuccess("Annonce sélectionnée — données mises à jour.");
+      onSuccess?.({ propertyId: existingPropertyId, mode: "photo" });
+      router.refresh();
+    } else {
+      setError(result.error || "Erreur lors de l'application des données.");
+    }
+    setLoading(false);
+  }
+
   // --- Render ---
 
   const buttonLabel = activeMode === "url"
@@ -515,12 +580,25 @@ export default function SmartCollector({
 
           {/* Photo tab */}
           {activeMode === "photo" && (
-            <CollectorPhotoMode
-              onCapture={handlePhotoCapture}
-              photos={photos}
-              onRemove={handlePhotoRemove}
-              disabled={loading}
-            />
+            <>
+              {multiListings ? (
+                <PhotoListingPicker
+                  listings={multiListings}
+                  onSelect={handleSelectListing}
+                  onCancel={() => setMultiListings(null)}
+                  loading={loading}
+                />
+              ) : (
+                <CollectorPhotoMode
+                  onCapture={handlePhotoCapture}
+                  onAnalyze={existingPropertyId ? handleAnalyzePhoto : undefined}
+                  analyzingIndex={analyzingPhotoIndex}
+                  photos={photos}
+                  onRemove={handlePhotoRemove}
+                  disabled={loading || analyzingPhotoIndex != null}
+                />
+              )}
+            </>
           )}
         </div>
       )}

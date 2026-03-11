@@ -93,6 +93,23 @@ export function mergeTextExtractionIntoPrefill(
   return merged;
 }
 
+/** Merges existing prefill with fields extracted from photo analysis */
+export function mergePhotoExtractionIntoPrefill(
+  existing: PrefillRecord,
+  data: ScrapedPropertyData & { monthly_rent?: number }
+): PrefillRecord {
+  const merged = { ...existing };
+
+  if (data.purchase_price != null) merged.purchase_price = { source: "Photo (IA Vision)", value: data.purchase_price };
+  if (data.surface != null) merged.surface = { source: "Photo (IA Vision)", value: data.surface };
+  if (data.city) merged.city = { source: "Photo (IA Vision)", value: data.city };
+  if (data.address) merged.address = { source: "Photo (IA Vision)", value: data.address };
+  if (data.postal_code) merged.postal_code = { source: "Photo (IA Vision)", value: data.postal_code };
+  if (data.monthly_rent) merged.monthly_rent = { source: "Photo (IA Vision)", value: data.monthly_rent };
+
+  return merged;
+}
+
 export function parsePrefill(json: string): PrefillRecord {
   try { return JSON.parse(json || "{}"); }
   catch { return {}; }
