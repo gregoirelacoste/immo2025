@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, ReactNode } from "react";
+import { useState, useEffect, useRef, useCallback, ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, PropertyFormData } from "@/domains/property/types";
 import {
@@ -11,6 +11,7 @@ import {
 import { saveProperty } from "@/domains/property/actions";
 import { scrapeAndSaveProperty } from "@/domains/scraping/actions";
 import { useLoanAutoCalc } from "./useLoanAutoCalc";
+import { useRentAutoCalc } from "./useRentAutoCalc";
 import SmartCollector from "@/components/collect/SmartCollector";
 import PropertyInfoSection from "./PropertyInfoSection";
 import LoanSection from "./LoanSection";
@@ -21,6 +22,8 @@ import ResultsSummarySection from "./ResultsSummarySection";
 import InvestmentScorePreview from "./InvestmentScorePreview";
 import InvestmentScorePanel from "@/components/property/detail/InvestmentScorePanel";
 import Alert from "@/components/ui/Alert";
+import { PhotoMetadata } from "@/domains/collect/types";
+import { reverseGeocode } from "@/domains/collect/geocoding";
 
 const defaultFormData: PropertyFormData = {
   user_id: "",
@@ -78,6 +81,7 @@ export default function PropertyForm({ existingProperty }: Props) {
   });
 
   const { setLoanManuallySet } = useLoanAutoCalc(form, setForm);
+  const { setRentManuallySet } = useRentAutoCalc(form, setForm);
 
   const effectiveNotary =
     form.notary_fees > 0
@@ -92,6 +96,38 @@ export default function PropertyForm({ existingProperty }: Props) {
     setLoanManuallySet(true);
     updateField("loan_amount", value === "" ? 0 : parseFloat(value) || 0);
   }
+
+  function handleRentChange(field: keyof PropertyFormData, value: string | number) {
+    if (field === "monthly_rent") {
+      setRentManuallySet(true);
+    }
+    updateField(field, value);
+  }
+
+  // Photo GPS → auto-fill address/city if empty
+  const handlePhotoGeo = useCallback(async (metadata: PhotoMetadata) => {
+    if (!metadata.latitude || !metadata.longitude) return;
+
+    // Only auto-fill if address and city are both empty
+    setForm((prev) => {
+      if (prev.address && prev.city) return prev; // Already filled, don't override
+      return prev; // We'll update async below
+    });
+
+    try {
+      const geo = await reverseGeocode(metadata.latitude, metadata.longitude);
+      if (geo) {
+        setForm((prev) => ({
+          ...prev,
+          ...(!prev.address && geo.address ? { address: geo.address } : {}),
+          ...(!prev.city && geo.city ? { city: geo.city } : {}),
+          ...(!prev.postal_code && geo.postalCode ? { postal_code: geo.postalCode } : {}),
+        }));
+      }
+    } catch {
+      // Geocoding failure is non-fatal
+    }
+  }, []);
 
   // Auto-scrape quand une URL est passée en query param (partage PWA)
   useEffect(() => {
@@ -122,6 +158,8 @@ export default function PropertyForm({ existingProperty }: Props) {
     form.interest_rate,
     form.loan_duration
   );
+
+  const showAirbnb = form.airbnb_price_per_night > 0;
 
   // Parse prefill sources pour afficher les hints
   const prefillSources: Record<string, { source: string; value: number | string }> = (() => {
@@ -169,17 +207,18 @@ export default function PropertyForm({ existingProperty }: Props) {
           existingCollectTexts={(() => { try { return JSON.parse(existingProperty.collect_texts || "[]"); } catch { return []; } })()}
           sourceUrl={existingProperty.source_url}
           onSuccess={() => router.refresh()}
+          onPhotoGeo={handlePhotoGeo}
         />
       ) : (
-        <SmartCollector />
+        <SmartCollector onPhotoGeo={handlePhotoGeo} />
       )}
 
       <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} />
       <LoanSection form={form} onChange={updateField} onLoanChange={handleLoanChange} calcs={calcs} monthlyPaymentPreview={monthlyPaymentPreview} prefillHint={prefillHint} />
       <FeesSection form={form} onChange={updateField} calcs={calcs} effectiveNotary={effectiveNotary} />
-      <ClassicRentalSection form={form} onChange={updateField} calcs={calcs} prefillHint={prefillHint} />
+      <ClassicRentalSection form={form} onChange={handleRentChange} calcs={calcs} prefillHint={prefillHint} />
       <AirbnbSection form={form} onChange={updateField} calcs={calcs} />
-      <ResultsSummarySection calcs={calcs} />
+      <ResultsSummarySection calcs={calcs} showAirbnb={showAirbnb} />
 
       {/* Investment score: persisted for existing, preview for new */}
       {existingProperty && existingProperty.enrichment_status === "done" ? (

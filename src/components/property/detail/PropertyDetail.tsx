@@ -92,9 +92,11 @@ export default function PropertyDetail({ property, isOwner = false }: Props) {
       <SocioEconomicPanel data={socioData} />
 
       <FinancingPanel property={property} calcs={calcs} />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+      <div className={`grid grid-cols-1 ${property.airbnb_price_per_night > 0 ? "md:grid-cols-2" : ""} gap-4 md:gap-6`}>
         <ClassicYieldPanel property={property} calcs={calcs} />
-        <AirbnbYieldPanel property={property} calcs={calcs} />
+        {property.airbnb_price_per_night > 0 && (
+          <AirbnbYieldPanel property={property} calcs={calcs} />
+        )}
       </div>
       <RescrapePanel property={property} isOwner={isOwner} />
     </div>

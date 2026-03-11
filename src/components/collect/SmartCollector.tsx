@@ -20,6 +20,7 @@ interface Props {
   existingCollectTexts?: string[];
   sourceUrl?: string;
   onSuccess?: (result: { propertyId: string; mode: string }) => void;
+  onPhotoGeo?: (metadata: PhotoMetadata) => void;
   compact?: boolean;
 }
 
@@ -71,6 +72,7 @@ export default function SmartCollector({
   existingCollectTexts,
   sourceUrl,
   onSuccess,
+  onPhotoGeo,
   compact,
 }: Props) {
   const [activeMode, setActiveMode] = useState<CollectMode>("url");
@@ -110,8 +112,12 @@ export default function SmartCollector({
     setError("");
   }
 
-  function handlePhotoCapture(imageData: string, _metadata: PhotoMetadata) {
+  function handlePhotoCapture(imageData: string, metadata: PhotoMetadata) {
     addPhoto(imageData);
+    // Pass GPS metadata up if available
+    if (metadata.latitude && metadata.longitude && onPhotoGeo) {
+      onPhotoGeo(metadata);
+    }
   }
 
   function handlePhotoRemove(index: number) {
