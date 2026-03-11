@@ -11,7 +11,7 @@ import {
 import { saveProperty } from "@/domains/property/actions";
 import { scrapeAndSaveProperty } from "@/domains/scraping/actions";
 import { useLoanAutoCalc } from "./useLoanAutoCalc";
-import ScrapeImportSection from "./ScrapeImportSection";
+import SmartCollector from "@/components/collect/SmartCollector";
 import PropertyInfoSection from "./PropertyInfoSection";
 import LoanSection from "./LoanSection";
 import FeesSection from "./FeesSection";
@@ -145,8 +145,10 @@ export default function PropertyForm({ existingProperty }: Props) {
     <form onSubmit={handleSubmit} className="space-y-6 pb-safe">
       {error && <Alert variant="error">{error}</Alert>}
 
-      {!existingProperty && (
-        <ScrapeImportSection onScrapeError={(url) => updateField("source_url", url)} />
+      {existingProperty ? (
+        <SmartCollector existingPropertyId={existingProperty.id} onSuccess={() => router.refresh()} />
+      ) : (
+        <SmartCollector />
       )}
 
       <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} />

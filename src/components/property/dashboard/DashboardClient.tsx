@@ -9,7 +9,7 @@ import { removeProperty } from "@/domains/property/actions";
 import SortBar, { SortKey } from "./SortBar";
 import PropertyCard from "./PropertyCard";
 import PropertyTable from "./PropertyTable";
-import SmartImportBar from "./SmartImportBar";
+import SmartCollector from "@/components/collect/SmartCollector";
 
 interface Props {
   properties: Property[];
@@ -84,7 +84,7 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
 
   return (
     <div className="pb-safe">
-      <SmartImportBar />
+      <SmartCollector compact />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Biens immobiliers</h1>
