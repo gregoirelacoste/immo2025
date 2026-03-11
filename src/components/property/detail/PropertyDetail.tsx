@@ -8,6 +8,7 @@ import { calculateAll } from "@/lib/calculations";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
+import type { SocioEconomicData } from "@/domains/enrich/socioeconomic-types";
 import PropertyHeader from "./PropertyHeader";
 import PropertyGallery from "./PropertyGallery";
 import PropertyInfoPanel from "./PropertyInfoPanel";
@@ -16,6 +17,7 @@ import InvestmentScorePanel from "./InvestmentScorePanel";
 import FinancingPanel from "./FinancingPanel";
 import ClassicYieldPanel from "./ClassicYieldPanel";
 import AirbnbYieldPanel from "./AirbnbYieldPanel";
+import SocioEconomicPanel from "./SocioEconomicPanel";
 import RescrapePanel from "./RescrapePanel";
 
 const PropertyMap = dynamic(() => import("./PropertyMap"), { ssr: false });
@@ -38,6 +40,7 @@ export default function PropertyDetail({ property, isOwner = false }: Props) {
   // Use persisted enrichment data
   const marketData: MarketData | null = parseJson(property.market_data, null);
   const scoreBreakdown = parseJson(property.score_breakdown, null);
+  const socioData: SocioEconomicData | null = parseJson(property.socioeconomic_data, null);
 
   async function handleDelete() {
     if (!confirm("Supprimer ce bien ?")) return;
@@ -84,6 +87,9 @@ export default function PropertyDetail({ property, isOwner = false }: Props) {
 
       {/* Market data — separate panel */}
       <MarketDataPanel property={property} marketData={marketData} loading={property.enrichment_status === "running"} />
+
+      {/* Socio-economic data — separate panel */}
+      <SocioEconomicPanel data={socioData} />
 
       <FinancingPanel property={property} calcs={calcs} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">

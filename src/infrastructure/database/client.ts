@@ -90,6 +90,7 @@ export async function getDb(): Promise<Client> {
       "ALTER TABLE properties ADD COLUMN enrichment_status TEXT NOT NULL DEFAULT 'pending'",
       "ALTER TABLE properties ADD COLUMN enrichment_error TEXT DEFAULT ''",
       "ALTER TABLE properties ADD COLUMN enrichment_at TEXT DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN socioeconomic_data TEXT DEFAULT ''",
     ]) {
       try { await client.execute(stmt); } catch { /* already exists */ }
     }

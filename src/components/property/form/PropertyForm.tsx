@@ -67,7 +67,7 @@ export default function PropertyForm({ existingProperty }: Props) {
       const {
         id: _id, created_at: _created_at, updated_at: _updated_at,
         latitude: _lat, longitude: _lng, market_data: _md,
-        investment_score: _is, score_breakdown: _sb,
+        investment_score: _is, score_breakdown: _sb, socioeconomic_data: _sed,
         enrichment_status: _es, enrichment_error: _ee, enrichment_at: _ea,
         ...rest
       } = existingProperty;
@@ -110,7 +110,7 @@ export default function PropertyForm({ existingProperty }: Props) {
   const fakeProperty: Property = {
     id: "", created_at: "", updated_at: "",
     latitude: null, longitude: null, market_data: "",
-    investment_score: null, score_breakdown: "{}",
+    investment_score: null, score_breakdown: "{}", socioeconomic_data: "",
     enrichment_status: "pending", enrichment_error: "", enrichment_at: "",
     ...form,
   };

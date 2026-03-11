@@ -6,6 +6,10 @@ interface ScoreBreakdown {
   cashflowScore: number;
   priceVsMarketScore: number;
   rentVsMarketScore: number;
+  demographicScore: number;
+  incomeScore: number;
+  employmentScore: number;
+  attractivenessScore: number;
   total: number;
 }
 
@@ -32,12 +36,39 @@ function getScoreBg(score: number): string {
   return "from-red-50 to-orange-50 border-red-200";
 }
 
-const CRITERIA = [
-  { key: "netYieldScore" as const, label: "Rendement net", max: 30 },
-  { key: "cashflowScore" as const, label: "Cash-flow", max: 25 },
-  { key: "priceVsMarketScore" as const, label: "Prix vs marché", max: 25 },
-  { key: "rentVsMarketScore" as const, label: "Loyer vs marché", max: 20 },
+const FINANCIAL_CRITERIA = [
+  { key: "netYieldScore" as const, label: "Rendement net", max: 20 },
+  { key: "cashflowScore" as const, label: "Cash-flow", max: 15 },
+  { key: "priceVsMarketScore" as const, label: "Prix vs marché", max: 15 },
+  { key: "rentVsMarketScore" as const, label: "Loyer vs marché", max: 10 },
 ];
+
+const SOCIO_CRITERIA = [
+  { key: "demographicScore" as const, label: "Démographie", max: 10 },
+  { key: "incomeScore" as const, label: "Revenus", max: 10 },
+  { key: "employmentScore" as const, label: "Emploi", max: 10 },
+  { key: "attractivenessScore" as const, label: "Attractivité", max: 10 },
+];
+
+function CriteriaBar({ label, value, max }: { label: string; value: number; max: number }) {
+  const widthPct = Math.round((value / max) * 100);
+  return (
+    <div>
+      <div className="flex justify-between text-xs text-gray-600 mb-0.5">
+        <span>{label}</span>
+        <span>{value}/{max}</span>
+      </div>
+      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            widthPct >= 70 ? "bg-green-500" : widthPct >= 40 ? "bg-amber-500" : "bg-red-400"
+          }`}
+          style={{ width: `${widthPct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function InvestmentScorePanel({ score, breakdown, status, error, onRefresh, refreshing }: Props) {
   if (status === "running") {
@@ -72,8 +103,11 @@ export default function InvestmentScorePanel({ score, breakdown, status, error, 
 
   if (score == null || !breakdown) return null;
 
-  const pct = Math.round((score / 100) * 283); // circumference of r=45 circle ≈ 283
+  const pct = Math.round((score / 100) * 283);
   const label = getScoreLabel(score);
+  // Check if we have socio-economic data (not just neutral defaults)
+  const hasSocioData = breakdown.demographicScore !== 5 || breakdown.incomeScore !== 5 ||
+    breakdown.employmentScore !== 5 || breakdown.attractivenessScore !== 5;
 
   return (
     <section className={`bg-gradient-to-br ${getScoreBg(score)} rounded-xl border p-4 md:p-6`}>
@@ -90,58 +124,41 @@ export default function InvestmentScorePanel({ score, breakdown, status, error, 
         )}
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex flex-col md:flex-row items-center gap-6">
         {/* Circular gauge */}
         <div className="relative shrink-0">
-          <svg width="100" height="100" viewBox="0 0 100 100">
+          <svg width="120" height="120" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="7" className="text-gray-200" />
             <circle
-              cx="50" cy="50" r="45"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="8"
-              className="text-gray-200"
-            />
-            <circle
-              cx="50" cy="50" r="45"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="8"
-              strokeLinecap="round"
-              strokeDasharray="283"
-              strokeDashoffset={283 - pct}
+              cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="7"
+              strokeLinecap="round" strokeDasharray="283" strokeDashoffset={283 - pct}
               className={`${getScoreRingColor(score)} transition-all duration-700`}
               transform="rotate(-90 50 50)"
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-bold text-gray-900">{score}</span>
-            <span className="text-xs text-gray-500">/100</span>
+            <span className="text-3xl font-bold text-gray-900">{score}</span>
+            <span className="text-xs text-gray-500">{label}</span>
           </div>
         </div>
 
-        {/* Breakdown */}
-        <div className="flex-1 space-y-2">
-          <p className="text-sm font-semibold text-gray-700 mb-3">{label}</p>
-          {CRITERIA.map(({ key, label: criteriaLabel, max }) => {
-            const val = breakdown[key];
-            const widthPct = Math.round((val / max) * 100);
-            return (
-              <div key={key}>
-                <div className="flex justify-between text-xs text-gray-600 mb-0.5">
-                  <span>{criteriaLabel}</span>
-                  <span>{val}/{max}</span>
-                </div>
-                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      widthPct >= 70 ? "bg-green-500" : widthPct >= 40 ? "bg-amber-500" : "bg-red-400"
-                    }`}
-                    style={{ width: `${widthPct}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
+        {/* Breakdown — 2 columns */}
+        <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Financier</p>
+            {FINANCIAL_CRITERIA.map(({ key, label: l, max }) => (
+              <CriteriaBar key={key} label={l} value={breakdown[key] ?? 0} max={max} />
+            ))}
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Socio-économique
+              {!hasSocioData && <span className="font-normal normal-case ml-1">(données partielles)</span>}
+            </p>
+            {SOCIO_CRITERIA.map(({ key, label: l, max }) => (
+              <CriteriaBar key={key} label={l} value={breakdown[key] ?? 0} max={max} />
+            ))}
+          </div>
         </div>
       </div>
     </section>

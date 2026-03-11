@@ -4,6 +4,7 @@ import { calculateAll } from "@/lib/calculations";
 import { computeInvestmentScore } from "./scoring";
 import { EnrichmentResult } from "./types";
 import { Property } from "@/domains/property/types";
+import { fetchSocioEconomicData } from "./socioeconomic-service";
 
 export async function runEnrichmentPipeline(
   property: Property
@@ -38,7 +39,19 @@ export async function runEnrichmentPipeline(
     /* market data failure is non-fatal */
   }
 
-  // Step 3: Investment score
+  // Step 3: Socio-economic data (fail-safe)
+  let socioData = null;
+  let socioDataJson = "";
+  try {
+    if (property.city) {
+      socioData = await fetchSocioEconomicData(property.city, latitude, longitude);
+      socioDataJson = socioData ? JSON.stringify(socioData) : "";
+    }
+  } catch {
+    /* socio-economic failure is non-fatal */
+  }
+
+  // Step 4: Investment score
   const calcs = calculateAll(property);
   const breakdown = computeInvestmentScore(
     {
@@ -47,13 +60,15 @@ export async function runEnrichmentPipeline(
       monthly_rent: property.monthly_rent,
     },
     calcs,
-    marketData
+    marketData,
+    socioData
   );
 
   return {
     latitude,
     longitude,
     market_data: marketDataJson,
+    socioeconomic_data: socioDataJson,
     investment_score: breakdown.total,
     score_breakdown: JSON.stringify(breakdown),
     enrichment_status: "done",

@@ -5,26 +5,26 @@ interface Props {
   calcs: PropertyCalculations;
 }
 
-/** Simplified client-side score preview for the form (no market data) */
+/** Simplified client-side score preview for the form (no market/socio data) */
 export default function InvestmentScorePreview({ calcs }: Props) {
-  // Net yield: 0-30
+  // Net yield: 0-20
   let netYieldScore = 0;
-  if (calcs.net_yield >= 8) netYieldScore = 30;
-  else if (calcs.net_yield >= 6) netYieldScore = 25;
-  else if (calcs.net_yield >= 4) netYieldScore = 18;
-  else if (calcs.net_yield >= 2) netYieldScore = 10;
+  if (calcs.net_yield >= 8) netYieldScore = 20;
+  else if (calcs.net_yield >= 6) netYieldScore = 16;
+  else if (calcs.net_yield >= 4) netYieldScore = 12;
+  else if (calcs.net_yield >= 2) netYieldScore = 7;
 
-  // Cashflow: 0-25
+  // Cashflow: 0-15
   let cashflowScore = 0;
-  if (calcs.monthly_cashflow >= 200) cashflowScore = 25;
-  else if (calcs.monthly_cashflow >= 0) cashflowScore = 15;
-  else if (calcs.monthly_cashflow >= -100) cashflowScore = 8;
+  if (calcs.monthly_cashflow >= 200) cashflowScore = 15;
+  else if (calcs.monthly_cashflow >= 0) cashflowScore = 10;
+  else if (calcs.monthly_cashflow >= -100) cashflowScore = 5;
 
-  // No market data in form → neutral scores
-  const priceVsMarketScore = 12;
-  const rentVsMarketScore = 10;
+  // No market/socio data in form → neutral scores
+  const neutralFinancial = 8 + 5; // priceVsMarket + rentVsMarket
+  const neutralSocio = 5 + 5 + 5 + 5; // demo + income + employment + attractiveness
 
-  const total = netYieldScore + cashflowScore + priceVsMarketScore + rentVsMarketScore;
+  const total = netYieldScore + cashflowScore + neutralFinancial + neutralSocio;
   const label = getScoreLabel(total);
   const pct = Math.round((total / 100) * 283);
 
@@ -57,7 +57,7 @@ export default function InvestmentScorePreview({ calcs }: Props) {
         </div>
         <div className="text-sm text-gray-600">
           <p className="font-semibold text-gray-800">{label}</p>
-          <p className="text-xs text-gray-400 mt-1">Score partiel — les données marché seront ajoutées après sauvegarde</p>
+          <p className="text-xs text-gray-400 mt-1">Score partiel — les données marché et socio-économiques seront ajoutées après sauvegarde</p>
         </div>
       </div>
     </section>

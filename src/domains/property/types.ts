@@ -35,6 +35,7 @@ export interface Property {
   market_data: string; // JSON: MarketData snapshot
   investment_score: number | null;
   score_breakdown: string; // JSON: InvestmentScoreBreakdown
+  socioeconomic_data: string; // JSON: SocioEconomicData
   enrichment_status: string; // "pending" | "running" | "done" | "error"
   enrichment_error: string;
   enrichment_at: string;
@@ -46,7 +47,7 @@ export interface Property {
   updated_at: string;
 }
 
-export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at">;
+export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "socioeconomic_data" | "enrichment_status" | "enrichment_error" | "enrichment_at">;
 
 export interface PropertyCalculations {
   // Prêt
