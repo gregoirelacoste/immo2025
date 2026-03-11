@@ -26,3 +26,30 @@ export interface PhotoExtractionResult {
   isMultiListing: boolean;
   listings: PhotoExtractedListing[];
 }
+
+/** Data received from PWA share target (POST multipart) */
+export interface ShareData {
+  /** Shared URL (if any) */
+  url: string;
+  /** Shared text content */
+  text: string;
+  /** Shared title */
+  title: string;
+  /** Shared images as base64 data URIs */
+  images: string[];
+  /** Detected source app (leboncoin, seloger, pap, generic) */
+  source: ShareSource;
+  /** Pre-parsed hints from app-specific parser */
+  hints: ShareHints;
+  /** Timestamp when share was received */
+  receivedAt: number;
+}
+
+export type ShareSource = "leboncoin" | "seloger" | "pap" | "generic";
+
+export interface ShareHints {
+  price?: number;
+  city?: string;
+  surface?: number;
+  postalCode?: string;
+}
