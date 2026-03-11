@@ -36,7 +36,6 @@ export default function PropertyInfoSection({ form, onChange, prefillHint }: Pro
             type="text"
             value={form.city}
             onChange={(e) => onChange("city", e.target.value)}
-            required
             className={inputClass}
             placeholder="Paris"
           />
@@ -49,7 +48,6 @@ export default function PropertyInfoSection({ form, onChange, prefillHint }: Pro
             inputMode="numeric"
             value={form.purchase_price || ""}
             onChange={(e) => onChange("purchase_price", parseFloat(e.target.value) || 0)}
-            required
             className={inputClass}
             placeholder="200000"
           />
@@ -62,7 +60,6 @@ export default function PropertyInfoSection({ form, onChange, prefillHint }: Pro
             inputMode="decimal"
             value={form.surface || ""}
             onChange={(e) => onChange("surface", parseFloat(e.target.value) || 0)}
-            required
             className={inputClass}
             placeholder="45"
           />

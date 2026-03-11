@@ -137,6 +137,93 @@ export async function scrapeAndSaveProperty(
   return { propertyId: id, warning: scrapeWarning };
 }
 
+/**
+ * Crée une nouvelle propriété à partir de texte brut (annonce collée).
+ * Flow : texte → IA → extraction → createProperty → propertyId
+ * Différent de extractAndUpdateFromText qui met à jour une propriété existante.
+ */
+export async function createPropertyFromText(
+  rawText: string
+): Promise<{ propertyId?: string; error?: string }> {
+  try {
+    const userId = await getOptionalUserId();
+
+    const d = await extractFromText(rawText);
+
+    const propertyType: "ancien" | "neuf" =
+      d.property_type === "neuf" ? "neuf" : "ancien";
+    const price = d.purchase_price || 0;
+    const surface = d.surface || 0;
+    const city = d.city || "";
+    const notary = calculateNotaryFees(price, propertyType);
+
+    let prefill: Record<string, { source: string; value: number | string }> = {};
+    if (price > 0) prefill.purchase_price = { source: "Collage texte (IA)", value: price };
+    if (surface > 0) prefill.surface = { source: "Collage texte (IA)", value: surface };
+    if (d.city) prefill.city = { source: "Collage texte (IA)", value: d.city };
+    if (d.address) prefill.address = { source: "Collage texte (IA)", value: d.address };
+    if (d.postal_code) prefill.postal_code = { source: "Collage texte (IA)", value: d.postal_code };
+
+    let monthlyRent = 0;
+    let condoCharges = 0;
+    let propertyTax = 0;
+
+    if (city && surface > 0) {
+      try {
+        const market = await getMarketData(city);
+        if (market) {
+          const applied = applyMarketDataToPrefill(prefill, market, surface, propertyType);
+          prefill = applied.prefill;
+          monthlyRent = applied.monthlyRent;
+          propertyTax = applied.propertyTax;
+          condoCharges = applied.condoCharges;
+        }
+      } catch { /* pas de données marché */ }
+    }
+
+    const loanAmount = Math.max(0, price + notary);
+    prefill.loan_amount = { source: "Calcul (prix + notaire)", value: loanAmount };
+    prefill.notary_fees = {
+      source: `Calcul (${propertyType === "ancien" ? "7.5%" : "2.5%"} du prix)`,
+      value: notary,
+    };
+
+    const id = await createProperty({
+      user_id: userId,
+      visibility: "public",
+      address: d.address || "",
+      city,
+      postal_code: d.postal_code || "",
+      purchase_price: price,
+      surface,
+      property_type: propertyType,
+      description: d.description || "",
+      loan_amount: loanAmount,
+      interest_rate: 3.5,
+      loan_duration: 20,
+      personal_contribution: 0,
+      insurance_rate: 0.34,
+      loan_fees: 0,
+      notary_fees: 0,
+      monthly_rent: monthlyRent,
+      condo_charges: condoCharges,
+      property_tax: propertyTax,
+      vacancy_rate: 5,
+      airbnb_price_per_night: 0,
+      airbnb_occupancy_rate: 60,
+      airbnb_charges: 0,
+      source_url: "",
+      image_urls: "[]",
+      prefill_sources: JSON.stringify(prefill),
+    });
+
+    revalidatePath("/dashboard");
+    return { propertyId: id };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+}
+
 export async function extractAndUpdateFromText(
   propertyId: string,
   rawText: string
