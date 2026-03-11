@@ -18,6 +18,8 @@ import FeesSection from "./FeesSection";
 import ClassicRentalSection from "./ClassicRentalSection";
 import AirbnbSection from "./AirbnbSection";
 import ResultsSummarySection from "./ResultsSummarySection";
+import InvestmentScorePreview from "./InvestmentScorePreview";
+import InvestmentScorePanel from "@/components/property/detail/InvestmentScorePanel";
 import Alert from "@/components/ui/Alert";
 
 const defaultFormData: PropertyFormData = {
@@ -62,7 +64,13 @@ export default function PropertyForm({ existingProperty }: Props) {
 
   const [form, setForm] = useState<PropertyFormData>(() => {
     if (existingProperty) {
-      const { id: _id, created_at: _created_at, updated_at: _updated_at, ...rest } = existingProperty;
+      const {
+        id: _id, created_at: _created_at, updated_at: _updated_at,
+        latitude: _lat, longitude: _lng, market_data: _md,
+        investment_score: _is, score_breakdown: _sb,
+        enrichment_status: _es, enrichment_error: _ee, enrichment_at: _ea,
+        ...rest
+      } = existingProperty;
       return rest;
     }
     return defaultFormData;
@@ -99,7 +107,13 @@ export default function PropertyForm({ existingProperty }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fakeProperty: Property = { id: "", created_at: "", updated_at: "", ...form };
+  const fakeProperty: Property = {
+    id: "", created_at: "", updated_at: "",
+    latitude: null, longitude: null, market_data: "",
+    investment_score: null, score_breakdown: "{}",
+    enrichment_status: "pending", enrichment_error: "", enrichment_at: "",
+    ...form,
+  };
   const calcs = calculateAll(fakeProperty);
   const monthlyPaymentPreview = calculateMonthlyPayment(
     form.loan_amount,
@@ -161,6 +175,17 @@ export default function PropertyForm({ existingProperty }: Props) {
       <ClassicRentalSection form={form} onChange={updateField} calcs={calcs} prefillHint={prefillHint} />
       <AirbnbSection form={form} onChange={updateField} calcs={calcs} />
       <ResultsSummarySection calcs={calcs} />
+
+      {/* Investment score: persisted for existing, preview for new */}
+      {existingProperty && existingProperty.enrichment_status === "done" ? (
+        <InvestmentScorePanel
+          score={existingProperty.investment_score}
+          breakdown={(() => { try { return JSON.parse(existingProperty.score_breakdown || "{}"); } catch { return null; } })()}
+          status={existingProperty.enrichment_status}
+        />
+      ) : (
+        <InvestmentScorePreview calcs={calcs} />
+      )}
 
       {form.source_url && (
         <div className="text-xs text-gray-400 text-center">

@@ -51,6 +51,10 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
         aVal = a.calcs.airbnb_net_yield;
         bVal = b.calcs.airbnb_net_yield;
         break;
+      case "investment_score":
+        aVal = a.property.investment_score ?? -1;
+        bVal = b.property.investment_score ?? -1;
+        break;
       default:
         aVal = a.property.created_at;
         bVal = b.property.created_at;

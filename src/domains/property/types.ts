@@ -29,6 +29,15 @@ export interface Property {
   // Ownership & visibility
   user_id: string;
   visibility: "public" | "private";
+  // Enrichissement
+  latitude: number | null;
+  longitude: number | null;
+  market_data: string; // JSON: MarketData snapshot
+  investment_score: number | null;
+  score_breakdown: string; // JSON: InvestmentScoreBreakdown
+  enrichment_status: string; // "pending" | "running" | "done" | "error"
+  enrichment_error: string;
+  enrichment_at: string;
   // Metadata
   source_url: string;
   image_urls: string; // JSON array of image URLs
@@ -37,7 +46,7 @@ export interface Property {
   updated_at: string;
 }
 
-export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at">;
+export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at">;
 
 export interface PropertyCalculations {
   // Prêt

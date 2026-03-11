@@ -82,6 +82,14 @@ export async function getDb(): Promise<Client> {
       "ALTER TABLE properties ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'",
       "CREATE INDEX IF NOT EXISTS idx_properties_user_id ON properties(user_id)",
       "CREATE INDEX IF NOT EXISTS idx_properties_visibility ON properties(visibility)",
+      "ALTER TABLE properties ADD COLUMN latitude REAL DEFAULT NULL",
+      "ALTER TABLE properties ADD COLUMN longitude REAL DEFAULT NULL",
+      "ALTER TABLE properties ADD COLUMN market_data TEXT DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN investment_score REAL DEFAULT NULL",
+      "ALTER TABLE properties ADD COLUMN score_breakdown TEXT DEFAULT '{}'",
+      "ALTER TABLE properties ADD COLUMN enrichment_status TEXT NOT NULL DEFAULT 'pending'",
+      "ALTER TABLE properties ADD COLUMN enrichment_error TEXT DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN enrichment_at TEXT DEFAULT ''",
     ]) {
       try { await client.execute(stmt); } catch { /* already exists */ }
     }

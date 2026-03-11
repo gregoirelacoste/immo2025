@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Property, PropertyCalculations } from "@/domains/property/types";
 import { formatCurrency, formatPercent } from "@/lib/calculations";
+import InvestmentScoreBadge from "@/components/ui/InvestmentScoreBadge";
 import { SortKey } from "./SortBar";
 
 interface Props {
@@ -44,6 +45,9 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
               Renta Airbnb{sortIcon("airbnb_net_yield")}
             </th>
             <th className={thClass}>CF Airbnb</th>
+            <th className={thClass} onClick={() => onSort("investment_score")}>
+              Score{sortIcon("investment_score")}
+            </th>
             <th className={thClass}>Actions</th>
           </tr>
         </thead>
@@ -91,6 +95,9 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
               <td className="px-3 py-4 text-sm text-gray-700">{formatPercent(c.airbnb_net_yield)}</td>
               <td className={`px-3 py-4 text-sm font-semibold ${c.airbnb_monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"}`}>
                 {formatCurrency(c.airbnb_monthly_cashflow)}
+              </td>
+              <td className="px-3 py-4 text-sm">
+                <InvestmentScoreBadge score={p.investment_score} size="sm" />
               </td>
               <td className="px-3 py-4 text-sm space-x-2 whitespace-nowrap">
                 <Link href={`/property/${p.id}`} className="text-indigo-600 hover:underline">

@@ -103,7 +103,7 @@ export async function getPropertyBySourceUrl(
 }
 
 export async function createProperty(
-  property: Omit<Property, "id" | "created_at" | "updated_at">
+  property: Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at">
 ): Promise<string> {
   const db = await getDb();
   const id = crypto.randomUUID();
@@ -134,7 +134,7 @@ export async function createProperty(
 export async function updateProperty(
   id: string,
   userId: string,
-  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at">
+  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at">
 ): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
@@ -163,7 +163,7 @@ export async function updateProperty(
 /** Update an orphaned property (no owner check — only for user_id = '' or NULL) */
 export async function updateOrphanProperty(
   id: string,
-  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at">
+  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at">
 ): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
@@ -186,6 +186,43 @@ export async function updateOrphanProperty(
       WHERE id = $id AND (user_id = '' OR user_id IS NULL)
     `,
     args: { ...property, id, updated_at: now },
+  });
+}
+
+export async function getPropertyByIdPublic(id: string): Promise<Property | undefined> {
+  const db = await getDb();
+  const result = await db.execute({ sql: "SELECT * FROM properties WHERE id = ?", args: [id] });
+  return result.rows[0] ? rowAs<Property>(result.rows[0]) : undefined;
+}
+
+export async function updateEnrichmentFields(
+  id: string,
+  fields: Partial<{
+    latitude: number | null;
+    longitude: number | null;
+    market_data: string;
+    investment_score: number | null;
+    score_breakdown: string;
+    enrichment_status: string;
+    enrichment_error: string;
+    enrichment_at: string;
+  }>
+): Promise<void> {
+  const db = await getDb();
+  const setClauses: string[] = [];
+  const args: (string | number | null)[] = [];
+
+  for (const [key, value] of Object.entries(fields)) {
+    setClauses.push(`${key} = ?`);
+    args.push(value ?? null);
+  }
+
+  if (setClauses.length === 0) return;
+
+  args.push(id);
+  await db.execute({
+    sql: `UPDATE properties SET ${setClauses.join(", ")}, updated_at = datetime('now') WHERE id = ?`,
+    args,
   });
 }
 

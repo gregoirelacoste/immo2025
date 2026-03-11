@@ -6,10 +6,12 @@ type SortKey =
   | "net_yield"
   | "monthly_cashflow"
   | "airbnb_net_yield"
+  | "investment_score"
   | "created_at";
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "created_at", label: "Date" },
+  { key: "investment_score", label: "Score" },
   { key: "city", label: "Ville" },
   { key: "purchase_price", label: "Prix" },
   { key: "net_yield", label: "Renta nette" },

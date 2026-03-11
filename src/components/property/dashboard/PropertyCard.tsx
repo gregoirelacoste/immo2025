@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Property, PropertyCalculations } from "@/domains/property/types";
 import { formatCurrency, formatPercent } from "@/lib/calculations";
+import InvestmentScoreBadge from "@/components/ui/InvestmentScoreBadge";
 
 interface Props {
   property: Property;
@@ -22,25 +23,42 @@ export default function PropertyCard({ property: p, calcs: c, currentUserId, onD
           const imgs: string[] = JSON.parse(p.image_urls || "[]");
           if (imgs.length === 0) return null;
           return (
-            <div className="aspect-[16/9] bg-gray-100">
+            <div className="relative aspect-[16/9] bg-gray-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={imgs[0]} alt={p.city} className="w-full h-full object-cover" loading="lazy" />
+              {p.investment_score != null && (
+                <div className="absolute top-2 right-2">
+                  <InvestmentScoreBadge score={p.investment_score} size="md" />
+                </div>
+              )}
             </div>
           );
         } catch { return null; }
       })()}
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900">{p.city}</h3>
-              {p.visibility === "private" && (
-                <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded font-medium">Privé</span>
+          <div className="flex items-center gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-gray-900">{p.city}</h3>
+                {p.visibility === "private" && (
+                  <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded font-medium">Privé</span>
+                )}
+              </div>
+              {p.address && (
+                <p className="text-xs text-gray-400">{p.address}</p>
               )}
             </div>
-            {p.address && (
-              <p className="text-xs text-gray-400">{p.address}</p>
-            )}
+            {/* Score badge when no image */}
+            {(() => {
+              try {
+                const imgs: string[] = JSON.parse(p.image_urls || "[]");
+                if (imgs.length === 0 && p.investment_score != null) {
+                  return <InvestmentScoreBadge score={p.investment_score} size="md" />;
+                }
+                return null;
+              } catch { return null; }
+            })()}
           </div>
           {currentUserId && p.user_id === currentUserId && (
             <button

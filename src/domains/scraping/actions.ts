@@ -21,6 +21,7 @@ import {
   parsePrefill,
 } from "@/domains/property/prefill";
 import { Property } from "@/domains/property/types";
+import { enrichProperty } from "@/domains/enrich/actions";
 
 export async function scrapeAndSaveProperty(
   url: string,
@@ -124,6 +125,10 @@ export async function scrapeAndSaveProperty(
   });
 
   revalidatePath("/dashboard");
+
+  // Fire-and-forget enrichment
+  enrichProperty(id).catch(() => {});
+
   return { propertyId: id, warning: scrapeWarning };
 }
 
@@ -208,6 +213,10 @@ export async function createPropertyFromText(
     });
 
     revalidatePath("/dashboard");
+
+    // Fire-and-forget enrichment
+    enrichProperty(id).catch(() => {});
+
     return { propertyId: id };
   } catch (e) {
     return { error: (e as Error).message };
