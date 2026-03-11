@@ -1,4 +1,4 @@
-const CACHE_NAME = "immo2025-v2";
+const CACHE_NAME = "immo2025-v3";
 const PRECACHE_URLS = ["/dashboard", "/property/new"];
 // Ne jamais cacher les redirections de partage ni les API
 const NO_CACHE_PATTERNS = ["/share", "/api/"];
