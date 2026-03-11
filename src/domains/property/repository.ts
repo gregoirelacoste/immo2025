@@ -1,0 +1,131 @@
+import { getDb } from "@/infrastructure/database/client";
+import { rowAs } from "@/infrastructure/database/row-mapper";
+import { Property } from "./types";
+
+/** All visible properties: public + user's own private (if logged in) */
+export async function getVisibleProperties(userId?: string): Promise<Property[]> {
+  const db = await getDb();
+  if (userId) {
+    const result = await db.execute({
+      sql: "SELECT * FROM properties WHERE visibility = 'public' OR user_id = ? ORDER BY created_at DESC",
+      args: [userId],
+    });
+    return result.rows.map((r) => rowAs<Property>(r));
+  }
+  const result = await db.execute(
+    "SELECT * FROM properties WHERE visibility = 'public' ORDER BY created_at DESC"
+  );
+  return result.rows.map((r) => rowAs<Property>(r));
+}
+
+/** Get a property if it's public or owned by the user */
+export async function getPropertyById(
+  id: string,
+  userId?: string
+): Promise<Property | undefined> {
+  const db = await getDb();
+  if (userId) {
+    const result = await db.execute({
+      sql: "SELECT * FROM properties WHERE id = ? AND (visibility = 'public' OR user_id = ?)",
+      args: [id, userId],
+    });
+    return result.rows[0] ? rowAs<Property>(result.rows[0]) : undefined;
+  }
+  const result = await db.execute({
+    sql: "SELECT * FROM properties WHERE id = ? AND visibility = 'public'",
+    args: [id],
+  });
+  return result.rows[0] ? rowAs<Property>(result.rows[0]) : undefined;
+}
+
+/** Strict ownership check — for edit/delete */
+export async function getOwnPropertyById(
+  id: string,
+  userId: string
+): Promise<Property | undefined> {
+  const db = await getDb();
+  const result = await db.execute({
+    sql: "SELECT * FROM properties WHERE id = ? AND user_id = ?",
+    args: [id, userId],
+  });
+  return result.rows[0] ? rowAs<Property>(result.rows[0]) : undefined;
+}
+
+export async function getPropertyBySourceUrl(
+  sourceUrl: string,
+  userId: string
+): Promise<Property | undefined> {
+  if (!sourceUrl) return undefined;
+  const db = await getDb();
+  const result = await db.execute({
+    sql: "SELECT * FROM properties WHERE source_url = ? AND user_id = ? LIMIT 1",
+    args: [sourceUrl, userId],
+  });
+  return result.rows[0] ? rowAs<Property>(result.rows[0]) : undefined;
+}
+
+export async function createProperty(
+  property: Omit<Property, "id" | "created_at" | "updated_at">
+): Promise<string> {
+  const db = await getDb();
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  await db.execute({
+    sql: `
+      INSERT INTO properties (
+        id, user_id, visibility, address, city, postal_code, purchase_price, surface, property_type, description,
+        loan_amount, interest_rate, loan_duration, personal_contribution,
+        insurance_rate, loan_fees, notary_fees, monthly_rent, condo_charges,
+        property_tax, vacancy_rate, airbnb_price_per_night, airbnb_occupancy_rate,
+        airbnb_charges, source_url, image_urls, prefill_sources, created_at, updated_at
+      ) VALUES (
+        $id, $user_id, $visibility, $address, $city, $postal_code, $purchase_price, $surface, $property_type, $description,
+        $loan_amount, $interest_rate, $loan_duration, $personal_contribution,
+        $insurance_rate, $loan_fees, $notary_fees, $monthly_rent, $condo_charges,
+        $property_tax, $vacancy_rate, $airbnb_price_per_night, $airbnb_occupancy_rate,
+        $airbnb_charges, $source_url, $image_urls, $prefill_sources, $created_at, $updated_at
+      )
+    `,
+    args: { ...property, id, created_at: now, updated_at: now },
+  });
+
+  return id;
+}
+
+export async function updateProperty(
+  id: string,
+  userId: string,
+  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at">
+): Promise<void> {
+  const db = await getDb();
+  const now = new Date().toISOString();
+
+  await db.execute({
+    sql: `
+      UPDATE properties SET
+        visibility = $visibility, address = $address, city = $city, postal_code = $postal_code,
+        purchase_price = $purchase_price, surface = $surface,
+        property_type = $property_type, description = $description,
+        loan_amount = $loan_amount, interest_rate = $interest_rate,
+        loan_duration = $loan_duration, personal_contribution = $personal_contribution,
+        insurance_rate = $insurance_rate, loan_fees = $loan_fees,
+        notary_fees = $notary_fees, monthly_rent = $monthly_rent,
+        condo_charges = $condo_charges, property_tax = $property_tax,
+        vacancy_rate = $vacancy_rate, airbnb_price_per_night = $airbnb_price_per_night,
+        airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
+        source_url = $source_url, image_urls = $image_urls,
+        prefill_sources = $prefill_sources, updated_at = $updated_at
+      WHERE id = $id AND user_id = $user_id
+    `,
+    args: { ...property, id, user_id: userId, updated_at: now },
+  });
+}
+
+export async function deleteProperty(id: string, userId: string): Promise<void> {
+  const db = await getDb();
+  await db.execute({
+    sql: "DELETE FROM properties WHERE id = ? AND user_id = ?",
+    args: [id, userId],
+  });
+}

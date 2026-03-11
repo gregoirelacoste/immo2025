@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
-import { getVisibleProperties } from "@/lib/db";
+import { getVisibleProperties } from "@/domains/property/repository";
 import Navbar from "@/components/Navbar";
-import DashboardClient from "@/components/DashboardClient";
+import DashboardClient from "@/components/property/dashboard/DashboardClient";
 
 export const dynamic = "force-dynamic";
 

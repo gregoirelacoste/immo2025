@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getOwnPropertyById } from "@/lib/db";
+import { getOwnPropertyById } from "@/domains/property/repository";
 import Navbar from "@/components/Navbar";
-import PropertyForm from "@/components/PropertyForm";
+import PropertyForm from "@/components/property/form/PropertyForm";
 
 export const dynamic = "force-dynamic";
 

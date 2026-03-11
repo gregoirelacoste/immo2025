@@ -1,4 +1,5 @@
-import { ScrapedPropertyData } from "@/types/scraping";
+import { ScrapedPropertyData } from "@/domains/scraping/types";
+import { callGemini } from "@/infrastructure/ai/gemini";
 
 const VALIDATE_PROMPT = `Tu es un expert en immobilier français. Vérifie la cohérence de ces données extraites d'une annonce immobilière.
 
@@ -31,8 +32,7 @@ export interface ValidationResult {
 export async function validateWithAi(
   data: ScrapedPropertyData
 ): Promise<ValidationResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  if (!process.env.GEMINI_API_KEY) {
     // Sans clé API, on skip la validation
     return { valid: true, errors: [], suggestions: [] };
   }
@@ -52,29 +52,17 @@ export async function validateWithAi(
 
   const prompt = VALIDATE_PROMPT + context + VALIDATE_SUFFIX;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 1024,
-          responseMimeType: "application/json",
-        },
-      }),
-    }
-  );
-
-  if (!response.ok) {
+  let text: string;
+  try {
+    text = await callGemini(prompt, {
+      temperature: 0.1,
+      maxOutputTokens: 1024,
+      responseMimeType: "application/json",
+    });
+  } catch {
     // En cas d'erreur API, on ne bloque pas — on considère valide
     return { valid: true, errors: [], suggestions: [] };
   }
-
-  const result = await response.json();
-  const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
   try {
     const parsed = JSON.parse(text);

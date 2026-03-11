@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
-import PropertyForm from "@/components/PropertyForm";
+import PropertyForm from "@/components/property/form/PropertyForm";
 
 export default function NewPropertyPage() {
   return (

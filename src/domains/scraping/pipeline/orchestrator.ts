@@ -1,14 +1,14 @@
-import { FieldSelector, ScrapedPropertyData, ScrapeResult } from "@/types/scraping";
+import { FieldSelector, ScrapedPropertyData, ScrapeResult } from "@/domains/scraping/types";
 import {
   getManifestByHostname,
   upsertManifest,
   incrementManifestSuccess,
   incrementManifestFailure,
-} from "@/lib/db";
+} from "@/domains/scraping/repository";
 import { fetchPage, extractJsonLd, parseJsonLdProperty, extractImages } from "./fetcher";
 import { directScrape } from "./direct-scraper";
-import { generateWithAi } from "./ai-generator";
-import { quickValidate, validateWithAi } from "./ai-validator";
+import { generateWithAi } from "@/domains/scraping/ai/generator";
+import { quickValidate, validateWithAi } from "@/domains/scraping/ai/validator";
 import { FAILURE_THRESHOLD, MAX_AI_RETRIES } from "./constants";
 
 /** Valide qu'une URL est bien HTTP(S) et pas locale/privée */

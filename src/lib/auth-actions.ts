@@ -3,7 +3,7 @@
 import { signIn } from "@/lib/auth";
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
-import { getUserByEmail, createUser } from "@/lib/db";
+import { getUserByEmail, createUser } from "@/domains/auth/repository";
 
 export async function loginWithCredentials(
   _prevState: unknown,

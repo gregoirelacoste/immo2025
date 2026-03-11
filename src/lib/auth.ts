@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
-import { getUserByEmail, upsertOAuthUser } from "@/lib/db";
+import { getUserByEmail, upsertOAuthUser } from "@/domains/auth/repository";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [

@@ -1,4 +1,5 @@
-import { ScrapedPropertyData } from "@/types/scraping";
+import { ScrapedPropertyData } from "@/domains/scraping/types";
+import { callGemini } from "@/infrastructure/ai/gemini";
 
 const EXTRACT_PROMPT = `Tu es un expert en immobilier français. Extrais les informations d'une annonce immobilière à partir du texte brut collé par l'utilisateur.
 
@@ -18,36 +19,13 @@ Ne retourne rien d'autre que le JSON.
 export async function extractFromText(
   rawText: string
 ): Promise<ScrapedPropertyData> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY manquante");
-  }
-
   // Limiter le texte à 30000 caractères
   const text = rawText.slice(0, 30000);
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: EXTRACT_PROMPT + "\nTexte de l'annonce :\n" + text }] }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 2048,
-          responseMimeType: "application/json",
-        },
-      }),
-    }
+  const raw = await callGemini(
+    EXTRACT_PROMPT + "\nTexte de l'annonce :\n" + text,
+    { temperature: 0.1, maxOutputTokens: 2048, responseMimeType: "application/json" }
   );
-
-  if (!response.ok) {
-    throw new Error(`Gemini API error ${response.status}`);
-  }
-
-  const result = await response.json();
-  const raw = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
   const parsed = JSON.parse(raw);
 
