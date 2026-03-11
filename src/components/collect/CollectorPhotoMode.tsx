@@ -4,6 +4,55 @@ import { useState, useRef, useCallback } from "react";
 import { PhotoMetadata } from "@/domains/collect/types";
 
 const MAX_PHOTOS = 5;
+const MAX_WIDTH = 1200;
+const JPEG_QUALITY = 0.7;
+
+/** Resize an image to max MAX_WIDTH px wide, return as JPEG data URL */
+function resizeImage(source: HTMLCanvasElement | HTMLVideoElement | HTMLImageElement): string {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d")!;
+
+  let srcW: number, srcH: number;
+  if (source instanceof HTMLVideoElement) {
+    srcW = source.videoWidth;
+    srcH = source.videoHeight;
+  } else if (source instanceof HTMLCanvasElement) {
+    srcW = source.width;
+    srcH = source.height;
+  } else {
+    srcW = source.naturalWidth;
+    srcH = source.naturalHeight;
+  }
+
+  if (srcW > MAX_WIDTH) {
+    const ratio = MAX_WIDTH / srcW;
+    canvas.width = MAX_WIDTH;
+    canvas.height = Math.round(srcH * ratio);
+  } else {
+    canvas.width = srcW;
+    canvas.height = srcH;
+  }
+
+  ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+}
+
+/** Load a File as an HTMLImageElement for resizing */
+function loadFileAsImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Impossible de charger l'image"));
+    };
+    img.src = url;
+  });
+}
 
 interface Props {
   /** Called when a new photo is captured/uploaded */
@@ -18,7 +67,6 @@ interface Props {
 export default function CollectorPhotoMode({ onCapture, photos = [], onRemove, disabled }: Props) {
   const [capturing, setCapturing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,37 +120,29 @@ export default function CollectorPhotoMode({ onCapture, photos = [], onRemove, d
   }
 
   function handleTakePhoto() {
-    if (!videoRef.current || !canvasRef.current) return;
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
-    const imageData = canvas.toDataURL("image/jpeg", 0.85);
-
+    if (!videoRef.current) return;
+    const imageData = resizeImage(videoRef.current);
     stopCamera();
     getGeoAndFinalize(imageData);
   }
 
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
 
     const remaining = MAX_PHOTOS - photos.length;
     const toProcess = Array.from(files).slice(0, remaining);
 
-    toProcess.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const imageData = reader.result as string;
+    for (const file of toProcess) {
+      try {
+        const img = await loadFileAsImage(file);
+        const imageData = resizeImage(img);
         getGeoAndFinalize(imageData);
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch {
+        // Skip files that can't be loaded
+      }
+    }
 
-    // Reset input so same file can be re-selected
     e.target.value = "";
   }
 
@@ -152,7 +192,6 @@ export default function CollectorPhotoMode({ onCapture, photos = [], onRemove, d
               className="w-full max-h-48 object-cover"
             />
           </div>
-          <canvas ref={canvasRef} className="hidden" />
           <div className="flex gap-2">
             <button
               type="button"
