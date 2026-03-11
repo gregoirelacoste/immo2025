@@ -2,6 +2,8 @@
  * Géorisques API — georisques.gouv.fr
  * Open data, no API key needed
  * Docs: https://www.georisques.gouv.fr/doc-api
+ *
+ * IMPORTANT: latlon param format is longitude,latitude (NOT lat,lon)
  */
 
 import { NaturalRisk } from "./socioeconomic-types";
@@ -11,8 +13,27 @@ interface GeorisquesResult {
   riskLevel: "faible" | "moyen" | "élevé" | null;
 }
 
+const NATURAL_RISK_KEYS = [
+  "inondation", "remonteeNappe", "risqueCotier", "seisme",
+  "mouvementTerrain", "retraitGonflementArgile", "avalanche",
+  "feuForet", "radon",
+] as const;
+
+const RISK_LABELS: Record<string, string> = {
+  inondation: "Inondation",
+  remonteeNappe: "Remontée de nappe",
+  risqueCotier: "Risque côtier",
+  seisme: "Séisme",
+  mouvementTerrain: "Mouvement de terrain",
+  retraitGonflementArgile: "Argile (retrait-gonflement)",
+  avalanche: "Avalanche",
+  feuForet: "Feu de forêt",
+  radon: "Radon",
+};
+
 /**
- * Fetch natural risks for a location
+ * Fetch comprehensive risk report for a location.
+ * Uses the unified /resultats_rapport_risque endpoint.
  */
 export async function fetchGeorisques(
   latitude: number,
@@ -21,8 +42,8 @@ export async function fetchGeorisques(
   const risks: NaturalRisk[] = [];
 
   try {
-    // Gaspar API — risques par commune ou coordonnées
-    const url = `https://georisques.gouv.fr/api/v1/gaspar/risques?latlon=${latitude},${longitude}&rayon=1000`;
+    // latlon format: longitude,latitude
+    const url = `https://www.georisques.gouv.fr/api/v1/resultats_rapport_risque?latlon=${longitude},${latitude}`;
 
     const res = await fetch(url, {
       headers: { "Accept": "application/json" },
@@ -31,54 +52,62 @@ export async function fetchGeorisques(
     if (!res.ok) return { risks: [], riskLevel: null };
 
     const data = await res.json();
-    const rawRisks = data.data || [];
 
-    for (const r of rawRisks) {
-      if (r.libelle_risque_long || r.libelle_risque_jo) {
-        risks.push({
-          type: r.libelle_risque_long || r.libelle_risque_jo || "Inconnu",
-          level: classifyRiskLevel(r),
-        });
+    // Parse natural risks
+    const naturels = data.risquesNaturels;
+    if (naturels) {
+      for (const key of NATURAL_RISK_KEYS) {
+        const risk = naturels[key];
+        if (risk && risk.present === true) {
+          risks.push({
+            type: RISK_LABELS[key] || key,
+            level: classifyRiskLevel(key, risk),
+          });
+        }
       }
     }
   } catch {
-    // Georisques failure is non-fatal
+    // Georisques failure is non-fatal — API can be flaky
+    return { risks: [], riskLevel: null };
   }
 
-  // Also check radon level
-  try {
-    const radonUrl = `https://georisques.gouv.fr/api/v1/radon?latlon=${latitude},${longitude}`;
-    const radonRes = await fetch(radonUrl, {
-      headers: { "Accept": "application/json" },
-    });
-
-    if (radonRes.ok) {
-      const radonData = await radonRes.json();
-      const radonItems = radonData.data || [];
-      if (radonItems.length > 0) {
-        const classe = radonItems[0].classe_potentiel;
-        risks.push({
-          type: "Radon",
-          level: classe >= 3 ? "Fort" : classe >= 2 ? "Moyen" : "Faible",
-        });
-      }
-    }
-  } catch {
-    // Radon check failure is non-fatal
-  }
-
-  // Determine overall risk level
   const riskLevel = computeOverallRiskLevel(risks);
-
   return { risks, riskLevel };
 }
 
-function classifyRiskLevel(risk: Record<string, unknown>): string {
-  // Use num_risque or other indicators if available
-  const code = String(risk.cod_national_risque || "");
-  // Inondation (code 1xx), Séisme (code 2xx), Mouvement terrain (code 3xx)
-  if (code.startsWith("1")) return "Moyen"; // Inondation
-  if (code.startsWith("2")) return "Fort";  // Séisme
+function classifyRiskLevel(key: string, risk: Record<string, unknown>): string {
+  // Use address-level status if available, else commune-level
+  const statusAdresse = String(risk.libelleStatutAdresse || "").toLowerCase();
+  const statusCommune = String(risk.libelleStatutCommune || "").toLowerCase();
+  const status = statusAdresse || statusCommune;
+
+  if (status.includes("fort") || status.includes("très") || status.includes("élevé")) return "Fort";
+  if (status.includes("moyen") || status.includes("modéré")) return "Moyen";
+  if (status.includes("faible")) return "Faible";
+
+  // Seisme-specific: zone code matters
+  if (key === "seisme") {
+    const zone = risk.zone || risk.codeZone;
+    if (typeof zone === "number" || typeof zone === "string") {
+      const n = Number(zone);
+      if (n >= 4) return "Fort";
+      if (n >= 3) return "Moyen";
+      return "Faible";
+    }
+  }
+
+  // Radon: classe 3 = fort, 2 = moyen, 1 = faible
+  if (key === "radon") {
+    const classe = risk.classe_potentiel || risk.classePotentiel;
+    if (typeof classe === "number" || typeof classe === "string") {
+      const n = Number(classe);
+      if (n >= 3) return "Fort";
+      if (n >= 2) return "Moyen";
+      return "Faible";
+    }
+  }
+
+  // Default: if present, at least "Moyen"
   return "Moyen";
 }
 

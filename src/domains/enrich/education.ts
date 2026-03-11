@@ -1,6 +1,10 @@
 /**
  * Annuaire de l'éducation — data.education.gouv.fr
+ * + Enseignement supérieur — data.enseignementsup-recherche.gouv.fr
  * Open data, no API key needed
+ *
+ * Uses geo-distance queries to avoid Paris/Lyon/Marseille arrondissement issues.
+ * POINT format: POINT(longitude latitude)
  */
 
 interface EducationResult {
@@ -9,8 +13,9 @@ interface EducationResult {
 }
 
 /**
- * Search schools near a location or by commune code
- * Uses the Annuaire des établissements dataset on data.education.gouv.fr
+ * Search schools near a location and check for nearby universities.
+ * Prefers geo-distance search (works for all communes including Paris/Lyon/Marseille).
+ * Falls back to commune code search if no coordinates.
  */
 export async function fetchEducationData(
   communeCode: string,
@@ -20,12 +25,19 @@ export async function fetchEducationData(
   let schoolCount = 0;
   let universityNearby = false;
 
+  // --- Schools (écoles, collèges, lycées) ---
   try {
-    // Search schools by commune code via the education API
     const url = new URL("https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records");
-    url.searchParams.set("where", `code_commune = "${communeCode}"`);
-    url.searchParams.set("limit", "100");
-    url.searchParams.set("select", "identifiant_de_l_etablissement,type_etablissement,nom_etablissement");
+
+    if (latitude != null && longitude != null) {
+      // Geo-distance: 2km radius — avoids arrondissement issues
+      url.searchParams.set("where", `within_distance(position, geom'POINT(${longitude} ${latitude})', 2km)`);
+    } else {
+      // Fallback: commune code (won't work for Paris/Lyon/Marseille main codes)
+      url.searchParams.set("where", `code_commune="${communeCode}"`);
+    }
+    url.searchParams.set("select", "count(*) as total");
+    url.searchParams.set("limit", "1");
 
     const res = await fetch(url.toString(), {
       headers: { "Accept": "application/json" },
@@ -33,13 +45,19 @@ export async function fetchEducationData(
 
     if (res.ok) {
       const data = await res.json();
-      schoolCount = data.total_count ?? data.results?.length ?? 0;
+      // Aggregation query returns results array with { total }
+      const results = data.results || [];
+      if (results.length > 0 && results[0].total != null) {
+        schoolCount = results[0].total;
+      } else {
+        schoolCount = data.total_count ?? 0;
+      }
     }
   } catch {
     // Education API failure is non-fatal
   }
 
-  // Check for universities nearby (separate dataset or broader search)
+  // --- Universities (enseignement supérieur) ---
   if (latitude != null && longitude != null) {
     try {
       const url = new URL("https://data.enseignementsup-recherche.gouv.fr/api/explore/v2.1/catalog/datasets/fr-esr-principaux-etablissements-enseignement-superieur/records");
