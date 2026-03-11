@@ -3,31 +3,32 @@
  * NO authentication required — fully open API
  * Docs: https://api.insee.fr/catalogue/site/themes/wso2/subthemes/insee/pages/item-info.jag?name=DonneesLocales&version=V0.1
  *
- * Endpoint pattern:
- *   GET https://api.insee.fr/donnees-locales/donnees/geo-{variables}@{dataset}/{nivgeo}-{codegeo}{modalites}
- *
- * Examples:
- *   Population by age: geo-SEXE-AGE15_15_90@GEO2023RP2020/COM-75056.all.all
- *   Income: geo-INDICS_FILO_DISP_DET@GEO2022FILO2019/COM-75056.all
+ * Supports both commune (COM) and IRIS level queries.
+ * IRIS = Ilots Regroupés pour l'Information Statistique (~2000 people)
  */
 
 const BASE_URL = "https://api.insee.fr/donnees-locales/donnees";
 
+export type GeoLevel = "COM" | "IRIS";
+
 /**
  * Fetch data from INSEE Données Locales.
- * Returns parsed JSON or null on error.
+ * @param geoLevel - "COM" for commune, "IRIS" for neighborhood
+ * @param geoCode - commune code (5 digits) or IRIS code (9 digits)
  */
 export async function inseeGetData(
   variables: string,
   dataset: string,
-  communeCode: string,
-  modalites: string = ".all"
+  geoCode: string,
+  modalites: string = ".all",
+  geoLevel: GeoLevel = "COM"
 ): Promise<Record<string, unknown> | null> {
-  const url = `${BASE_URL}/geo-${variables}@${dataset}/COM-${communeCode}${modalites}`;
+  const url = `${BASE_URL}/geo-${variables}@${dataset}/${geoLevel}-${geoCode}${modalites}`;
 
   try {
     const res = await fetch(url, {
       headers: { "Accept": "application/json" },
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) return null;

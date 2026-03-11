@@ -1,30 +1,55 @@
-import { USER_AGENT, FETCH_TIMEOUT_MS } from "./constants";
+import { randomUserAgent, FETCH_TIMEOUT_MS, FETCH_RETRY_COUNT, FETCH_RETRY_DELAY_MS } from "./constants";
 
-/** Fetch le HTML d'une URL avec timeout et User-Agent réaliste */
+/** Fetch le HTML d'une URL avec headers réalistes, retry sur 403 */
 export async function fetchPage(url: string): Promise<string> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let lastError: Error | null = null;
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": USER_AGENT,
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.5",
-      },
-      signal: controller.signal,
-      redirect: "follow",
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  for (let attempt = 0; attempt <= FETCH_RETRY_COUNT; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, FETCH_RETRY_DELAY_MS * attempt));
     }
 
-    return await response.text();
-  } finally {
-    clearTimeout(timeout);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": randomUserAgent(),
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+          "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+          "Accept-Encoding": "gzip, deflate, br",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+          "Sec-Fetch-Dest": "document",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Site": "none",
+          "Sec-Fetch-User": "?1",
+          "Upgrade-Insecure-Requests": "1",
+        },
+        signal: controller.signal,
+        redirect: "follow",
+      });
+
+      if (!response.ok) {
+        lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Retry on 403/429, fail immediately on other errors
+        if (response.status === 403 || response.status === 429) continue;
+        throw lastError;
+      }
+
+      return await response.text();
+    } catch (e) {
+      lastError = e as Error;
+      // Only retry on 403/429, not on network errors or timeouts
+      if (lastError.message.includes("403") || lastError.message.includes("429")) continue;
+      throw lastError;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
+
+  throw lastError || new Error("Fetch failed");
 }
 
 /** Extrait les blocs JSON-LD d'un HTML, y compris les @graph imbriqués */
@@ -40,7 +65,6 @@ export function extractJsonLd(html: string): Record<string, unknown>[] {
       if (Array.isArray(parsed)) {
         results.push(...parsed);
       } else if (parsed["@graph"] && Array.isArray(parsed["@graph"])) {
-        // Gérer les JSON-LD avec @graph wrapper
         results.push(...parsed["@graph"]);
       } else {
         results.push(parsed);
@@ -64,7 +88,6 @@ export function extractImages(
 
   function addImage(url: string | undefined | null) {
     if (!url || typeof url !== "string") return;
-    // Résoudre les URLs relatives
     try {
       const absolute = new URL(url, baseUrl).href;
       if (!seen.has(absolute) && /^https?:/.test(absolute)) {
@@ -113,7 +136,7 @@ export function extractImages(
     }
   }
 
-  return images.slice(0, 10); // Max 10 images
+  return images.slice(0, 10);
 }
 
 /** Tente d'extraire les données immobilières depuis les JSON-LD */
@@ -129,7 +152,6 @@ export function parseJsonLdProperty(
   for (const block of jsonLdBlocks) {
     const type = String(block["@type"] || "");
 
-    // Chercher RealEstateListing, Product, Residence, Apartment, House, SingleFamilyResidence
     if (
       !/(realestate|product|residence|apartment|house|offer|listing|singlefamily)/i.test(
         type
@@ -140,7 +162,7 @@ export function parseJsonLdProperty(
 
     const result: Record<string, unknown> = {};
 
-    // Prix — chercher dans offers ou directement sur le bloc
+    // Prix
     const offers = block.offers as Record<string, unknown> | undefined;
     const price =
       offers?.price ?? offers?.lowPrice ?? block.price ?? block.value;
@@ -151,7 +173,7 @@ export function parseJsonLdProperty(
           : parseInt(String(price).replace(/\D/g, ""), 10) || undefined;
     }
 
-    // Surface — chercher floorSize ou numberOfRooms comme fallback
+    // Surface
     const floorSize = block.floorSize as Record<string, unknown> | undefined;
     if (floorSize?.value) {
       result.surface = parseFloat(String(floorSize.value));
@@ -181,7 +203,6 @@ export function parseJsonLdProperty(
       result.description = String(block.description).slice(0, 1000);
     }
 
-    // On a trouvé au moins un prix ou une surface
     if (result.purchase_price || result.surface) {
       return result as {
         purchase_price?: number;

@@ -1,7 +1,12 @@
-/** Données socio-économiques d'une commune */
+/** Données socio-économiques d'un quartier (IRIS) ou d'une commune */
 export interface SocioEconomicData {
   communeCode: string;
   communeName: string;
+
+  // Quartier IRIS (si résolu depuis les coordonnées GPS)
+  irisCode: string | null;
+  irisName: string | null;
+  dataLevel: "iris" | "commune"; // indique la granularité des données
 
   // Démographie (source: geo.api.gouv.fr + INSEE RP)
   population: number | null;

@@ -36,8 +36,18 @@ export default function SocioEconomicPanel({ data }: Props) {
   return (
     <section className="bg-violet-50 rounded-xl border border-violet-200 p-4 md:p-6">
       <h2 className="text-lg font-semibold text-violet-900 mb-1">
-        Données socio-économiques — {data.communeName}
+        Données socio-économiques — {data.irisName ? `${data.irisName}, ${data.communeName}` : data.communeName}
       </h2>
+      {data.irisCode && (
+        <p className="text-[10px] text-violet-400 mb-1">
+          Quartier IRIS {data.irisCode} — données à l&apos;échelle du quartier
+        </p>
+      )}
+      {!data.irisCode && (
+        <p className="text-[10px] text-violet-400 mb-1">
+          Données à l&apos;échelle de la commune
+        </p>
+      )}
 
       {/* Population profile badge */}
       <div className="flex items-center gap-2 mb-4">
