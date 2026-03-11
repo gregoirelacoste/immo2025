@@ -1,9 +1,20 @@
 "use server";
 
-import { signIn } from "@/lib/auth";
+import { signIn, auth } from "@/lib/auth";
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
 import { getUserByEmail, createUser } from "@/domains/auth/repository";
+
+export async function requireUserId(): Promise<string> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Non authentifié");
+  return session.user.id;
+}
+
+export async function getOptionalUserId(): Promise<string> {
+  const session = await auth();
+  return session?.user?.id || "";
+}
 
 export async function loginWithCredentials(
   _prevState: unknown,

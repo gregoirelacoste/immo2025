@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState, Dispatch, SetStateAction } from "react";
-import { Property } from "@/domains/property/types";
+import { PropertyFormData } from "@/domains/property/types";
 import { calculateNotaryFees } from "@/lib/calculations";
-
-type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at">;
 
 export function useLoanAutoCalc(
   form: PropertyFormData,

@@ -28,7 +28,7 @@ export async function upsertManifest(data: {
   });
 
   if (existing.rows[0]) {
-    const row = existing.rows[0] as unknown as { id: string; version: number };
+    const row = rowAs<{ id: string; version: number }>(existing.rows[0]);
     await db.execute({
       sql: `UPDATE scraping_manifests SET
               selectors = $selectors, version = $version,

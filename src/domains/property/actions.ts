@@ -4,33 +4,17 @@ import { revalidatePath } from "next/cache";
 import {
   createProperty,
   updateProperty,
+  updateOrphanProperty,
   deleteProperty,
-  getOwnPropertyById,
+  getOrphanPropertyById,
+  stripMeta,
+  getOwnerOrAllowOrphan,
 } from "@/domains/property/repository";
-import { auth } from "@/lib/auth";
+import { requireUserId, getOptionalUserId } from "@/lib/auth-actions";
 import { calculateNotaryFees } from "@/lib/calculations";
 import { scrapeUrl } from "@/domains/scraping/pipeline/orchestrator";
-import { Property } from "@/domains/property/types";
+import { Property, PropertyFormData } from "@/domains/property/types";
 import { mergeRescrapeIntoPrefill, parsePrefill } from "@/domains/property/prefill";
-
-type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at">;
-
-async function requireUserId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Non authentifié");
-  return session.user.id;
-}
-
-async function getOptionalUserId(): Promise<string> {
-  const session = await auth();
-  return session?.user?.id || "";
-}
-
-function stripMeta(p: Property) {
-  const { id, user_id, created_at, updated_at, ...rest } = p;
-  void id; void user_id; void created_at; void updated_at;
-  return rest;
-}
 
 export async function saveProperty(
   formData: PropertyFormData,
@@ -41,7 +25,6 @@ export async function saveProperty(
       formData.property_type === "neuf" ? "neuf" : "ancien";
 
     const { user_id: _uid, ...formWithoutUserId } = formData;
-    void _uid;
 
     const payload = {
       ...formWithoutUserId,
@@ -53,8 +36,13 @@ export async function saveProperty(
     };
 
     if (existingId) {
-      const userId = await requireUserId();
-      await updateProperty(existingId, userId, payload);
+      const orphan = await getOrphanPropertyById(existingId);
+      if (orphan) {
+        await updateOrphanProperty(existingId, payload);
+      } else {
+        const userId = await requireUserId();
+        await updateProperty(existingId, userId, payload);
+      }
     } else {
       const userId = await getOptionalUserId();
       await createProperty({ ...payload, user_id: userId });
@@ -67,18 +55,29 @@ export async function saveProperty(
   }
 }
 
-export async function removeProperty(id: string): Promise<void> {
-  const userId = await requireUserId();
-  await deleteProperty(id, userId);
-  revalidatePath("/dashboard");
+export async function removeProperty(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const userId = await requireUserId();
+    await deleteProperty(id, userId);
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
 }
 
 export async function rescrapeProperty(
   id: string
 ): Promise<{ success: boolean; error?: string }> {
-  const userId = await requireUserId();
-  const property = await getOwnPropertyById(id, userId);
-  if (!property || !property.source_url) {
+  let property: Property;
+  let userId: string | null;
+  try {
+    ({ property, userId } = await getOwnerOrAllowOrphan(id));
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+
+  if (!property.source_url) {
     return { success: false, error: "Pas d'URL source pour ce bien." };
   }
 
@@ -97,7 +96,7 @@ export async function rescrapeProperty(
   const updatedPrefill = mergeRescrapeIntoPrefill(existingPrefill, d, result.method);
 
   const baseData = stripMeta(property);
-  await updateProperty(id, userId, {
+  const updatePayload = {
     ...baseData,
     ...(d.purchase_price != null && { purchase_price: d.purchase_price }),
     ...(d.surface != null && { surface: d.surface }),
@@ -109,7 +108,13 @@ export async function rescrapeProperty(
     notary_fees: newNotaryFees,
     image_urls: d.image_urls ? JSON.stringify(d.image_urls) : property.image_urls,
     prefill_sources: JSON.stringify(updatedPrefill),
-  });
+  };
+
+  if (userId === null) {
+    await updateOrphanProperty(id, updatePayload);
+  } else {
+    await updateProperty(id, userId, updatePayload);
+  }
 
   revalidatePath(`/property/${id}`);
   revalidatePath("/dashboard");

@@ -74,7 +74,11 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
     e.preventDefault();
     e.stopPropagation();
     if (!confirm("Supprimer ce bien ?")) return;
-    await removeProperty(id);
+    const result = await removeProperty(id);
+    if (!result.success) {
+      alert(result.error ?? "Erreur lors de la suppression.");
+      return;
+    }
     router.refresh();
   }
 
@@ -89,7 +93,7 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
           </p>
         </div>
         <Link
-          href={currentUserId ? "/property/new" : "/login"}
+          href="/property/new"
           className="hidden md:inline-flex px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
         >
           + Nouveau bien

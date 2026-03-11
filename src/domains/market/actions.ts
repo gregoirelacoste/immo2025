@@ -6,5 +6,9 @@ import { MarketData } from "@/domains/market/types";
 export async function fetchMarketDataForCity(
   city: string
 ): Promise<MarketData | null> {
-  return getMarketData(city);
+  try {
+    return await getMarketData(city);
+  } catch {
+    return null;
+  }
 }

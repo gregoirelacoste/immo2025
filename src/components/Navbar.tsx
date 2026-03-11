@@ -29,7 +29,7 @@ export default function Navbar() {
                 Dashboard
               </Link>
               <Link
-                href={session ? "/property/new" : "/login"}
+                href="/property/new"
                 className={`text-sm font-medium ${
                   isActive("/property/new") ? "text-indigo-600" : "text-gray-600 hover:text-gray-900"
                 }`}
@@ -97,7 +97,7 @@ export default function Navbar() {
             <span className="text-xs mt-0.5 font-medium">Dashboard</span>
           </Link>
           <Link
-            href={session ? "/property/new" : "/login"}
+            href="/property/new"
             className={`flex-1 flex flex-col items-center justify-center py-2 min-h-[56px] ${
               isActive("/property/new")
                 ? "text-indigo-600"

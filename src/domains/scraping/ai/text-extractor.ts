@@ -27,7 +27,12 @@ export async function extractFromText(
     { temperature: 0.1, maxOutputTokens: 2048, responseMimeType: "application/json" }
   );
 
-  const parsed = JSON.parse(raw);
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("Échec du parsing de la réponse IA");
+  }
 
   const data: ScrapedPropertyData = {};
 

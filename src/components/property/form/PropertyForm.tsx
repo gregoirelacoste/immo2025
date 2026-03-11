@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Property } from "@/domains/property/types";
+import { Property, PropertyFormData } from "@/domains/property/types";
 import {
   calculateNotaryFees,
   calculateMonthlyPayment,
@@ -19,8 +19,6 @@ import ClassicRentalSection from "./ClassicRentalSection";
 import AirbnbSection from "./AirbnbSection";
 import ResultsSummarySection from "./ResultsSummarySection";
 import Alert from "@/components/ui/Alert";
-
-type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at">;
 
 const defaultFormData: PropertyFormData = {
   user_id: "",
@@ -64,8 +62,7 @@ export default function PropertyForm({ existingProperty }: Props) {
 
   const [form, setForm] = useState<PropertyFormData>(() => {
     if (existingProperty) {
-      const { id, created_at, updated_at, ...rest } = existingProperty;
-      void id; void created_at; void updated_at;
+      const { id: _id, created_at: _created_at, updated_at: _updated_at, ...rest } = existingProperty;
       return rest;
     }
     return defaultFormData;

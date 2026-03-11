@@ -56,7 +56,7 @@ export default function MarketDataPanel({ property, marketData, loading }: Props
             <div className="bg-white rounded-lg p-3 border border-emerald-100">
               <p className="text-xs text-gray-500">Prix moyen /m²</p>
               <p className="text-lg font-bold text-gray-900">
-                {formatCurrency(marketData.avgPurchasePricePerM2!)}
+                {formatCurrency(marketData.avgPurchasePricePerM2 ?? 0)}
               </p>
             </div>
             <div className="bg-white rounded-lg p-3 border border-emerald-100">

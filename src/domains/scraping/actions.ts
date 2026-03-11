@@ -1,8 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createProperty, updateProperty, getPropertyBySourceUrl, getOwnPropertyById } from "@/domains/property/repository";
-import { auth } from "@/lib/auth";
+import {
+  createProperty,
+  updateProperty,
+  updateOrphanProperty,
+  getPropertyBySourceUrl,
+  stripMeta,
+  getOwnerOrAllowOrphan,
+} from "@/domains/property/repository";
+import { getOptionalUserId } from "@/lib/auth-actions";
 import { calculateNotaryFees } from "@/lib/calculations";
 import { scrapeUrl } from "@/domains/scraping/pipeline/orchestrator";
 import { extractFromText } from "@/domains/scraping/ai/text-extractor";
@@ -14,23 +21,6 @@ import {
   parsePrefill,
 } from "@/domains/property/prefill";
 import { Property } from "@/domains/property/types";
-
-async function getOptionalUserId(): Promise<string> {
-  const session = await auth();
-  return session?.user?.id || "";
-}
-
-async function requireUserId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Non authentifié");
-  return session.user.id;
-}
-
-function stripMeta(p: Property) {
-  const { id, user_id, created_at, updated_at, ...rest } = p;
-  void id; void user_id; void created_at; void updated_at;
-  return rest;
-}
 
 export async function scrapeAndSaveProperty(
   url: string,
@@ -229,9 +219,7 @@ export async function extractAndUpdateFromText(
   rawText: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const userId = await requireUserId();
-    const property = await getOwnPropertyById(propertyId, userId);
-    if (!property) return { success: false, error: "Bien introuvable." };
+    const { property, userId } = await getOwnerOrAllowOrphan(propertyId);
 
     const d = await extractFromText(rawText);
 
@@ -263,7 +251,7 @@ export async function extractAndUpdateFromText(
     }
 
     const baseData = stripMeta(property);
-    await updateProperty(propertyId, userId, {
+    const updatePayload = {
       ...baseData,
       ...(d.purchase_price != null && { purchase_price: d.purchase_price }),
       ...(d.surface != null && { surface: d.surface }),
@@ -277,7 +265,13 @@ export async function extractAndUpdateFromText(
       property_tax: propertyTax,
       condo_charges: condoCharges,
       prefill_sources: JSON.stringify(prefill),
-    });
+    };
+
+    if (userId === null) {
+      await updateOrphanProperty(propertyId, updatePayload);
+    } else {
+      await updateProperty(propertyId, userId, updatePayload);
+    }
 
     revalidatePath(`/property/${propertyId}`);
     revalidatePath(`/property/${propertyId}/edit`);

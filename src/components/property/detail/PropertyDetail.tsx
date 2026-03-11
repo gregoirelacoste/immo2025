@@ -26,7 +26,11 @@ export default function PropertyDetail({ property, isOwner = false }: Props) {
 
   async function handleDelete() {
     if (!confirm("Supprimer ce bien ?")) return;
-    await removeProperty(property.id);
+    const result = await removeProperty(property.id);
+    if (!result.success) {
+      alert(result.error ?? "Erreur lors de la suppression.");
+      return;
+    }
     router.push("/dashboard");
   }
 

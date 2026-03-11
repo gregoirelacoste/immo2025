@@ -37,6 +37,8 @@ export interface Property {
   updated_at: string;
 }
 
+export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at">;
+
 export interface PropertyCalculations {
   // Prêt
   monthly_payment: number;
