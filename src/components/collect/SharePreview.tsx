@@ -2,28 +2,43 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { processShareAndCreate } from "@/domains/collect/share-actions";
+import {
+  processShareAndCreate,
+  processShareUrlDirect,
+} from "@/domains/collect/share-actions";
 import Spinner from "@/components/ui/Spinner";
 
 interface Props {
-  sessionId: string;
+  sessionId?: string;
   url?: string;
+  text?: string;
+  title?: string;
   imageCount: number;
 }
 
-export default function SharePreview({ sessionId, url, imageCount }: Props) {
+export default function SharePreview({
+  sessionId,
+  url,
+  text,
+  title,
+  imageCount,
+}: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    processShareAndCreate(sessionId).then((result) => {
+    const process = sessionId
+      ? processShareAndCreate(sessionId)
+      : processShareUrlDirect(url || "", text, title);
+
+    process.then((result) => {
       if (result.propertyId) {
         router.replace(`/property/${result.propertyId}/edit`);
       } else {
         setError(result.error || "Impossible de traiter le partage.");
       }
     });
-  }, [sessionId, router]);
+  }, [sessionId, url, text, title, router]);
 
   if (error) {
     return (
