@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { FieldSelector, ScrapedPropertyData } from "@/types/scraping";
+import { FieldSelector, ScrapedPropertyData } from "@/domains/scraping/types";
 import { REQUIRED_FIELDS, PROPERTY_FIELDS } from "./constants";
 import { applyTransform } from "./normalizers";
 

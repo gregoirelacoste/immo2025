@@ -1,4 +1,4 @@
-import { Property, PropertyCalculations } from "@/types/property";
+import { Property, PropertyCalculations } from "@/domains/property/types";
 
 export function calculateNotaryFees(
   price: number,

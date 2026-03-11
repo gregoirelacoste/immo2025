@@ -1,5 +1,6 @@
-import { FieldSelector, ScrapedPropertyData } from "@/types/scraping";
-import { cleanHtmlForAi } from "./html-cleaner";
+import { FieldSelector, ScrapedPropertyData } from "@/domains/scraping/types";
+import { cleanHtmlForAi } from "@/domains/scraping/pipeline/html-cleaner";
+import { callGemini } from "@/infrastructure/ai/gemini";
 
 const GENERATE_PROMPT = `Tu es un expert en web scraping immobilier. Analyse ce HTML d'une annonce immobilière.
 
@@ -50,11 +51,6 @@ export async function generateWithAi(
   html: string,
   previousErrors: string[] = []
 ): Promise<AiGenerationResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY manquante. Ajoutez-la dans .env.local");
-  }
-
   const cleanedHtml = cleanHtmlForAi(html);
   const basePrompt =
     previousErrors.length > 0
@@ -62,33 +58,11 @@ export async function generateWithAi(
       : GENERATE_PROMPT;
   const prompt = basePrompt + "\nHTML à analyser :\n" + cleanedHtml;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 4096,
-          responseMimeType: "application/json",
-        },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${errorText}`);
-  }
-
-  const result = await response.json();
-  const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-  if (!text.trim()) {
-    throw new Error("L'IA a retourné une réponse vide");
-  }
+  const text = await callGemini(prompt, {
+    temperature: 0.1,
+    maxOutputTokens: 4096,
+    responseMimeType: "application/json",
+  });
 
   let raw: Record<string, Record<string, unknown>>;
   try {

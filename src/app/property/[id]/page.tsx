@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getPropertyById } from "@/lib/db";
+import { getPropertyById } from "@/domains/property/repository";
 import Navbar from "@/components/Navbar";
-import PropertyDetail from "@/components/PropertyDetail";
+import PropertyDetail from "@/components/property/detail/PropertyDetail";
 
 export const dynamic = "force-dynamic";
 
