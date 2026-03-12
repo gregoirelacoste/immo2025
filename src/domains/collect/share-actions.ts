@@ -173,6 +173,7 @@ export async function processShareAndCreate(
       airbnb_price_per_night: 0,
       airbnb_occupancy_rate: 60,
       airbnb_charges: 0,
+      amenities: extracted.amenities ? JSON.stringify(extracted.amenities) : "[]",
       source_url: shareData.url || "",
       image_urls: "[]",
       prefill_sources: JSON.stringify(prefill),

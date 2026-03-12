@@ -31,6 +31,7 @@ export interface ScrapedPropertyData {
   description?: string;
   property_type?: "ancien" | "neuf";
   image_urls?: string[];
+  amenities?: string[];
 }
 
 /** Résultat retourné au client */

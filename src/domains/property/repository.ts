@@ -125,13 +125,13 @@ export async function createProperty(
         loan_amount, interest_rate, loan_duration, personal_contribution,
         insurance_rate, loan_fees, notary_fees, monthly_rent, condo_charges,
         property_tax, vacancy_rate, airbnb_price_per_night, airbnb_occupancy_rate,
-        airbnb_charges, source_url, image_urls, prefill_sources, created_at, updated_at
+        airbnb_charges, amenities, source_url, image_urls, prefill_sources, created_at, updated_at
       ) VALUES (
         $id, $user_id, $visibility, $address, $city, $postal_code, $purchase_price, $surface, $property_type, $description,
         $loan_amount, $interest_rate, $loan_duration, $personal_contribution,
         $insurance_rate, $loan_fees, $notary_fees, $monthly_rent, $condo_charges,
         $property_tax, $vacancy_rate, $airbnb_price_per_night, $airbnb_occupancy_rate,
-        $airbnb_charges, $source_url, $image_urls, $prefill_sources, $created_at, $updated_at
+        $airbnb_charges, $amenities, $source_url, $image_urls, $prefill_sources, $created_at, $updated_at
       )
     `,
     args: { ...property, id, created_at: now, updated_at: now },
@@ -161,7 +161,7 @@ export async function updateProperty(
         condo_charges = $condo_charges, property_tax = $property_tax,
         vacancy_rate = $vacancy_rate, airbnb_price_per_night = $airbnb_price_per_night,
         airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
-        source_url = $source_url, image_urls = $image_urls,
+        amenities = $amenities, source_url = $source_url, image_urls = $image_urls,
         prefill_sources = $prefill_sources, updated_at = $updated_at
       WHERE id = $id AND user_id = $user_id
     `,
@@ -190,7 +190,7 @@ export async function updateOrphanProperty(
         condo_charges = $condo_charges, property_tax = $property_tax,
         vacancy_rate = $vacancy_rate, airbnb_price_per_night = $airbnb_price_per_night,
         airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
-        source_url = $source_url, image_urls = $image_urls,
+        amenities = $amenities, source_url = $source_url, image_urls = $image_urls,
         prefill_sources = $prefill_sources, updated_at = $updated_at
       WHERE id = $id AND (user_id = '' OR user_id IS NULL)
     `,

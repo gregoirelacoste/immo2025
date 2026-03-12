@@ -18,6 +18,7 @@ import FinancingPanel from "./FinancingPanel";
 import ClassicYieldPanel from "./ClassicYieldPanel";
 import AirbnbYieldPanel from "./AirbnbYieldPanel";
 import SocioEconomicPanel from "./SocioEconomicPanel";
+import AmenitiesPanel from "./AmenitiesPanel";
 import RescrapePanel from "./RescrapePanel";
 
 const PropertyMap = dynamic(() => import("./PropertyMap"), { ssr: false });
@@ -84,6 +85,7 @@ export default function PropertyDetail({ property, isOwner = false }: Props) {
       )}
 
       <PropertyInfoPanel property={property} />
+      <AmenitiesPanel amenitiesJson={property.amenities} />
 
       {/* Market data — separate panel */}
       <MarketDataPanel property={property} marketData={marketData} loading={property.enrichment_status === "running"} />

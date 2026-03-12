@@ -42,6 +42,8 @@ export interface Property {
   // Collecte (URLs et textes ajoutés par l'utilisateur)
   collect_urls: string;  // JSON: string[] — toutes les URLs ajoutées
   collect_texts: string; // JSON: string[] — tous les textes collés
+  // Équipements / commodités
+  amenities: string; // JSON: string[] — clés d'équipements (garage, parking, cave, balcon, etc.)
   // Metadata
   source_url: string;    // URL active (= première de collect_urls, utilisée pour le scraping)
   image_urls: string;    // JSON array of image URLs
