@@ -91,19 +91,16 @@ export default function VisitMode({ property }: Props) {
   const [verdictComment, setVerdictComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleVerdict = useCallback(
-    async (status: "validated" | "not_validated" | "visited") => {
-      setSubmitting(true);
-      try {
-        await flushSave();
-        await changePropertyStatus(property.id, status);
-        router.push(`/property/${property.id}`);
-      } catch {
-        setSubmitting(false);
-      }
-    },
-    [flushSave, property.id, router],
-  );
+  const handleSaveVisit = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      await flushSave();
+      await changePropertyStatus(property.id, "visited");
+      router.push(`/property/${property.id}`);
+    } catch {
+      setSubmitting(false);
+    }
+  }, [flushSave, property.id, router]);
 
   // Scroll helpers
   const scrollTo = (id: string) => {
@@ -144,16 +141,16 @@ export default function VisitMode({ property }: Props) {
           </div>
 
           {/* Property info */}
-          <div>
-            <h1 className="text-base font-bold text-gray-900 truncate">
-              {property.city || "Bien"}{" "}
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold text-gray-900 truncate">
+              {property.city || "Bien"}
               {property.address && (
-                <span className="font-normal text-gray-500">
-                  — {property.address}
+                <span className="font-normal text-gray-500 text-xs">
+                  {" "}— {property.address}
                 </span>
               )}
             </h1>
-            <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
+            <div className="flex items-center gap-2 text-xs text-gray-600 mt-0.5">
               <span className="font-semibold">
                 {formatCurrency(property.purchase_price)}
               </span>
@@ -163,8 +160,8 @@ export default function VisitMode({ property }: Props) {
           </div>
 
           {/* KPIs */}
-          <div className="grid grid-cols-4 gap-1">
-            <KPI label="Renta nette" value={formatPercent(calculations.net_yield)} />
+          <div className="flex items-center justify-between gap-1 py-1">
+            <KPI label="Renta" value={formatPercent(calculations.net_yield)} />
             <KPI
               label="Cash-flow"
               value={`${calculations.monthly_cashflow >= 0 ? "+" : ""}${formatCurrency(calculations.monthly_cashflow)}`}
@@ -179,11 +176,11 @@ export default function VisitMode({ property }: Props) {
 
           {/* Amenities badges */}
           {amenities.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1">
               {amenities.map((key) => (
                 <span
                   key={key}
-                  className="text-xs px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full"
+                  className="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-full"
                 >
                   {AMENITY_LABELS[key]}
                 </span>
@@ -262,9 +259,7 @@ export default function VisitMode({ property }: Props) {
           onRatingChange={setOverallRating}
           notes={verdictComment}
           onNotesChange={setVerdictComment}
-          onValidate={() => handleVerdict("validated")}
-          onReject={() => handleVerdict("not_validated")}
-          onDefer={() => handleVerdict("visited")}
+          onSave={handleSaveVisit}
           submitting={submitting}
         />
       </main>
@@ -304,11 +299,11 @@ function KPI({
   color?: string;
 }) {
   return (
-    <div className="text-center">
-      <p className="text-[10px] text-gray-500 uppercase tracking-wide">
+    <div className="text-center min-w-0">
+      <p className="text-[10px] text-gray-500 uppercase leading-tight">
         {label}
       </p>
-      <p className={`text-sm font-bold ${color || "text-gray-900"}`}>
+      <p className={`text-xs font-bold truncate ${color || "text-gray-900"}`}>
         {value}
       </p>
     </div>

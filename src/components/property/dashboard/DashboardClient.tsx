@@ -138,8 +138,8 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
         </Link>
       </div>
 
-      {/* Status filter bar */}
-      {properties.length > 0 && (
+      {/* Status filter bar — only for logged-in users */}
+      {properties.length > 0 && currentUserId && (
         <div className="flex flex-wrap gap-1.5 mb-4">
           <button
             onClick={selectAll}

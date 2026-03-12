@@ -27,16 +27,21 @@ export default function VisitChecklist({
     checklist[0]?.key ?? null,
   );
 
-  // Auto-advance: when a category reaches 100%, close it and open the next
+  // Track which categories already auto-advanced so we don't re-trigger
+  const [autoAdvanced, setAutoAdvanced] = useState<Set<string>>(new Set());
+
+  // Auto-advance: when a category reaches 100% for the first time, open the next
   useEffect(() => {
     if (!openCategory) return;
+    if (autoAdvanced.has(openCategory)) return;
     const idx = checklist.findIndex((c) => c.key === openCategory);
     const progress = categoryProgress.find((p) => p.key === openCategory);
     if (progress && progress.percent === 100 && idx < checklist.length - 1) {
+      setAutoAdvanced((prev) => new Set(prev).add(openCategory));
       const nextKey = checklist[idx + 1].key;
       setOpenCategory(nextKey);
     }
-  }, [categoryProgress, openCategory, checklist]);
+  }, [categoryProgress, openCategory, checklist, autoAdvanced]);
 
   return (
     <section className="space-y-2.5">

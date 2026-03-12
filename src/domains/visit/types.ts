@@ -5,7 +5,7 @@ import { AmenityKey } from "@/domains/property/amenities";
 // ─────────────────────────────────────────────
 
 /** How a checklist item is answered */
-export type CheckItemType = "check" | "rating" | "text";
+export type CheckItemType = "check" | "rating" | "text" | "select";
 
 export interface ChecklistItem {
   key: string;
@@ -13,6 +13,8 @@ export interface ChecklistItem {
   type: CheckItemType;
   /** Hint shown below the item (optional) */
   hint?: string;
+  /** Options for select type */
+  options?: string[];
 }
 
 export interface ChecklistCategory {
