@@ -165,6 +165,7 @@ export default function PropertyForm({ existingProperty }: Props) {
     investment_score: null, score_breakdown: "{}", socioeconomic_data: "",
     enrichment_status: "pending", enrichment_error: "", enrichment_at: "",
     collect_urls: "[]", collect_texts: "[]",
+    property_status: existingProperty?.property_status || "added",
     ...form,
   };
   const calcs = calculateAll(fakeProperty);

@@ -27,6 +27,8 @@ export interface Property {
   airbnb_price_per_night: number;
   airbnb_occupancy_rate: number; // en %
   airbnb_charges: number;
+  // Suivi
+  property_status: string; // PropertyStatus — "added" par défaut
   // Ownership & visibility
   user_id: string;
   visibility: "public" | "private";
@@ -53,7 +55,33 @@ export interface Property {
   updated_at: string;
 }
 
-export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "socioeconomic_data" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "collect_urls" | "collect_texts">;
+export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "socioeconomic_data" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "collect_urls" | "collect_texts" | "property_status">;
+
+export const PROPERTY_STATUSES = [
+  "added",
+  "favorite",
+  "contacted",
+  "visit_planned",
+  "visited",
+  "validated",
+  "not_validated",
+  "offer_sent",
+  "accepted",
+] as const;
+
+export type PropertyStatus = typeof PROPERTY_STATUSES[number];
+
+export const PROPERTY_STATUS_CONFIG: Record<PropertyStatus, { label: string; color: string; bgColor: string; icon: string }> = {
+  added:          { label: "Ajouté",          color: "text-gray-600",    bgColor: "bg-gray-100",    icon: "+" },
+  favorite:       { label: "Favoris",         color: "text-amber-600",   bgColor: "bg-amber-50",    icon: "\u2605" },
+  contacted:      { label: "Contacté",        color: "text-blue-600",    bgColor: "bg-blue-50",     icon: "\u2709" },
+  visit_planned:  { label: "Visite prévue",   color: "text-purple-600",  bgColor: "bg-purple-50",   icon: "\uD83D\uDCC5" },
+  visited:        { label: "Visité",          color: "text-indigo-600",  bgColor: "bg-indigo-50",   icon: "\uD83D\uDC41" },
+  validated:      { label: "Validé",          color: "text-green-600",   bgColor: "bg-green-50",    icon: "\u2713" },
+  not_validated:  { label: "Non validé",      color: "text-red-600",     bgColor: "bg-red-50",      icon: "\u2717" },
+  offer_sent:     { label: "Offre envoyée",   color: "text-orange-600",  bgColor: "bg-orange-50",   icon: "\uD83D\uDCE8" },
+  accepted:       { label: "Accepté",         color: "text-emerald-600", bgColor: "bg-emerald-50",  icon: "\uD83C\uDF89" },
+};
 
 export interface PropertyCalculations {
   // Prêt

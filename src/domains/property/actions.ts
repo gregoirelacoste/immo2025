@@ -9,11 +9,12 @@ import {
   getOrphanPropertyById,
   stripMeta,
   getOwnerOrAllowOrphan,
+  updatePropertyStatus,
 } from "@/domains/property/repository";
 import { requireUserId, getOptionalUserId } from "@/lib/auth-actions";
 import { calculateNotaryFees } from "@/lib/calculations";
 import { scrapeUrl } from "@/domains/scraping/pipeline/orchestrator";
-import { Property, PropertyFormData } from "@/domains/property/types";
+import { Property, PropertyFormData, PROPERTY_STATUSES, type PropertyStatus } from "@/domains/property/types";
 import { mergeRescrapeIntoPrefill, parsePrefill } from "@/domains/property/prefill";
 import { enrichPropertyQuiet } from "@/domains/enrich/actions";
 
@@ -172,4 +173,21 @@ export async function rescrapeProperty(
   enrichPropertyQuiet(id).catch(() => {});
 
   return { success: true };
+}
+
+export async function changePropertyStatus(
+  propertyId: string,
+  status: PropertyStatus
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!PROPERTY_STATUSES.includes(status)) {
+      return { success: false, error: "Statut invalide." };
+    }
+    await updatePropertyStatus(propertyId, status);
+    revalidatePath(`/property/${propertyId}`);
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
 }

@@ -95,6 +95,7 @@ export async function getDb(): Promise<Client> {
       "ALTER TABLE properties ADD COLUMN collect_texts TEXT DEFAULT '[]'",
       "ALTER TABLE properties ADD COLUMN amenities TEXT DEFAULT '[]'",
       "ALTER TABLE properties ADD COLUMN rent_per_m2 REAL DEFAULT 0",
+      "ALTER TABLE properties ADD COLUMN property_status TEXT NOT NULL DEFAULT 'added'",
     ]) {
       try { await client.execute(stmt); } catch { /* already exists */ }
     }
