@@ -21,6 +21,24 @@ function getCashflowAccent(cashflow: number): string {
   return "bg-red-400";
 }
 
+/** Bordure gauche colorée selon le score */
+function getScoreStrip(score: number | null): string {
+  if (score == null) return "border-l-gray-300";
+  if (score >= 71) return "border-l-green-500";
+  if (score >= 51) return "border-l-blue-500";
+  if (score >= 31) return "border-l-amber-500";
+  return "border-l-red-400";
+}
+
+/** Fond placeholder quand pas d'image */
+function getScoreBg(score: number | null): string {
+  if (score == null) return "bg-gray-400";
+  if (score >= 71) return "bg-green-500";
+  if (score >= 51) return "bg-blue-500";
+  if (score >= 31) return "bg-amber-500";
+  return "bg-red-400";
+}
+
 export default function PropertyCard({ property: p, calcs: c, currentUserId, onDelete }: Props) {
   const images: string[] = (() => {
     try { return JSON.parse(p.image_urls || "[]"); }
@@ -32,13 +50,13 @@ export default function PropertyCard({ property: p, calcs: c, currentUserId, onD
   return (
     <Link
       href={`/property/${p.id}`}
-      className="block bg-white rounded-xl border border-gray-200 overflow-hidden active:bg-gray-50 transition-colors relative"
+      className={`block bg-white rounded-xl border border-gray-200 border-l-4 ${getScoreStrip(p.investment_score)} overflow-hidden active:bg-gray-50 transition-colors relative`}
     >
       {/* Accent bar — couleur selon cashflow */}
       <div className={`h-1 ${getCashflowAccent(c.monthly_cashflow)}`} />
 
-      {/* Image (optionnel) */}
-      {hasImage && (
+      {/* Image ou placeholder avec initiale */}
+      {hasImage ? (
         <div className="relative aspect-[16/9] bg-gray-100">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={images[0]} alt={p.city} className="w-full h-full object-cover" loading="lazy" />
@@ -49,6 +67,15 @@ export default function PropertyCard({ property: p, calcs: c, currentUserId, onD
             <p className="text-white font-bold text-lg drop-shadow-sm">{formatCurrency(p.purchase_price)}</p>
             <p className="text-white/80 text-xs">{p.surface} m²</p>
           </div>
+          {p.investment_score != null && (
+            <div className="absolute top-2 right-2">
+              <InvestmentScoreBadge score={p.investment_score} size="md" />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className={`relative h-20 ${getScoreBg(p.investment_score)} flex items-center justify-center`}>
+          <span className="text-3xl font-bold text-white/60">{p.city?.charAt(0)?.toUpperCase() || "?"}</span>
           {p.investment_score != null && (
             <div className="absolute top-2 right-2">
               <InvestmentScoreBadge score={p.investment_score} size="md" />
@@ -73,10 +100,6 @@ export default function PropertyCard({ property: p, calcs: c, currentUserId, onD
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {/* Score badge quand pas d'image */}
-            {!hasImage && p.investment_score != null && (
-              <InvestmentScoreBadge score={p.investment_score} size="md" />
-            )}
             {currentUserId && p.user_id === currentUserId && (
               <button
                 onClick={(e) => onDelete(e, p.id)}
