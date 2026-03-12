@@ -1,0 +1,2 @@
+package_name("com.immo2025.app")
+json_key_file(ENV["PLAY_SERVICE_ACCOUNT_JSON_PATH"])

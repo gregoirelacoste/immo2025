@@ -214,27 +214,7 @@ npx cap sync
 
 **Integration CI :** ajouter un job dans le workflow qui pousse le bundle web vers Capgo apres chaque merge sur `main`.
 
-### 7.7 — Plugin natif WebView extraction (futur, 3-5 jours)
-
-Seul plugin maison a developper. Permet d'ouvrir une URL dans une WebView custom avec :
-- Injection JS pour extraire les donnees de la page
-- Bouton flottant "Importer cette annonce"
-- Communication bidirectionnelle WebView ↔ app
-
-Necessaire pour debloquer les sites qui bloquent le scraping serveur (LeBonCoin, SeLoger, Bien'ici).
-
-## Comparatif : plugins standard vs natif maison
-
-| Feature | Recommandation | Justification |
-|---------|---------------|---------------|
-| WebView + extraction | **Natif maison** | Killer feature, aucun plugin standard ne fait ca |
-| Share target | **Standard** (`@capacitor/share`) puis natif si besoin | Le standard recoit URL+texte, suffisant pour v1 |
-| Clipboard | **Standard** (`@capacitor/clipboard`) | Couvre tous les cas |
-| Push notifs | **Standard** (`@capacitor/push-notifications` + Firebase) | Bien documente, pas besoin de custom |
-| OTA updates | **Capgo** (service tiers) | Bien integre Capacitor, economise des builds stores |
-| Deep links | **Standard** (`@capacitor/app`) | Gere les URL schemes nativement |
-
-**Conclusion :** un seul plugin maison a ecrire (WebView extraction). Tout le reste repose sur des plugins standard, ce qui minimise la maintenance native.
+**Note :** l'ancien 7.7 (plugin WebView extraction) a ete deplace en **Phase 8**.
 
 ## Fichiers a creer
 
@@ -261,8 +241,6 @@ Necessaire pour debloquer les sites qui bloquent le scraping serveur (LeBonCoin,
 
 - Aucune dependance sur les phases 1-6 (peut etre fait en parallele)
 - Necessite un compte Apple Developer + Google Play Console
-- Necessite `GEMINI_API_KEY` pour le plugin WebView extraction (phase 7.7)
-
 ## Estimation effort total
 
 | Etape | Effort |
@@ -272,6 +250,5 @@ Necessaire pour debloquer les sites qui bloquent le scraping serveur (LeBonCoin,
 | 7.3 Fastlane | 1 jour |
 | 7.4 GitHub Actions | 1 jour |
 | 7.5 Versioning auto | quelques heures |
-| 7.6 Capgo OTA | quelques heures |
-| 7.7 Plugin WebView (futur) | 3-5 jours |
-| **Total (hors 7.7)** | **~4-5 jours** |
+| 7.6 Capgo OTA (non prioritaire) | quelques heures |
+| **Total** | **~4-5 jours** |

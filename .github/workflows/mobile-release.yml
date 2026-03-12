@@ -1,0 +1,115 @@
+name: Mobile Release
+
+on:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: mobile-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: .next/
+
+  build-android:
+    needs: build-web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: android
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: .next/
+
+      - run: npx cap sync android
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/immo2025-release.keystore
+
+      - name: Decode Play Store service account
+        run: echo "${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}" > android/play-service-account.json
+
+      - name: Build & deploy to Play Store
+        run: cd android && bundle exec fastlane deploy
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          PLAY_SERVICE_ACCOUNT_JSON_PATH: android/play-service-account.json
+
+  build-ios:
+    needs: build-web
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ios/App
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: .next/
+
+      - run: npx cap sync ios
+
+      - name: Install CocoaPods
+        run: cd ios/App && pod install
+
+      - name: Build & deploy to TestFlight
+        run: cd ios/App && bundle exec fastlane deploy
+        env:
+          APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.ASC_KEY_CONTENT }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}

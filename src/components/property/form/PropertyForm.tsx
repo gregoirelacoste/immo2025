@@ -18,6 +18,8 @@ import LoanSection from "./LoanSection";
 import FeesSection from "./FeesSection";
 import ClassicRentalSection from "./ClassicRentalSection";
 import AirbnbSection from "./AirbnbSection";
+import AmenitiesSection from "./AmenitiesSection";
+import { parseAmenities, type AmenityKey } from "@/domains/property/amenities";
 import ResultsSummarySection from "./ResultsSummarySection";
 import InvestmentScorePreview from "./InvestmentScorePreview";
 import InvestmentScorePanel from "@/components/property/detail/InvestmentScorePanel";
@@ -49,6 +51,7 @@ const defaultFormData: PropertyFormData = {
   airbnb_price_per_night: 0,
   airbnb_occupancy_rate: 60,
   airbnb_charges: 0,
+  amenities: "[]",
   source_url: "",
   image_urls: "[]",
   prefill_sources: "{}",
@@ -221,6 +224,10 @@ export default function PropertyForm({ existingProperty }: Props) {
       )}
 
       <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} />
+      <AmenitiesSection
+        selected={parseAmenities(form.amenities)}
+        onChange={(keys: AmenityKey[]) => updateField("amenities", JSON.stringify(keys))}
+      />
       <LoanSection form={form} onChange={updateField} onLoanChange={handleLoanChange} calcs={calcs} monthlyPaymentPreview={monthlyPaymentPreview} prefillHint={prefillHint} />
       <FeesSection form={form} onChange={updateField} calcs={calcs} effectiveNotary={effectiveNotary} />
       <ClassicRentalSection form={form} onChange={handleRentChange} calcs={calcs} prefillHint={prefillHint} />

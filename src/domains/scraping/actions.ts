@@ -120,6 +120,7 @@ export async function scrapeAndSaveProperty(
     airbnb_price_per_night: 0,
     airbnb_occupancy_rate: 60,
     airbnb_charges: 0,
+    amenities: d.amenities ? JSON.stringify(d.amenities) : "[]",
     source_url: url,
     image_urls: d.image_urls ? JSON.stringify(d.image_urls) : "[]",
     prefill_sources: JSON.stringify(prefill),
@@ -214,6 +215,7 @@ export async function createPropertyFromText(
       airbnb_price_per_night: 0,
       airbnb_occupancy_rate: 60,
       airbnb_charges: 0,
+      amenities: d.amenities ? JSON.stringify(d.amenities) : "[]",
       source_url: "",
       image_urls: "[]",
       prefill_sources: JSON.stringify(prefill),
@@ -281,6 +283,12 @@ export async function extractAndUpdateFromText(
       ...(d.address && { address: d.address }),
       ...(d.description && { description: d.description }),
       ...(d.property_type && { property_type: d.property_type }),
+      ...(d.amenities && d.amenities.length > 0 && {
+        amenities: JSON.stringify([...new Set([
+          ...JSON.parse(property.amenities || "[]"),
+          ...d.amenities,
+        ])]),
+      }),
       loan_amount: Math.max(0, newPrice + notary - property.personal_contribution),
       monthly_rent: monthlyRent,
       property_tax: propertyTax,

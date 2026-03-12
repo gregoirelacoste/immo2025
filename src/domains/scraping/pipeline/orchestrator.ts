@@ -36,6 +36,11 @@ function mergeScrapedData(
   base: ScrapedPropertyData,
   extra: ScrapedPropertyData
 ): ScrapedPropertyData {
+  // Merge amenities : union des deux listes sans doublons
+  let amenities: string[] | undefined;
+  if (base.amenities || extra.amenities) {
+    amenities = [...new Set([...(base.amenities ?? []), ...(extra.amenities ?? [])])];
+  }
   return {
     purchase_price: base.purchase_price ?? extra.purchase_price,
     surface: base.surface ?? extra.surface,
@@ -45,6 +50,7 @@ function mergeScrapedData(
     description: base.description ?? extra.description,
     property_type: base.property_type ?? extra.property_type,
     image_urls: base.image_urls ?? extra.image_urls,
+    amenities,
   };
 }
 

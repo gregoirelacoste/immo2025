@@ -144,6 +144,12 @@ export async function rescrapeProperty(
     ...(d.address != null && { address: d.address }),
     ...(d.description != null && { description: d.description }),
     ...(d.property_type != null && { property_type: d.property_type }),
+    ...(d.amenities && d.amenities.length > 0 && {
+      amenities: JSON.stringify([...new Set([
+        ...JSON.parse(property.amenities || "[]"),
+        ...d.amenities,
+      ])]),
+    }),
     notary_fees: newNotaryFees,
     image_urls: d.image_urls ? JSON.stringify(d.image_urls) : property.image_urls,
     prefill_sources: JSON.stringify(updatedPrefill),

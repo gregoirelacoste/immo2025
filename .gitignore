@@ -47,3 +47,19 @@ identifier.sqlite
 
 # IDE
 .idea/
+
+# Capacitor native builds
+ios/App/Pods/
+ios/App/.symlinks/
+android/.gradle/
+android/app/build/
+android/build/
+android/capacitor-cordova-android-plugins/build/
+*.keystore
+*.jks
+**/play-service-account.json
+
+# Fastlane
+ios/App/fastlane/report.xml
+ios/App/fastlane/screenshots/
+android/fastlane/report.xml

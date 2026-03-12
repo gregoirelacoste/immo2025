@@ -1,5 +1,8 @@
 import { ScrapedPropertyData } from "@/domains/scraping/types";
 import { callGemini } from "@/infrastructure/ai/gemini";
+import { AMENITY_KEYS } from "@/domains/property/amenities";
+
+const VALID_AMENITIES = new Set<string>(AMENITY_KEYS);
 
 const EXTRACT_PROMPT = `Tu es un expert en immobilier français. Extrais les informations d'une annonce immobilière à partir du texte brut collé par l'utilisateur.
 
@@ -11,6 +14,7 @@ Extrais ces champs :
 - address : l'adresse complète si disponible
 - description : résumé de l'annonce (max 500 caractères)
 - property_type : "ancien" ou "neuf"
+- amenities : tableau de clés d'équipements détectés parmi EXACTEMENT ces valeurs : "garage", "parking", "cave", "balcon", "terrasse", "piscine", "jardin", "ascenseur", "gardien", "interphone", "meuble", "climatisation", "cheminee", "parquet", "double_vitrage", "fibre". Cherche dans la description, les caractéristiques, les listes de prestations. Attention aux synonymes (stationnement=parking, cellier=cave, véranda=terrasse, clim=climatisation, DV=double_vitrage, FTTH=fibre, etc.)
 
 Retourne UNIQUEMENT un objet JSON valide avec ces champs. Si un champ n'est pas trouvé, omets-le.
 Ne retourne rien d'autre que le JSON.
@@ -53,6 +57,10 @@ export async function extractFromText(
   if (parsed.description) data.description = String(parsed.description).trim().slice(0, 1000);
   if (parsed.property_type === "neuf") data.property_type = "neuf";
   else if (parsed.property_type === "ancien") data.property_type = "ancien";
+  if (Array.isArray(parsed.amenities)) {
+    const valid = (parsed.amenities as string[]).filter((k) => VALID_AMENITIES.has(k));
+    if (valid.length > 0) data.amenities = valid;
+  }
 
   return data;
 }

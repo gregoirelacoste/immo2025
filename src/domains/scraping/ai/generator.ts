@@ -1,6 +1,9 @@
 import { FieldSelector, ScrapedPropertyData } from "@/domains/scraping/types";
 import { cleanHtmlForAi } from "@/domains/scraping/pipeline/html-cleaner";
 import { callGemini } from "@/infrastructure/ai/gemini";
+import { AMENITY_KEYS } from "@/domains/property/amenities";
+
+const VALID_AMENITIES = new Set<string>(AMENITY_KEYS);
 
 const GENERATE_PROMPT = `Tu es un expert en web scraping immobilier. Analyse ce HTML d'une annonce immobilière.
 
@@ -23,6 +26,7 @@ Champs à extraire :
 - address : l'adresse complète si disponible (numéro, rue, code postal, ville)
 - description : le texte de description de l'annonce (max 500 caractères)
 - property_type : "ancien" ou "neuf" si identifiable
+- amenities : tableau de clés d'équipements détectés parmi EXACTEMENT ces valeurs : "garage", "parking", "cave", "balcon", "terrasse", "piscine", "jardin", "ascenseur", "gardien", "interphone", "meuble", "climatisation", "cheminee", "parquet", "double_vitrage", "fibre". Cherche dans la description, les caractéristiques, les pictogrammes, les listes de prestations, les critères. Attention : les termes varient selon les sites (ex: "stationnement"="parking", "cellier"="cave", "véranda"="terrasse", "résidence sécurisée"="interphone"+"gardien", "plancher bois"="parquet", "climatiseur/clim"="climatisation", "DV"="double_vitrage", "FTTH"="fibre", "furnished"="meuble"). Pour amenities, le champ "css" n'est pas nécessaire, mets null. Retourne directement la liste dans "extracted_value".
 
 Retourne UNIQUEMENT un objet JSON valide. Pas de commentaires, pas de virgule après le dernier élément.
 `;
@@ -128,6 +132,12 @@ export async function generateWithAi(
     data.property_type = "neuf";
   } else if (extractedValues.property_type === "ancien") {
     data.property_type = "ancien";
+  }
+  if (Array.isArray(extractedValues.amenities)) {
+    const valid = (extractedValues.amenities as string[]).filter((k) =>
+      VALID_AMENITIES.has(k)
+    );
+    if (valid.length > 0) data.amenities = valid;
   }
 
   return { selectors, extractedValues: data };
