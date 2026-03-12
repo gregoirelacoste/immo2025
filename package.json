@@ -10,8 +10,7 @@
     "cap:sync": "npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android",
-    "build:capacitor": "next build",
-    "release": "node scripts/bump-version.js && git push --tags"
+    "release": "node scripts/bump-version.js && git push --follow-tags"
   },
   "dependencies": {
     "@capacitor/app": "^7.0.0",

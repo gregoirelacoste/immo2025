@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Immo2025',
   webDir: 'out',
   server: {
-    url: process.env.CAP_SERVER_URL || 'https://immo2025.vercel.app',
+    url: 'https://immo2025.vercel.app',
     cleartext: false,
   },
   plugins: {

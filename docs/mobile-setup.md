@@ -15,7 +15,7 @@
 | `KEYSTORE_PASSWORD` | Mot de passe du keystore |
 | `KEY_ALIAS` | Alias de la cle (ex: `immo2025`) |
 | `KEY_PASSWORD` | Mot de passe de la cle |
-| `PLAY_SERVICE_ACCOUNT_JSON_PATH` | Chemin vers le service account JSON |
+| `PLAY_SERVICE_ACCOUNT_JSON` | Contenu JSON du service account Google Play |
 
 #### iOS
 | Secret | Description |
@@ -48,11 +48,8 @@ base64 -i immo2025-release.keystore | pbcopy
 # 1. Bump la version
 npm version patch   # ou minor/major
 
-# 2. Sync et tag
+# 2. Sync, tag et push (declenche le workflow)
 npm run release
-
-# 3. Push (declenche le workflow)
-git push --tags
 ```
 
 Le workflow build automatiquement :

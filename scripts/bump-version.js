@@ -30,9 +30,14 @@ if (fs.existsSync(buildGradlePath)) {
 
 console.log(`Version synced to ${version}`);
 
-// Stage and commit
-execSync('git add -A', { stdio: 'inherit' });
-execSync(`git commit -m "chore: bump version to ${version}"`, { stdio: 'inherit' });
-execSync(`git tag v${version}`, { stdio: 'inherit' });
+// Stage only files modified by this script (never git add -A to avoid leaking secrets)
+const filesToStage = [versionFile];
+if (fs.existsSync(buildGradlePath)) {
+  filesToStage.push(buildGradlePath);
+}
+execSync(`git add ${filesToStage.map(f => `"${f}"`).join(' ')}`, { stdio: 'inherit' });
+
+// Tag only if commit succeeds (&&) to avoid orphan tags
+execSync(`git commit -m "chore: bump version to ${version}" && git tag v${version}`, { stdio: 'inherit' });
 
 console.log(`Tagged v${version}`);

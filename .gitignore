@@ -57,6 +57,7 @@ android/build/
 android/capacitor-cordova-android-plugins/build/
 *.keystore
 *.jks
+**/play-service-account.json
 
 # Fastlane
 ios/App/fastlane/report.xml

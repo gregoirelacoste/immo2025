@@ -9,7 +9,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: .next/
+
   build-android:
+    needs: build-web
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -33,10 +54,18 @@ jobs:
 
       - run: npm ci
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: .next/
+
       - run: npx cap sync android
 
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/immo2025-release.keystore
+
+      - name: Decode Play Store service account
+        run: echo "${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}" > android/play-service-account.json
 
       - name: Build & deploy to Play Store
         run: cd android && bundle exec fastlane deploy
@@ -44,9 +73,10 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          PLAY_SERVICE_ACCOUNT_JSON_PATH: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON_PATH }}
+          PLAY_SERVICE_ACCOUNT_JSON_PATH: android/play-service-account.json
 
   build-ios:
+    needs: build-web
     runs-on: macos-latest
     timeout-minutes: 45
     steps:
@@ -64,6 +94,11 @@ jobs:
           working-directory: ios/App
 
       - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: .next/
 
       - run: npx cap sync ios
 
