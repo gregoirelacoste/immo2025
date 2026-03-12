@@ -60,7 +60,7 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
       items: [
         { key: "layout_quality", label: "Qualité de l'agencement", type: "rating", hint: "Circulation, volumes, lumière" },
         { key: "natural_light", label: "Luminosité naturelle", type: "rating", hint: "1 = sombre, 5 = très lumineux" },
-        { key: "orientation", label: "Orientation (exposition)", type: "text", hint: "Nord, Sud, Est, Ouest, traversant" },
+        { key: "orientation", label: "Orientation (exposition)", type: "select", options: ["Nord", "Sud", "Est", "Ouest", "Nord-Est", "Nord-Ouest", "Sud-Est", "Sud-Ouest", "Traversant"] },
         { key: "ceiling_height", label: "Hauteur sous plafond correcte", type: "check", hint: "≥ 2,50 m" },
         { key: "room_sizes_ok", label: "Taille des pièces suffisante", type: "check", hint: "Chambre ≥ 9 m², séjour correct" },
         { key: "storage_space", label: "Rangements suffisants", type: "check" },
@@ -74,9 +74,9 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
       icon: "🪟",
       items: [
         { key: "windows_state", label: "État des fenêtres", type: "rating", hint: "Joints, fermeture, condensation" },
-        { key: "windows_type", label: "Type de vitrage", type: "text", hint: "Simple, double, triple" },
+        { key: "windows_type", label: "Type de vitrage", type: "select", options: ["Simple", "Double", "Triple"] },
         { key: "shutters_state", label: "État des volets", type: "rating" },
-        { key: "shutters_type", label: "Type de volets", type: "text", hint: "Roulants, battants, électriques" },
+        { key: "shutters_type", label: "Type de volets", type: "select", options: ["Roulants", "Battants", "Électriques", "Pas de volets"] },
       ],
     },
     // ── Électricité ──
@@ -99,7 +99,7 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
       icon: "🚿",
       items: [
         { key: "water_pressure", label: "Pression d'eau correcte", type: "check", hint: "Ouvrir les robinets" },
-        { key: "hot_water_type", label: "Type de production ECS", type: "text", hint: "Cumulus, chaudière, instantané" },
+        { key: "hot_water_type", label: "Type de production ECS", type: "select", options: ["Cumulus", "Chaudière", "Instantané gaz", "Instantané électrique", "Ballon thermodynamique"] },
         { key: "pipes_state", label: "État des canalisations visibles", type: "rating", hint: "Plomb, cuivre, PER" },
         { key: "leaks_visible", label: "Pas de fuites visibles", type: "check", hint: "Sous évier, WC, radiateurs" },
         { key: "drainage_ok", label: "Évacuations fonctionnelles", type: "check", hint: "Vérifier écoulement" },
@@ -111,12 +111,12 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
       label: "Chauffage & ventilation",
       icon: "🌡️",
       items: [
-        { key: "heating_type", label: "Type de chauffage", type: "text", hint: "Individuel gaz, collectif, élec, PAC" },
+        { key: "heating_type", label: "Type de chauffage", type: "select", options: ["Gaz individuel", "Gaz collectif", "Électrique", "PAC", "Chauffage collectif", "Poêle", "Mixte"] },
         { key: "heating_state", label: "État du système de chauffage", type: "rating" },
         { key: "radiators_state", label: "État des radiateurs", type: "rating" },
-        { key: "ventilation_type", label: "Ventilation", type: "text", hint: "VMC simple/double flux, naturelle" },
+        { key: "ventilation_type", label: "Ventilation", type: "select", options: ["Naturelle", "VMC simple flux", "VMC double flux", "Pas de ventilation"] },
         { key: "ventilation_working", label: "Ventilation fonctionnelle", type: "check", hint: "Tester avec une feuille" },
-        { key: "dpe_rating", label: "Classe DPE annoncée", type: "text", hint: "A à G" },
+        { key: "dpe_rating", label: "Classe DPE annoncée", type: "select", options: ["A", "B", "C", "D", "E", "F", "G"] },
       ],
     },
     // ── Cuisine ──
@@ -151,7 +151,7 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
       icon: "📶",
       items: [
         { key: "mobile_signal", label: "Réseau mobile", type: "rating", hint: "Tester sur place" },
-        { key: "internet_type", label: "Type de connexion internet", type: "text", hint: "Fibre, ADSL, câble" },
+        { key: "internet_type", label: "Type de connexion internet", type: "select", options: ["Fibre", "ADSL", "Câble", "4G fixe", "Satellite"] },
         { key: "tv_antenna", label: "Prise TV / antenne", type: "check" },
       ],
     },
@@ -182,7 +182,7 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
       { key: "garage_secure", label: "Garage sécurisé", type: "check" },
     ],
     parking: [
-      { key: "parking_type", label: "Type de parking", type: "text", hint: "Extérieur, couvert, souterrain" },
+      { key: "parking_type", label: "Type de parking", type: "select", options: ["Extérieur", "Couvert", "Souterrain", "Garage"] },
       { key: "parking_access_easy", label: "Accès facile", type: "check", hint: "Manœuvres, pente, hauteur" },
       { key: "parking_secure", label: "Parking sécurisé", type: "check", hint: "Barrière, badge, caméra" },
       { key: "parking_numbered", label: "Place numérotée / dédiée", type: "check" },
@@ -197,21 +197,21 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
     balcon: [
       { key: "balcon_size", label: "Taille du balcon", type: "text", hint: "m² estimés" },
       { key: "balcon_state", label: "État du balcon", type: "rating", hint: "Sol, garde-corps, étanchéité" },
-      { key: "balcon_orientation", label: "Orientation du balcon", type: "text", hint: "Sud, Ouest…" },
+      { key: "balcon_orientation", label: "Orientation du balcon", type: "select", options: ["Nord", "Sud", "Est", "Ouest", "Nord-Est", "Nord-Ouest", "Sud-Est", "Sud-Ouest"] },
       { key: "balcon_view", label: "Vue depuis le balcon", type: "rating" },
       { key: "balcon_privacy", label: "Intimité correcte", type: "check" },
     ],
     terrasse: [
       { key: "terrasse_size", label: "Surface de la terrasse", type: "text", hint: "m² estimés" },
       { key: "terrasse_state", label: "État de la terrasse", type: "rating", hint: "Sol, étanchéité, garde-corps" },
-      { key: "terrasse_orientation", label: "Orientation terrasse", type: "text" },
+      { key: "terrasse_orientation", label: "Orientation terrasse", type: "select", options: ["Nord", "Sud", "Est", "Ouest", "Nord-Est", "Nord-Ouest", "Sud-Est", "Sud-Ouest"] },
       { key: "terrasse_private", label: "Terrasse privative", type: "check", hint: "Pas partagée avec voisins" },
       { key: "terrasse_waterproof", label: "Étanchéité OK", type: "check" },
     ],
     piscine: [
-      { key: "piscine_type", label: "Type de piscine", type: "text", hint: "Enterrée, hors-sol, intérieure" },
+      { key: "piscine_type", label: "Type de piscine", type: "select", options: ["Enterrée", "Hors-sol", "Intérieure"] },
       { key: "piscine_state", label: "État de la piscine", type: "rating" },
-      { key: "piscine_filtration", label: "Système de filtration", type: "text", hint: "Sable, cartouche, sel" },
+      { key: "piscine_filtration", label: "Système de filtration", type: "select", options: ["Sable", "Cartouche", "Sel", "Autre"] },
       { key: "piscine_security", label: "Dispositif sécurité (loi)", type: "check", hint: "Barrière, alarme, couverture, abri" },
       { key: "piscine_liner_age", label: "Âge du liner / revêtement", type: "text" },
       { key: "piscine_annual_cost", label: "Coût entretien annuel estimé", type: "text" },
@@ -236,7 +236,7 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
       { key: "gardien_services", label: "Services rendus", type: "text", hint: "Colis, ménage communs, etc." },
     ],
     interphone: [
-      { key: "interphone_type", label: "Type d'interphone", type: "text", hint: "Audio, vidéo, digicode" },
+      { key: "interphone_type", label: "Type d'interphone", type: "select", options: ["Audio", "Vidéo", "Digicode", "Visiophone", "Badge/RFID"] },
       { key: "interphone_working", label: "Fonctionne correctement", type: "check" },
     ],
     meuble: [
@@ -247,19 +247,19 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
       { key: "meuble_renewal_cost", label: "Coût renouvellement estimé", type: "text" },
     ],
     climatisation: [
-      { key: "clim_type", label: "Type de climatisation", type: "text", hint: "Split, gainable, réversible" },
+      { key: "clim_type", label: "Type de climatisation", type: "select", options: ["Split", "Gainable", "Réversible", "Cassette"] },
       { key: "clim_working", label: "Fonctionne correctement", type: "check" },
       { key: "clim_age", label: "Âge de l'installation", type: "text" },
       { key: "clim_rooms_covered", label: "Toutes les pièces couvertes", type: "check" },
     ],
     cheminee: [
-      { key: "cheminee_type", label: "Type de cheminée", type: "text", hint: "Ouverte, insert, poêle" },
+      { key: "cheminee_type", label: "Type de cheminée", type: "select", options: ["Ouverte", "Insert", "Poêle", "Fausse cheminée"] },
       { key: "cheminee_working", label: "Utilisable / fonctionnelle", type: "check" },
       { key: "cheminee_ramonage", label: "Ramonage à jour", type: "check" },
       { key: "cheminee_conduit_state", label: "État du conduit", type: "rating" },
     ],
     parquet: [
-      { key: "parquet_type", label: "Type de parquet", type: "text", hint: "Massif, contrecollé, stratifié" },
+      { key: "parquet_type", label: "Type de parquet", type: "select", options: ["Massif", "Contrecollé", "Stratifié"] },
       { key: "parquet_state", label: "État du parquet", type: "rating", hint: "Rayures, lames gondolées" },
       { key: "parquet_squeaks", label: "Grincements", type: "check", hint: "Cocher si PAS de grincement" },
     ],
@@ -282,9 +282,9 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
     ancien: [
       { key: "ancien_roof_state", label: "État de la toiture", type: "rating", hint: "Date dernier entretien ?" },
       { key: "ancien_facade_cracks", label: "Fissures en façade", type: "check", hint: "Cocher si PAS de fissures" },
-      { key: "ancien_insulation", label: "Isolation existante", type: "text", hint: "Combles, murs, type d'isolant" },
+      { key: "ancien_insulation", label: "Isolation existante", type: "select", options: ["Aucune", "Combles seulement", "Murs seulement", "Combles + murs", "Combles + murs + sol"] },
       { key: "ancien_electrical_age", label: "Âge installation électrique", type: "text", hint: "Aux normes NFC 15-100 ?" },
-      { key: "ancien_plumbing_material", label: "Matériau canalisations", type: "text", hint: "Plomb = à remplacer !" },
+      { key: "ancien_plumbing_material", label: "Matériau canalisations", type: "select", options: ["Cuivre", "PER", "PVC", "Plomb", "Mixte"], hint: "Plomb = à remplacer !" },
       { key: "ancien_asbestos", label: "Diagnostic amiante OK", type: "check", hint: "Vérifier diagnostic" },
       { key: "ancien_lead", label: "Diagnostic plomb OK", type: "check", hint: "Obligatoire si avant 1949" },
       { key: "ancien_termites", label: "Diagnostic termites OK", type: "check", hint: "Selon zone géographique" },
@@ -295,7 +295,7 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
       { key: "neuf_developer", label: "Promoteur", type: "text", hint: "Réputation, avis" },
       { key: "neuf_delivery_date", label: "Date de livraison prévue", type: "text" },
       { key: "neuf_guarantees", label: "Garanties en cours", type: "text", hint: "Parfait achèvement (1 an), biennale (2 ans), décennale (10 ans)" },
-      { key: "neuf_rt_standard", label: "Norme thermique", type: "text", hint: "RE2020, RT2012" },
+      { key: "neuf_rt_standard", label: "Norme thermique", type: "select", options: ["RT2005", "RT2012", "RE2020"] },
       { key: "neuf_finish_quality", label: "Qualité des finitions", type: "rating", hint: "Peinture, joints, alignements" },
       { key: "neuf_defects_noted", label: "Défauts / réserves à noter", type: "text", hint: "Pour le PV de livraison" },
       { key: "neuf_common_areas_done", label: "Parties communes terminées", type: "check" },

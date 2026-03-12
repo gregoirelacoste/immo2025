@@ -46,6 +46,13 @@ export default function ChecklistItemRow({ item, value, onChange }: Props) {
           onChange={(v) => onChange(item.key, v)}
         />
       )}
+      {item.type === "select" && item.options && (
+        <SelectInput
+          options={item.options}
+          value={value as VisitTextValue | undefined}
+          onChange={(v) => onChange(item.key, v)}
+        />
+      )}
       {/* Show note field when NOK is selected */}
       {item.type === "check" &&
         (value as VisitCheckValue)?.value === false && (
@@ -161,6 +168,33 @@ function TextInput({
       placeholder="Précisez..."
       className="mt-1 w-full text-[13px] px-2.5 py-1.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
     />
+  );
+}
+
+// ── Select input ──
+
+function SelectInput({
+  options,
+  value,
+  onChange,
+}: {
+  options: string[];
+  value: VisitTextValue | undefined;
+  onChange: (v: VisitTextValue) => void;
+}) {
+  return (
+    <select
+      value={value?.value ?? ""}
+      onChange={(e) => onChange({ value: e.target.value })}
+      className="mt-1 w-full text-[13px] px-2.5 py-1.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none"
+    >
+      <option value="">Sélectionner...</option>
+      {options.map((opt) => (
+        <option key={opt} value={opt}>
+          {opt}
+        </option>
+      ))}
+    </select>
   );
 }
 

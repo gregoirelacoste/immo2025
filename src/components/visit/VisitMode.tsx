@@ -91,19 +91,16 @@ export default function VisitMode({ property }: Props) {
   const [verdictComment, setVerdictComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleVerdict = useCallback(
-    async (status: "validated" | "not_validated" | "visited") => {
-      setSubmitting(true);
-      try {
-        await flushSave();
-        await changePropertyStatus(property.id, status);
-        router.push(`/property/${property.id}`);
-      } catch {
-        setSubmitting(false);
-      }
-    },
-    [flushSave, property.id, router],
-  );
+  const handleSaveVisit = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      await flushSave();
+      await changePropertyStatus(property.id, "visited");
+      router.push(`/property/${property.id}`);
+    } catch {
+      setSubmitting(false);
+    }
+  }, [flushSave, property.id, router]);
 
   // Scroll helpers
   const scrollTo = (id: string) => {
@@ -262,9 +259,7 @@ export default function VisitMode({ property }: Props) {
           onRatingChange={setOverallRating}
           notes={verdictComment}
           onNotesChange={setVerdictComment}
-          onValidate={() => handleVerdict("validated")}
-          onReject={() => handleVerdict("not_validated")}
-          onDefer={() => handleVerdict("visited")}
+          onSave={handleSaveVisit}
           submitting={submitting}
         />
       </main>

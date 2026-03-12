@@ -63,11 +63,11 @@ export default function VisitBottomBar({
           onClick={onScrollToVerdict}
           className={`px-4 py-2 rounded-lg text-sm font-semibold min-h-[44px] transition-colors ${
             verdictReady
-              ? "bg-green-600 text-white hover:bg-green-700"
+              ? "bg-indigo-600 text-white hover:bg-indigo-700"
               : "bg-gray-200 text-gray-600 border border-gray-300 hover:bg-gray-300"
           }`}
         >
-          {verdictReady ? "Terminer la visite" : "Terminer"}
+          Enregistrer
         </button>
       </div>
     </div>

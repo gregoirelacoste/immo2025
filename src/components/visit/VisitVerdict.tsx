@@ -7,9 +7,7 @@ interface Props {
   onRatingChange: (rating: number | null) => void;
   notes: string;
   onNotesChange: (notes: string) => void;
-  onValidate: () => void;
-  onReject: () => void;
-  onDefer: () => void;
+  onSave: () => void;
   submitting: boolean;
 }
 
@@ -18,9 +16,7 @@ export default function VisitVerdict({
   onRatingChange,
   notes,
   onNotesChange,
-  onValidate,
-  onReject,
-  onDefer,
+  onSave,
   submitting,
 }: Props) {
   return (
@@ -41,33 +37,15 @@ export default function VisitVerdict({
         className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y"
       />
 
-      {/* CTA buttons */}
-      <div className="space-y-3">
-        <button
-          type="button"
-          onClick={onValidate}
-          disabled={submitting}
-          className="w-full bg-green-600 text-white font-semibold py-3.5 rounded-xl min-h-[48px] hover:bg-green-700 transition-colors active:scale-[0.98] disabled:opacity-50"
-        >
-          Je valide ce bien
-        </button>
-        <button
-          type="button"
-          onClick={onReject}
-          disabled={submitting}
-          className="w-full bg-red-50 text-red-700 font-semibold py-3.5 rounded-xl min-h-[48px] border border-red-200 hover:bg-red-100 transition-colors active:scale-[0.98] disabled:opacity-50"
-        >
-          Je ne valide pas
-        </button>
-        <button
-          type="button"
-          onClick={onDefer}
-          disabled={submitting}
-          className="w-full text-sm text-gray-500 py-2 min-h-[44px] hover:text-gray-700 transition-colors"
-        >
-          Décider plus tard
-        </button>
-      </div>
+      {/* Save button */}
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={submitting}
+        className="w-full bg-indigo-600 text-white font-semibold py-3.5 rounded-xl min-h-[48px] hover:bg-indigo-700 transition-colors active:scale-[0.98] disabled:opacity-50"
+      >
+        {submitting ? "Enregistrement..." : "Enregistrer la visite"}
+      </button>
     </section>
   );
 }
