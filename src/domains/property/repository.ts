@@ -6,17 +6,15 @@ import { Property } from "./types";
 /** Strip metadata fields from a Property, returning only the mutable data fields. */
 export function stripMeta(p: Property) {
   const {
-    id, user_id, created_at, updated_at,
-    latitude, longitude, market_data, investment_score, score_breakdown,
-    socioeconomic_data, enrichment_status, enrichment_error, enrichment_at,
-    collect_urls, collect_texts, is_favorite, status_changed_at,
+    id: _id, user_id: _user_id, created_at: _created_at, updated_at: _updated_at,
+    latitude: _latitude, longitude: _longitude, market_data: _market_data,
+    investment_score: _investment_score, score_breakdown: _score_breakdown,
+    socioeconomic_data: _socioeconomic_data, enrichment_status: _enrichment_status,
+    enrichment_error: _enrichment_error, enrichment_at: _enrichment_at,
+    collect_urls: _collect_urls, collect_texts: _collect_texts,
+    is_favorite: _is_favorite, status_changed_at: _status_changed_at,
     ...rest
   } = p;
-  void id; void user_id; void created_at; void updated_at;
-  void latitude; void longitude; void market_data; void investment_score;
-  void score_breakdown; void socioeconomic_data; void enrichment_status;
-  void enrichment_error; void enrichment_at; void collect_urls; void collect_texts;
-  void is_favorite; void status_changed_at;
   return rest;
 }
 
@@ -311,6 +309,12 @@ export async function getPropertyByIdPublic(id: string): Promise<Property | unde
   return result.rows[0] ? rowAs<Property>(result.rows[0]) : undefined;
 }
 
+const ENRICHMENT_FIELDS = new Set([
+  "latitude", "longitude", "market_data", "investment_score",
+  "score_breakdown", "socioeconomic_data", "enrichment_status",
+  "enrichment_error", "enrichment_at",
+]);
+
 export async function updateEnrichmentFields(
   id: string,
   fields: Partial<{
@@ -330,6 +334,7 @@ export async function updateEnrichmentFields(
   const args: (string | number | null)[] = [];
 
   for (const [key, value] of Object.entries(fields)) {
+    if (!ENRICHMENT_FIELDS.has(key)) continue;
     setClauses.push(`${key} = ?`);
     args.push(value ?? null);
   }
@@ -342,6 +347,8 @@ export async function updateEnrichmentFields(
     args,
   });
 }
+
+const COLLECT_FIELDS = new Set(["collect_urls", "collect_texts", "source_url"]);
 
 /** Update collect fields (URLs and texts lists) + source_url */
 export async function updateCollectFields(
@@ -357,6 +364,7 @@ export async function updateCollectFields(
   const args: (string | null)[] = [];
 
   for (const [key, value] of Object.entries(fields)) {
+    if (!COLLECT_FIELDS.has(key)) continue;
     setClauses.push(`${key} = ?`);
     args.push(value ?? null);
   }
@@ -372,12 +380,13 @@ export async function updateCollectFields(
 
 export async function updatePropertyStatus(
   id: string,
-  status: string
+  status: string,
+  userId: string
 ): Promise<void> {
   const db = await getDb();
   await db.execute({
-    sql: "UPDATE properties SET property_status = ?, status_changed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?",
-    args: [status, id],
+    sql: "UPDATE properties SET property_status = ?, status_changed_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND user_id = ?",
+    args: [status, id, userId],
   });
 }
 

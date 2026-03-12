@@ -5,6 +5,9 @@ import { writeFile, unlink, mkdir } from "fs/promises";
 import path from "path";
 import { addPhoto, deletePhoto, getPhotosForProperty } from "./repository";
 import { requireUserId } from "@/lib/auth-actions";
+import { getOwnPropertyById } from "@/domains/property/repository";
+
+const SAFE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif"]);
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "photos");
 
@@ -18,6 +21,11 @@ export async function uploadPhoto(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const userId = await requireUserId();
+    const property = await getOwnPropertyById(propertyId, userId);
+    if (!property) {
+      return { success: false, error: "Bien introuvable ou accès refusé." };
+    }
+
     const file = formData.get("file") as File | null;
     if (!file || file.size === 0) {
       return { success: false, error: "Aucun fichier fourni." };
@@ -31,7 +39,8 @@ export async function uploadPhoto(
 
     await ensureUploadDir();
 
-    const ext = path.extname(file.name) || ".jpg";
+    const rawExt = path.extname(file.name).toLowerCase();
+    const ext = SAFE_EXTENSIONS.has(rawExt) ? rawExt : ".jpg";
     const filename = `${crypto.randomUUID()}${ext}`;
     const filePath = path.join(UPLOAD_DIR, filename);
 
@@ -68,6 +77,10 @@ export async function deletePhotoAction(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const userId = await requireUserId();
+    const property = await getOwnPropertyById(propertyId, userId);
+    if (!property) {
+      return { success: false, error: "Bien introuvable ou accès refusé." };
+    }
 
     // Find the photo to get the file path
     const photos = await getPhotosForProperty(propertyId);

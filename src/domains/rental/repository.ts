@@ -42,28 +42,6 @@ export async function addRentalEntry(
   return id;
 }
 
-export async function updateRentalEntry(
-  id: string,
-  data: Partial<Pick<RentalEntry, "rent_received" | "charges_paid" | "vacancy_days" | "notes">>
-): Promise<void> {
-  const db = await getDb();
-  const setClauses: string[] = [];
-  const args: (string | number | null)[] = [];
-
-  for (const [key, value] of Object.entries(data)) {
-    setClauses.push(`${key} = ?`);
-    args.push(value ?? null);
-  }
-
-  if (setClauses.length === 0) return;
-
-  args.push(id);
-  await db.execute({
-    sql: `UPDATE rental_entries SET ${setClauses.join(", ")} WHERE id = ?`,
-    args,
-  });
-}
-
 export async function deleteRentalEntry(id: string): Promise<void> {
   const db = await getDb();
   await db.execute({

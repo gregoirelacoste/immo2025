@@ -72,6 +72,12 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
   return result.rows[0] ? rowAs<UserProfile>(result.rows[0]) : null;
 }
 
+const PROFILE_FIELDS = new Set([
+  "monthly_income", "existing_credits", "savings", "max_debt_ratio",
+  "target_cities", "min_budget", "max_budget", "target_property_types",
+  "default_inputs", "scoring_weights", "alert_thresholds",
+]);
+
 export async function upsertUserProfile(
   userId: string,
   data: Partial<Omit<UserProfile, "user_id" | "updated_at">>
@@ -86,6 +92,7 @@ export async function upsertUserProfile(
   const updateVals: (string | number | null)[] = [now];
 
   for (const [key, value] of Object.entries(data)) {
+    if (!PROFILE_FIELDS.has(key)) continue;
     insertCols.push(key);
     insertVals.push((value ?? null) as string | number | null);
     setClauses.push(`${key} = ?`);

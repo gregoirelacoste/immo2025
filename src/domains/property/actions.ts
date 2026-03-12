@@ -195,10 +195,11 @@ export async function changePropertyStatus(
   status: PropertyStatus
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const userId = await requireUserId();
     if (!PROPERTY_STATUSES.includes(status)) {
       return { success: false, error: "Statut invalide." };
     }
-    await updatePropertyStatus(propertyId, status);
+    await updatePropertyStatus(propertyId, status, userId);
     revalidatePath(`/property/${propertyId}`);
     revalidatePath("/dashboard");
     return { success: true };

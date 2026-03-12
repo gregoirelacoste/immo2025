@@ -44,15 +44,3 @@ export async function deletePhoto(id: string, userId: string): Promise<void> {
     args: [id, userId],
   });
 }
-
-export async function updatePhotoTag(
-  id: string,
-  tag: string,
-  note: string
-): Promise<void> {
-  const db = await getDb();
-  await db.execute({
-    sql: "UPDATE photos SET tag = ?, note = ? WHERE id = ?",
-    args: [tag, note, id],
-  });
-}

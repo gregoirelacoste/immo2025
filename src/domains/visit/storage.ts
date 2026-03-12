@@ -55,16 +55,6 @@ export async function saveVisitData(data: VisitData): Promise<void> {
   });
 }
 
-export async function deleteVisitData(propertyId: string): Promise<void> {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_VISITS, "readwrite");
-    tx.objectStore(STORE_VISITS).delete(propertyId);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
 // ── Photos (blobs stored separately for perf) ──
 
 export interface StoredVisitPhoto {
@@ -106,22 +96,6 @@ export async function deleteVisitPhoto(id: number): Promise<void> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_PHOTOS, "readwrite");
     tx.objectStore(STORE_PHOTOS).delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-export async function deleteAllVisitPhotos(
-  propertyId: string,
-): Promise<void> {
-  const photos = await loadVisitPhotos(propertyId);
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_PHOTOS, "readwrite");
-    const store = tx.objectStore(STORE_PHOTOS);
-    for (const p of photos) {
-      if (p.id !== undefined) store.delete(p.id);
-    }
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
