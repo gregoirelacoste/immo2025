@@ -21,6 +21,7 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
   const [sortAsc, setSortAsc] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Set<PropertyStatus>>(new Set(PROPERTY_STATUSES));
   const [favoriteFilter, setFavoriteFilter] = useState(false);
+  const [onlyMine, setOnlyMine] = useState(false);
   const router = useRouter();
 
   const allSelected = statusFilter.size === PROPERTY_STATUSES.length;
@@ -42,11 +43,16 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
   function selectAll() {
     setStatusFilter(new Set(PROPERTY_STATUSES));
     setFavoriteFilter(false);
+    setOnlyMine(false);
   }
 
+  const ownerFiltered = onlyMine && currentUserId
+    ? properties.filter((p) => p.user_id === currentUserId)
+    : properties;
+
   const statusFiltered = allSelected
-    ? properties
-    : properties.filter((p) => statusFilter.has((p.property_status || "added") as PropertyStatus));
+    ? ownerFiltered
+    : ownerFiltered.filter((p) => statusFilter.has((p.property_status || "added") as PropertyStatus));
 
   const filteredProperties = favoriteFilter
     ? statusFiltered.filter((p) => p.is_favorite)
@@ -124,9 +130,9 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
     router.refresh();
   }
 
-  // Count per status (from unfiltered list)
+  // Count per status (from owner-filtered list)
   const statusCounts: Record<string, number> = {};
-  for (const p of properties) {
+  for (const p of ownerFiltered) {
     const s = p.property_status || "added";
     statusCounts[s] = (statusCounts[s] || 0) + 1;
   }
@@ -164,6 +170,19 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
           >
             Tous ({properties.length})
           </button>
+          {properties.some((p) => p.user_id !== currentUserId) && (
+            <button
+              onClick={() => setOnlyMine(!onlyMine)}
+              className={`text-xs px-2.5 py-1.5 rounded-full font-medium transition-colors inline-flex items-center gap-1 ${
+                onlyMine
+                  ? "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-300"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              Mes biens
+              {(() => { const c = properties.filter(p => p.user_id === currentUserId).length; return ` (${c})`; })()}
+            </button>
+          )}
           <button
             onClick={() => setFavoriteFilter(!favoriteFilter)}
             className={`text-xs px-2.5 py-1.5 rounded-full font-medium transition-colors inline-flex items-center gap-1 ${
