@@ -1,6 +1,6 @@
 {
   "name": "immo2025",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,7 +10,9 @@
     "cap:sync": "npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android",
-    "release": "node scripts/bump-version.js && git push --follow-tags"
+    "release": "node scripts/bump-version.js patch && git push --follow-tags",
+    "release:minor": "node scripts/bump-version.js minor && git push --follow-tags",
+    "release:major": "node scripts/bump-version.js major && git push --follow-tags"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",

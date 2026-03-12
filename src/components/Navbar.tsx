@@ -10,6 +10,10 @@ export default function Navbar() {
   const { data: session } = useSession();
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
+  const isVisitMode = /^\/property\/[^/]+\/visit/.test(pathname);
+
+  // Hide navbar entirely during visit mode (visit has its own bottom bar)
+  if (isVisitMode) return null;
 
   return (
     <>
