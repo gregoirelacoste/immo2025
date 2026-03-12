@@ -14,14 +14,33 @@ const inputClass =
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
 export default function ClassicRentalSection({ form, onChange, calcs, prefillHint }: Props) {
+  const calculatedRent = form.rent_per_m2 > 0 && form.surface > 0
+    ? Math.round(form.rent_per_m2 * form.surface)
+    : null;
+
   return (
     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-4">Location classique</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className={labelClass}>Loyer mensuel estimé</label>
+          <label className={labelClass}>Loyer au m² / mois</label>
+          <input type="number" inputMode="decimal" step="0.1" value={form.rent_per_m2 || ""} onChange={(e) => onChange("rent_per_m2", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="12.5" />
+          {prefillHint("rent_per_m2")}
+          {form.rent_per_m2 > 0 && form.surface > 0 && (
+            <p className="text-xs text-gray-500 mt-0.5">
+              = {formatCurrency(calculatedRent!)} / mois pour {form.surface} m²
+            </p>
+          )}
+        </div>
+        <div>
+          <label className={labelClass}>Loyer mensuel</label>
           <input type="number" inputMode="numeric" value={form.monthly_rent || ""} onChange={(e) => onChange("monthly_rent", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="800" />
           {prefillHint("monthly_rent")}
+          {calculatedRent != null && form.monthly_rent > 0 && form.monthly_rent !== calculatedRent && (
+            <p className="text-xs text-amber-500 mt-0.5">
+              Valeur manuelle ({formatCurrency(form.monthly_rent)}) ≠ calcul prix/m² ({formatCurrency(calculatedRent)})
+            </p>
+          )}
         </div>
         <div>
           <label className={labelClass}>Charges copro / mois</label>

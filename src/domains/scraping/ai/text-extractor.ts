@@ -14,6 +14,9 @@ Extrais ces champs :
 - address : l'adresse complète si disponible
 - description : résumé de l'annonce (max 500 caractères)
 - property_type : "ancien" ou "neuf"
+- monthly_rent : le loyer mensuel en euros si mentionné (loyer, loyer estimé, revenus locatifs, loyer HC). Nombre entier. Omets si non trouvé.
+- condo_charges : les charges de copropriété mensuelles en euros (charges, charges de copropriété, provisions sur charges). Nombre entier. Omets si non trouvé.
+- property_tax : la taxe foncière annuelle en euros (taxe foncière, impôt foncier). Nombre entier. Omets si non trouvé.
 - amenities : tableau de clés d'équipements détectés parmi EXACTEMENT ces valeurs : "garage", "parking", "cave", "balcon", "terrasse", "piscine", "jardin", "ascenseur", "gardien", "interphone", "meuble", "climatisation", "cheminee", "parquet", "double_vitrage", "fibre". Cherche dans la description, les caractéristiques, les listes de prestations. Attention aux synonymes (stationnement=parking, cellier=cave, véranda=terrasse, clim=climatisation, DV=double_vitrage, FTTH=fibre, etc.)
 
 Retourne UNIQUEMENT un objet JSON valide avec ces champs. Si un champ n'est pas trouvé, omets-le.
@@ -60,6 +63,18 @@ export async function extractFromText(
   if (Array.isArray(parsed.amenities)) {
     const valid = (parsed.amenities as string[]).filter((k) => VALID_AMENITIES.has(k));
     if (valid.length > 0) data.amenities = valid;
+  }
+  if (parsed.monthly_rent != null) {
+    const n = parseInt(String(parsed.monthly_rent).replace(/\D/g, ""), 10);
+    if (n > 0) data.monthly_rent = n;
+  }
+  if (parsed.condo_charges != null) {
+    const n = parseInt(String(parsed.condo_charges).replace(/\D/g, ""), 10);
+    if (n > 0) data.condo_charges = n;
+  }
+  if (parsed.property_tax != null) {
+    const n = parseInt(String(parsed.property_tax).replace(/\D/g, ""), 10);
+    if (n > 0) data.property_tax = n;
   }
 
   return data;

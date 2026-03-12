@@ -125,6 +125,9 @@ export async function processShareAndCreate(
     if (extracted.address) prefill.address = { source: sourceLabel, value: extracted.address };
     if (extracted.postal_code) prefill.postal_code = { source: sourceLabel, value: extracted.postal_code };
 
+    if (extracted.monthly_rent) prefill.monthly_rent = { source: sourceLabel, value: extracted.monthly_rent };
+
+    let rentPerM2 = 0;
     let monthlyRent = extracted.monthly_rent || 0;
     let condoCharges = 0;
     let propertyTax = 0;
@@ -135,6 +138,7 @@ export async function processShareAndCreate(
         if (market) {
           const applied = applyMarketDataToPrefill(prefill, market, surface, propertyType);
           prefill = applied.prefill;
+          rentPerM2 = applied.rentPerM2;
           monthlyRent = applied.monthlyRent || monthlyRent;
           propertyTax = applied.propertyTax;
           condoCharges = applied.condoCharges;
@@ -166,6 +170,7 @@ export async function processShareAndCreate(
       insurance_rate: 0.34,
       loan_fees: 0,
       notary_fees: 0,
+      rent_per_m2: rentPerM2,
       monthly_rent: monthlyRent,
       condo_charges: condoCharges,
       property_tax: propertyTax,

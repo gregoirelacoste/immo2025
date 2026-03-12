@@ -123,13 +123,13 @@ export async function createProperty(
       INSERT INTO properties (
         id, user_id, visibility, address, city, postal_code, purchase_price, surface, property_type, description,
         loan_amount, interest_rate, loan_duration, personal_contribution,
-        insurance_rate, loan_fees, notary_fees, monthly_rent, condo_charges,
+        insurance_rate, loan_fees, notary_fees, rent_per_m2, monthly_rent, condo_charges,
         property_tax, vacancy_rate, airbnb_price_per_night, airbnb_occupancy_rate,
         airbnb_charges, amenities, source_url, image_urls, prefill_sources, created_at, updated_at
       ) VALUES (
         $id, $user_id, $visibility, $address, $city, $postal_code, $purchase_price, $surface, $property_type, $description,
         $loan_amount, $interest_rate, $loan_duration, $personal_contribution,
-        $insurance_rate, $loan_fees, $notary_fees, $monthly_rent, $condo_charges,
+        $insurance_rate, $loan_fees, $notary_fees, $rent_per_m2, $monthly_rent, $condo_charges,
         $property_tax, $vacancy_rate, $airbnb_price_per_night, $airbnb_occupancy_rate,
         $airbnb_charges, $amenities, $source_url, $image_urls, $prefill_sources, $created_at, $updated_at
       )
@@ -157,7 +157,7 @@ export async function updateProperty(
         loan_amount = $loan_amount, interest_rate = $interest_rate,
         loan_duration = $loan_duration, personal_contribution = $personal_contribution,
         insurance_rate = $insurance_rate, loan_fees = $loan_fees,
-        notary_fees = $notary_fees, monthly_rent = $monthly_rent,
+        notary_fees = $notary_fees, rent_per_m2 = $rent_per_m2, monthly_rent = $monthly_rent,
         condo_charges = $condo_charges, property_tax = $property_tax,
         vacancy_rate = $vacancy_rate, airbnb_price_per_night = $airbnb_price_per_night,
         airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
@@ -186,7 +186,7 @@ export async function updateOrphanProperty(
         loan_amount = $loan_amount, interest_rate = $interest_rate,
         loan_duration = $loan_duration, personal_contribution = $personal_contribution,
         insurance_rate = $insurance_rate, loan_fees = $loan_fees,
-        notary_fees = $notary_fees, monthly_rent = $monthly_rent,
+        notary_fees = $notary_fees, rent_per_m2 = $rent_per_m2, monthly_rent = $monthly_rent,
         condo_charges = $condo_charges, property_tax = $property_tax,
         vacancy_rate = $vacancy_rate, airbnb_price_per_night = $airbnb_price_per_night,
         airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,

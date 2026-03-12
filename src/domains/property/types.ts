@@ -18,6 +18,7 @@ export interface Property {
   // Frais de notaire
   notary_fees: number;
   // Location classique
+  rent_per_m2: number; // loyer au m² — 0 = auto (market data)
   monthly_rent: number;
   condo_charges: number;
   property_tax: number;

@@ -150,6 +150,10 @@ export async function rescrapeProperty(
         ...d.amenities,
       ])]),
     }),
+    // Scraped rental data updates (only if found)
+    ...(d.monthly_rent != null && { monthly_rent: d.monthly_rent }),
+    ...(d.condo_charges != null && { condo_charges: d.condo_charges }),
+    ...(d.property_tax != null && { property_tax: d.property_tax }),
     notary_fees: newNotaryFees,
     image_urls: d.image_urls ? JSON.stringify(d.image_urls) : property.image_urls,
     prefill_sources: JSON.stringify(updatedPrefill),

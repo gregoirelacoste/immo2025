@@ -32,6 +32,10 @@ export interface ScrapedPropertyData {
   property_type?: "ancien" | "neuf";
   image_urls?: string[];
   amenities?: string[];
+  // Champs locatifs (souvent dans les annonces)
+  monthly_rent?: number;
+  condo_charges?: number;
+  property_tax?: number;
 }
 
 /** Résultat retourné au client */
