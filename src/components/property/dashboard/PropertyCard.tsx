@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Property, PropertyCalculations } from "@/domains/property/types";
+import { Property, PropertyCalculations, type PropertyStatus } from "@/domains/property/types";
 import { formatCurrency, formatPercent } from "@/lib/calculations";
 import InvestmentScoreBadge from "@/components/ui/InvestmentScoreBadge";
+import StatusBadge from "@/components/property/StatusBadge";
 import { parseAmenities, AMENITY_ICONS } from "@/domains/property/amenities";
 
 interface Props {
@@ -88,8 +89,9 @@ export default function PropertyCard({ property: p, calcs: c, currentUserId, onD
         {/* Header : Ville + badge */}
         <div className="flex items-start justify-between mb-2">
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-semibold text-gray-900 truncate">{p.city}</h3>
+              <StatusBadge status={(p.property_status || "added") as PropertyStatus} />
               <span className="text-xs text-gray-400 capitalize shrink-0">{p.property_type}</span>
               {p.visibility === "private" && (
                 <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded font-medium shrink-0">Prive</span>

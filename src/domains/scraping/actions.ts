@@ -68,11 +68,15 @@ export async function scrapeAndSaveProperty(
     ? (result.error || "Scraping échoué — complétez les données manuellement.")
     : result.error;
 
+  // buildPrefillFromScrape now also includes scraped monthly_rent, condo_charges, property_tax
   let prefill = buildPrefillFromScrape(d, result.method);
 
-  let monthlyRent = 0;
-  let condoCharges = 0;
-  let propertyTax = 0;
+  // Priority: scraped values > market data estimates
+  // Scraped values are already in prefill, applyMarketDataToPrefill respects existing entries
+  let rentPerM2 = 0;
+  let monthlyRent = d.monthly_rent || 0;
+  let condoCharges = d.condo_charges || 0;
+  let propertyTax = d.property_tax || 0;
 
   if (city && surface > 0) {
     try {
@@ -80,9 +84,10 @@ export async function scrapeAndSaveProperty(
       if (market) {
         const applied = applyMarketDataToPrefill(prefill, market, surface, propertyType);
         prefill = applied.prefill;
-        monthlyRent = applied.monthlyRent;
-        propertyTax = applied.propertyTax;
-        condoCharges = applied.condoCharges;
+        rentPerM2 = applied.rentPerM2;
+        monthlyRent = applied.monthlyRent || monthlyRent;
+        propertyTax = applied.propertyTax || propertyTax;
+        condoCharges = applied.condoCharges || condoCharges;
       }
     } catch {
       // Pas de données marché → garder les défauts à 0
@@ -113,6 +118,7 @@ export async function scrapeAndSaveProperty(
     insurance_rate: 0.34,
     loan_fees: 0,
     notary_fees: 0,
+    rent_per_m2: rentPerM2,
     monthly_rent: monthlyRent,
     condo_charges: condoCharges,
     property_tax: propertyTax,
@@ -166,10 +172,15 @@ export async function createPropertyFromText(
     if (d.city) prefill.city = { source: "Collage texte (IA)", value: d.city };
     if (d.address) prefill.address = { source: "Collage texte (IA)", value: d.address };
     if (d.postal_code) prefill.postal_code = { source: "Collage texte (IA)", value: d.postal_code };
+    // Scraped rental fields (priority over calculated)
+    if (d.monthly_rent) prefill.monthly_rent = { source: "Collage texte (IA)", value: d.monthly_rent };
+    if (d.condo_charges) prefill.condo_charges = { source: "Collage texte (IA)", value: d.condo_charges };
+    if (d.property_tax) prefill.property_tax = { source: "Collage texte (IA)", value: d.property_tax };
 
-    let monthlyRent = 0;
-    let condoCharges = 0;
-    let propertyTax = 0;
+    let rentPerM2 = 0;
+    let monthlyRent = d.monthly_rent || 0;
+    let condoCharges = d.condo_charges || 0;
+    let propertyTax = d.property_tax || 0;
 
     if (city && surface > 0) {
       try {
@@ -177,9 +188,10 @@ export async function createPropertyFromText(
         if (market) {
           const applied = applyMarketDataToPrefill(prefill, market, surface, propertyType);
           prefill = applied.prefill;
-          monthlyRent = applied.monthlyRent;
-          propertyTax = applied.propertyTax;
-          condoCharges = applied.condoCharges;
+          rentPerM2 = applied.rentPerM2;
+          monthlyRent = applied.monthlyRent || monthlyRent;
+          propertyTax = applied.propertyTax || propertyTax;
+          condoCharges = applied.condoCharges || condoCharges;
         }
       } catch { /* pas de données marché */ }
     }
@@ -208,6 +220,7 @@ export async function createPropertyFromText(
       insurance_rate: 0.34,
       loan_fees: 0,
       notary_fees: 0,
+      rent_per_m2: rentPerM2,
       monthly_rent: monthlyRent,
       condo_charges: condoCharges,
       property_tax: propertyTax,
@@ -252,9 +265,10 @@ export async function extractAndUpdateFromText(
     const newCity = d.city ?? property.city;
     const notary = calculateNotaryFees(newPrice, newType);
 
-    let monthlyRent = property.monthly_rent;
-    let propertyTax = property.property_tax;
-    let condoCharges = property.condo_charges;
+    // Priority: scraped > existing calculated values
+    let monthlyRent = d.monthly_rent ?? property.monthly_rent;
+    let propertyTax = d.property_tax ?? property.property_tax;
+    let condoCharges = d.condo_charges ?? property.condo_charges;
     let prefill = mergeTextExtractionIntoPrefill(
       parsePrefill(property.prefill_sources),
       d

@@ -44,6 +44,7 @@ const defaultFormData: PropertyFormData = {
   insurance_rate: 0.34,
   loan_fees: 0,
   notary_fees: 0,
+  rent_per_m2: 0,
   monthly_rent: 0,
   condo_charges: 0,
   property_tax: 0,
@@ -117,6 +118,10 @@ export default function PropertyForm({ existingProperty }: Props) {
     if (field === "monthly_rent") {
       setRentManuallySet(true);
     }
+    if (field === "rent_per_m2") {
+      // When user changes rent_per_m2, recalculate monthly_rent
+      setRentManuallySet(false);
+    }
     updateField(field, value);
   }
 
@@ -160,6 +165,7 @@ export default function PropertyForm({ existingProperty }: Props) {
     investment_score: null, score_breakdown: "{}", socioeconomic_data: "",
     enrichment_status: "pending", enrichment_error: "", enrichment_at: "",
     collect_urls: "[]", collect_texts: "[]",
+    property_status: existingProperty?.property_status || "added",
     ...form,
   };
   const calcs = calculateAll(fakeProperty);

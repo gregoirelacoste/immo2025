@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Property, PropertyCalculations } from "@/domains/property/types";
+import { Property, PropertyCalculations, type PropertyStatus } from "@/domains/property/types";
 import { formatCurrency, formatPercent } from "@/lib/calculations";
 import InvestmentScoreBadge from "@/components/ui/InvestmentScoreBadge";
+import StatusBadge from "@/components/property/StatusBadge";
 import { SortKey } from "./SortBar";
 
 interface Props {
@@ -30,6 +31,7 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
             <th className={thClass} onClick={() => onSort("city")}>
               Ville{sortIcon("city")}
             </th>
+            <th className={thClass}>Statut</th>
             <th className={thClass} onClick={() => onSort("purchase_price")}>
               Prix{sortIcon("purchase_price")}
             </th>
@@ -82,6 +84,9 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
                     )}
                   </div>
                 </div>
+              </td>
+              <td className="px-3 py-4 text-sm">
+                <StatusBadge status={(p.property_status || "added") as PropertyStatus} />
               </td>
               <td className="px-3 py-4 text-sm text-gray-700">{formatCurrency(p.purchase_price)}</td>
               <td className="px-3 py-4 text-sm text-gray-700">{p.surface} m²</td>

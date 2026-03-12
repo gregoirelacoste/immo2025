@@ -3,7 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { Property } from "@/domains/property/types";
+import { Property, type PropertyStatus } from "@/domains/property/types";
 import { calculateAll, formatCurrency, formatPercent } from "@/lib/calculations";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
@@ -15,6 +15,7 @@ import InvestmentScorePanel from "./InvestmentScorePanel";
 import MarketDataPanel from "./MarketDataPanel";
 import SocioEconomicPanel from "./SocioEconomicPanel";
 import RescrapePanel from "./RescrapePanel";
+import StatusSelector from "@/components/property/StatusSelector";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 
 const PropertyMap = dynamic(() => import("./PropertyMap"), { ssr: false });
@@ -74,7 +75,10 @@ export default function PropertyDetail({ property, isOwner = false }: Props) {
         {/* Ligne 1 : Ville + Prix + Surface */}
         <div className="flex items-baseline justify-between mb-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">{property.city}</h2>
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="text-xl font-bold text-gray-900">{property.city}</h2>
+              <StatusSelector propertyId={property.id} currentStatus={(property.property_status || "added") as PropertyStatus} />
+            </div>
             {property.address && (
               <p className="text-sm text-gray-500">{property.address}</p>
             )}
@@ -150,6 +154,10 @@ export default function PropertyDetail({ property, isOwner = false }: Props) {
           <div>
             <span className="text-gray-500">Prix au m²</span>
             <p className="font-semibold">{pricePerM2 > 0 ? formatCurrency(pricePerM2) : "—"}</p>
+          </div>
+          <div>
+            <span className="text-gray-500">Loyer / m²</span>
+            <p className="font-semibold">{property.rent_per_m2 > 0 ? `${property.rent_per_m2.toFixed(1)} €` : "—"}</p>
           </div>
           <div>
             <span className="text-gray-500">Loyer mensuel</span>

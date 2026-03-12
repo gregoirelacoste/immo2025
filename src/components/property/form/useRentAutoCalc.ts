@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useRef, Dispatch, SetStateAction } from "react";
 import { PropertyFormData } from "@/domains/property/types";
-import { estimateMonthlyRent } from "@/domains/market/actions";
 
 /**
- * Auto-estimate monthly rent when city + surface are set and rent is 0.
- * Fetches market data server-side and fills monthly_rent.
- * User can override manually — auto-calc won't overwrite.
+ * Auto-calculate monthly_rent from rent_per_m2 × surface.
+ * Priority: manual monthly_rent > scraped monthly_rent > calculated (rent_per_m2 × surface).
+ * No longer fetches market data — rent_per_m2 is stored on the property.
  */
 export function useRentAutoCalc(
   form: PropertyFormData,
@@ -16,42 +15,47 @@ export function useRentAutoCalc(
   const [rentManuallySet, setRentManuallySet] = useState(
     () => form.monthly_rent > 0
   );
-  const pendingRef = useRef(false);
+  const prevRentPerM2Ref = useRef(form.rent_per_m2);
+  const prevSurfaceRef = useRef(form.surface);
 
-  // Reset manual flag when form is synced with new server data
-  // (e.g. after text extraction fills monthly_rent)
+  // Sync manual flag when form is synced with new server data
   useEffect(() => {
     if (form.monthly_rent > 0) {
       setRentManuallySet(true);
     }
   }, [form.monthly_rent]);
 
+  // Auto-calc monthly_rent when rent_per_m2 or surface changes
   useEffect(() => {
-    if (rentManuallySet) return;
+    // Skip if rent was manually set by user
+    if (rentManuallySet) {
+      prevRentPerM2Ref.current = form.rent_per_m2;
+      prevSurfaceRef.current = form.surface;
+      return;
+    }
 
-    const city = form.city.trim();
+    const rentPerM2 = form.rent_per_m2;
     const surface = form.surface;
 
-    if (!city || surface <= 0) return;
+    // Only auto-calc if rent_per_m2 or surface actually changed
+    if (
+      rentPerM2 === prevRentPerM2Ref.current &&
+      surface === prevSurfaceRef.current
+    ) {
+      return;
+    }
 
-    // Debounce: wait 500ms
-    pendingRef.current = true;
-    const timer = setTimeout(async () => {
-      if (!pendingRef.current) return;
-      const result = await estimateMonthlyRent(city, surface);
-      if (result && pendingRef.current) {
-        setForm((prev) => {
-          if (prev.monthly_rent > 0) return prev;
-          return { ...prev, monthly_rent: result.rent };
-        });
-      }
-    }, 500);
+    prevRentPerM2Ref.current = rentPerM2;
+    prevSurfaceRef.current = surface;
 
-    return () => {
-      pendingRef.current = false;
-      clearTimeout(timer);
-    };
-  }, [form.city, form.surface, rentManuallySet, setForm]);
+    if (rentPerM2 > 0 && surface > 0) {
+      const calculatedRent = Math.round(rentPerM2 * surface);
+      setForm((prev) => ({
+        ...prev,
+        monthly_rent: calculatedRent,
+      }));
+    }
+  }, [form.rent_per_m2, form.surface, rentManuallySet, setForm]);
 
   return { rentManuallySet, setRentManuallySet };
 }

@@ -26,7 +26,12 @@ Champs à extraire :
 - address : l'adresse complète si disponible (numéro, rue, code postal, ville)
 - description : le texte de description de l'annonce (max 500 caractères)
 - property_type : "ancien" ou "neuf" si identifiable
+- monthly_rent : le loyer mensuel en euros si mentionné (ex: "loyer estimé", "loyer", "revenus locatifs", "loyer HC", "loyer charges comprises"). Nombre entier. Omets si non trouvé.
+- condo_charges : les charges de copropriété mensuelles en euros (ex: "charges", "charges de copropriété", "charges mensuelles", "provisions sur charges"). Nombre entier. Omets si non trouvé.
+- property_tax : la taxe foncière annuelle en euros (ex: "taxe foncière", "impôt foncier"). Nombre entier. Omets si non trouvé.
 - amenities : tableau de clés d'équipements détectés parmi EXACTEMENT ces valeurs : "garage", "parking", "cave", "balcon", "terrasse", "piscine", "jardin", "ascenseur", "gardien", "interphone", "meuble", "climatisation", "cheminee", "parquet", "double_vitrage", "fibre". Cherche dans la description, les caractéristiques, les pictogrammes, les listes de prestations, les critères. Attention : les termes varient selon les sites (ex: "stationnement"="parking", "cellier"="cave", "véranda"="terrasse", "résidence sécurisée"="interphone"+"gardien", "plancher bois"="parquet", "climatiseur/clim"="climatisation", "DV"="double_vitrage", "FTTH"="fibre", "furnished"="meuble"). Pour amenities, le champ "css" n'est pas nécessaire, mets null. Retourne directement la liste dans "extracted_value".
+
+Pour monthly_rent, condo_charges et property_tax, le champ "css" n'est pas nécessaire, mets null. Retourne directement la valeur numérique dans "extracted_value".
 
 Retourne UNIQUEMENT un objet JSON valide. Pas de commentaires, pas de virgule après le dernier élément.
 `;
@@ -138,6 +143,18 @@ export async function generateWithAi(
       VALID_AMENITIES.has(k)
     );
     if (valid.length > 0) data.amenities = valid;
+  }
+  if (extractedValues.monthly_rent != null) {
+    const n = parseInt(String(extractedValues.monthly_rent).replace(/[^\d]/g, ""), 10);
+    if (n > 0) data.monthly_rent = n;
+  }
+  if (extractedValues.condo_charges != null) {
+    const n = parseInt(String(extractedValues.condo_charges).replace(/[^\d]/g, ""), 10);
+    if (n > 0) data.condo_charges = n;
+  }
+  if (extractedValues.property_tax != null) {
+    const n = parseInt(String(extractedValues.property_tax).replace(/[^\d]/g, ""), 10);
+    if (n > 0) data.property_tax = n;
   }
 
   return { selectors, extractedValues: data };
