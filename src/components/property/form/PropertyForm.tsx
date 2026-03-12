@@ -92,6 +92,10 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
   const [error, setError] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const autoScrapeTriggered = useRef(false);
+  // Track property ID created by auto-scrape or SmartCollector on /property/new
+  // so subsequent actions (text paste, photos) update the same property
+  const [createdPropertyId, setCreatedPropertyId] = useState<string | null>(null);
+  const [autoScraping, setAutoScraping] = useState(false);
 
   const [form, setForm] = useState<PropertyFormData>(() =>
     existingProperty ? stripToFormData(existingProperty) : buildDefaultFormData(defaultInputs)
@@ -170,9 +174,15 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
     const sharedTextParam = searchParams.get("sharedText") || undefined;
     if (urlParam && !existingProperty && !autoScrapeTriggered.current) {
       autoScrapeTriggered.current = true;
+      setAutoScraping(true);
       scrapeAndSaveProperty(urlParam, sharedTextParam).then(({ propertyId }) => {
-        if (propertyId) window.location.href = `/property/${propertyId}/edit`;
+        if (propertyId) {
+          // Redirect to edit page so the form works in update mode
+          // with full existingProperty from server
+          window.location.href = `/property/${propertyId}/edit`;
+        }
       }).catch(() => {
+        setAutoScraping(false);
         updateField("source_url", urlParam);
       });
     }
@@ -221,7 +231,9 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
     setError("");
     setSaving(true);
 
-    const result = await saveProperty(form, existingProperty?.id);
+    // Use existingProperty.id OR createdPropertyId (from SmartCollector on /property/new)
+    const propertyId = existingProperty?.id ?? createdPropertyId ?? undefined;
+    const result = await saveProperty(form, propertyId);
 
     if (!result.success) {
       setError(result.error || "Erreur lors de la sauvegarde");
@@ -229,6 +241,17 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
     } else {
       router.push("/dashboard");
     }
+  }
+
+  // When auto-scraping from URL share, block the entire form — only show loading
+  if (autoScraping) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16">
+        <div className="animate-spin w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full" />
+        <p className="text-sm text-gray-600 font-medium">Import de l&apos;annonce en cours...</p>
+        <p className="text-xs text-gray-400">Vous serez redirigé automatiquement</p>
+      </div>
+    );
   }
 
   return (
@@ -246,7 +269,13 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
           onPhotoGeo={handlePhotoGeo}
         />
       ) : (
-        <SmartCollector onPhotoGeo={handlePhotoGeo} />
+        <SmartCollector
+          existingPropertyId={createdPropertyId ?? undefined}
+          onSuccess={({ propertyId }) => {
+            if (!createdPropertyId) setCreatedPropertyId(propertyId);
+          }}
+          onPhotoGeo={handlePhotoGeo}
+        />
       )}
 
       <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} />
