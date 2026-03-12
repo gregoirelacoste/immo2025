@@ -7,7 +7,7 @@ interface Props {
 
 export default function VisitNotes({ notes, onNotesChange }: Props) {
   return (
-    <section className="space-y-3">
+    <section id="visit-notes" className="space-y-3">
       <h2 className="text-base font-bold text-gray-900">Notes</h2>
       <textarea
         value={notes}

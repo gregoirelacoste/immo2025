@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Property } from "@/domains/property/types";
-import type { AmenityKey } from "@/domains/property/amenities";
-import { parseAmenities } from "@/domains/property/amenities";
+import { parseAmenities, AMENITY_LABELS } from "@/domains/property/amenities";
 import { calculateAll, formatCurrency, formatPercent } from "@/lib/calculations";
 import { resolveVisitConfig } from "@/domains/visit/constants";
 import { changePropertyStatus } from "@/domains/property/actions";
@@ -88,9 +87,6 @@ export default function VisitMode({ property }: Props) {
     }
   }, [pendingPhoto]);
 
-  // Quick note
-  const [showQuickNote, setShowQuickNote] = useState(false);
-
   // Verdict
   const [verdictComment, setVerdictComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -98,9 +94,13 @@ export default function VisitMode({ property }: Props) {
   const handleVerdict = useCallback(
     async (status: "validated" | "not_validated" | "visited") => {
       setSubmitting(true);
-      await flushSave();
-      await changePropertyStatus(property.id, status);
-      router.push(`/property/${property.id}`);
+      try {
+        await flushSave();
+        await changePropertyStatus(property.id, status);
+        router.push(`/property/${property.id}`);
+      } catch {
+        setSubmitting(false);
+      }
     },
     [flushSave, property.id, router],
   );
@@ -173,7 +173,7 @@ export default function VisitMode({ property }: Props) {
             <KPI label="Mensualité" value={formatCurrency(calculations.monthly_payment)} />
             <KPI
               label="Score"
-              value={property.investment_score !== null ? `${property.investment_score}` : "—"}
+              value={property.investment_score != null ? `${property.investment_score}` : "—"}
             />
           </div>
 
@@ -185,7 +185,7 @@ export default function VisitMode({ property }: Props) {
                   key={key}
                   className="text-xs px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full"
                 >
-                  {key}
+                  {AMENITY_LABELS[key]}
                 </span>
               ))}
             </div>

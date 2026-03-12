@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import type {
-  CheckItemType,
   ChecklistItem,
   VisitCheckValue,
   VisitItemValue,

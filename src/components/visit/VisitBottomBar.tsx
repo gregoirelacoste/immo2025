@@ -49,7 +49,7 @@ export default function VisitBottomBar({
           onClick={onScrollToRedFlags}
           className="flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center"
         >
-          <span className="text-xs font-medium text-gray-600">Flags</span>
+          <span className="text-xs font-medium text-gray-600">Alertes</span>
           {redFlagCount > 0 && (
             <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold">
               {redFlagCount}

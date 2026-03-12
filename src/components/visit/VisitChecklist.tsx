@@ -59,12 +59,10 @@ export default function VisitChecklist({
         const progress = categoryProgress.find((p) => p.key === cat.key);
         const isOpen = openCategory === cat.key;
         const isComplete = progress?.percent === 100;
-        const catPhotos = photos.filter((p) =>
-          cat.items.some(
-            (item) =>
-              p.tag === `photo_${cat.key}` ||
-              cat.items.some((i) => p.tag.includes(i.key)),
-          ),
+        const catPhotos = photos.filter(
+          (p) =>
+            p.tag === `photo_${cat.key}` ||
+            cat.items.some((item) => p.tag.includes(item.key)),
         );
 
         return (

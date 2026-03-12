@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import StarRating from "./StarRating";
 
 interface Props {

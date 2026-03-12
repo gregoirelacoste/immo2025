@@ -3,10 +3,8 @@
 import { useMemo } from "react";
 import type {
   ChecklistCategory,
-  VisitCheckValue,
   VisitData,
   VisitItemValue,
-  VisitRatingValue,
 } from "../types";
 
 function isAnswered(value: VisitItemValue | undefined): boolean {
@@ -62,22 +60,4 @@ export function useVisitProgress(
   }, [checklist, answers]);
 
   return { categoryProgress, globalProgress };
-}
-
-/** Count check items with value === false (problems found) */
-export function countProblems(answers: VisitData["answers"]): number {
-  return Object.values(answers).filter(
-    (v) => "value" in v && (v as VisitCheckValue).value === false,
-  ).length;
-}
-
-/** Count low ratings (1-2 out of 5) */
-export function countLowRatings(answers: VisitData["answers"]): number {
-  return Object.values(answers).filter((v) => {
-    if ("value" in v && typeof (v as VisitRatingValue).value === "number") {
-      const val = (v as VisitRatingValue).value;
-      return val !== null && val <= 2;
-    }
-    return false;
-  }).length;
 }

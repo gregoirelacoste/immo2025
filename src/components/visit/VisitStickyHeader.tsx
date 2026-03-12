@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Property } from "@/domains/property/types";
-import type { PropertyCalculations } from "@/domains/property/types";
+import type { Property, PropertyCalculations } from "@/domains/property/types";
 import { formatCurrency, formatPercent } from "@/lib/calculations";
 
 interface Props {
