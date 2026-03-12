@@ -251,7 +251,13 @@ export default function SmartCollector({
             if (photos.length > 0) {
               await savePropertyPhotos(propertyId, JSON.stringify(photos));
             }
+            // Notify parent of created property (parent tracks createdPropertyId)
             onSuccess?.({ propertyId, mode: "url" });
+            setCollectUrls((prev) => [...prev, trimmedUrl]);
+            setCurrentSourceUrl(trimmedUrl);
+            setUrlValue("");
+            setSuccess("URL importée — complétez les infos ci-dessous.");
+            // Redirect to edit page for full server-side property data
             router.push(`/property/${propertyId}/edit`);
             return;
           }
@@ -279,7 +285,12 @@ export default function SmartCollector({
             if (photos.length > 0) {
               await savePropertyPhotos(propertyId, JSON.stringify(photos));
             }
+            // Notify parent of created property (parent tracks createdPropertyId)
             onSuccess?.({ propertyId, mode: "text" });
+            setCollectTexts((prev) => [...prev, trimmedText]);
+            setTextValue("");
+            setSuccess("Texte analysé — complétez les infos ci-dessous.");
+            // Redirect to edit page for full server-side property data
             router.push(`/property/${propertyId}/edit`);
             return;
           }

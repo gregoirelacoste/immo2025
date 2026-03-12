@@ -80,6 +80,10 @@ export default function PropertyForm({ existingProperty }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const autoScrapeTriggered = useRef(false);
+  // Track property ID created by auto-scrape or SmartCollector on /property/new
+  // so subsequent actions (text paste, photos) update the same property
+  const [createdPropertyId, setCreatedPropertyId] = useState<string | null>(null);
+  const [autoScraping, setAutoScraping] = useState(false);
 
   const [form, setForm] = useState<PropertyFormData>(() =>
     existingProperty ? stripToFormData(existingProperty) : defaultFormData
@@ -150,9 +154,15 @@ export default function PropertyForm({ existingProperty }: Props) {
     const sharedTextParam = searchParams.get("sharedText") || undefined;
     if (urlParam && !existingProperty && !autoScrapeTriggered.current) {
       autoScrapeTriggered.current = true;
+      setAutoScraping(true);
       scrapeAndSaveProperty(urlParam, sharedTextParam).then(({ propertyId }) => {
-        if (propertyId) window.location.href = `/property/${propertyId}/edit`;
+        if (propertyId) {
+          // Redirect to edit page so the form works in update mode
+          // with full existingProperty from server
+          window.location.href = `/property/${propertyId}/edit`;
+        }
       }).catch(() => {
+        setAutoScraping(false);
         updateField("source_url", urlParam);
       });
     }
@@ -201,7 +211,9 @@ export default function PropertyForm({ existingProperty }: Props) {
     setError("");
     setSaving(true);
 
-    const result = await saveProperty(form, existingProperty?.id);
+    // Use existingProperty.id OR createdPropertyId (from SmartCollector on /property/new)
+    const propertyId = existingProperty?.id ?? createdPropertyId ?? undefined;
+    const result = await saveProperty(form, propertyId);
 
     if (!result.success) {
       setError(result.error || "Erreur lors de la sauvegarde");
@@ -215,7 +227,12 @@ export default function PropertyForm({ existingProperty }: Props) {
     <form onSubmit={handleSubmit} className="space-y-6 pb-safe">
       {error && <Alert variant="error">{error}</Alert>}
 
-      {existingProperty ? (
+      {autoScraping ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex items-center justify-center gap-3">
+          <div className="animate-spin w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full" />
+          <span className="text-sm text-gray-600">Import de l&apos;annonce en cours...</span>
+        </div>
+      ) : existingProperty ? (
         <SmartCollector
           existingPropertyId={existingProperty.id}
           existingPhotos={(() => { try { return JSON.parse(existingProperty.image_urls || "[]"); } catch { return []; } })()}
@@ -226,7 +243,13 @@ export default function PropertyForm({ existingProperty }: Props) {
           onPhotoGeo={handlePhotoGeo}
         />
       ) : (
-        <SmartCollector onPhotoGeo={handlePhotoGeo} />
+        <SmartCollector
+          existingPropertyId={createdPropertyId ?? undefined}
+          onSuccess={({ propertyId }) => {
+            if (!createdPropertyId) setCreatedPropertyId(propertyId);
+          }}
+          onPhotoGeo={handlePhotoGeo}
+        />
       )}
 
       <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} />
