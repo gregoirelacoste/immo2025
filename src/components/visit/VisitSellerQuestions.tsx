@@ -18,7 +18,7 @@ export default function VisitSellerQuestions({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-base font-bold text-gray-900">
+      <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
         Questions au vendeur
       </h2>
 
@@ -33,11 +33,11 @@ export default function VisitSellerQuestions({
             <button
               type="button"
               onClick={() => setOpenCat(isOpen ? null : cat.key)}
-              className="w-full flex items-center justify-between px-4 py-3 min-h-[48px]"
+              className="w-full flex items-center justify-between px-3 py-2.5 min-h-[44px]"
             >
               <div className="flex items-center gap-2">
-                <span className="text-lg">{cat.icon}</span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-base">{cat.icon}</span>
+                <span className="text-[13px] font-semibold text-gray-900">
                   {cat.label}
                 </span>
               </div>
@@ -60,10 +60,10 @@ export default function VisitSellerQuestions({
             </button>
 
             {isOpen && (
-              <div className="px-4 pb-3 space-y-3">
+              <div className="px-3 pb-2 space-y-2">
                 {cat.questions.map((q) => (
                   <div key={q.key}>
-                    <p className="text-sm font-medium text-gray-800">
+                    <p className="text-[13px] font-medium text-gray-800">
                       {q.label}
                     </p>
                     {q.hint && (

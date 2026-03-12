@@ -17,10 +17,10 @@ interface Props {
 
 export default function ChecklistItemRow({ item, value, onChange }: Props) {
   return (
-    <div className="py-2 border-b border-gray-100 last:border-b-0">
+    <div className="py-1.5 border-b border-gray-100 last:border-b-0">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-800">{item.label}</p>
+          <p className="text-[13px] leading-tight font-medium text-gray-800">{item.label}</p>
           {item.hint && (
             <p className="text-xs text-gray-500 mt-0.5">{item.hint}</p>
           )}
@@ -70,18 +70,19 @@ function CheckInput({
   const current = value?.value ?? null;
 
   const toggle = (target: boolean | null) => {
+    if (navigator.vibrate) navigator.vibrate(target === false ? [10, 50, 10] : 10);
     onChange({ value: current === target ? null : target });
   };
 
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-1.5">
       <button
         type="button"
         onClick={() => toggle(true)}
-        className={`w-11 h-11 rounded-lg text-sm font-semibold transition-colors ${
+        className={`w-11 h-11 rounded-lg text-sm font-semibold transition-all ${
           current === true
-            ? "bg-green-600 text-white"
-            : "bg-gray-100 text-gray-500 hover:bg-green-50"
+            ? "bg-green-600 text-white shadow-sm"
+            : "bg-gray-100 text-gray-500 hover:bg-green-50 active:scale-95"
         }`}
       >
         OK
@@ -89,10 +90,10 @@ function CheckInput({
       <button
         type="button"
         onClick={() => toggle(false)}
-        className={`w-11 h-11 rounded-lg text-sm font-semibold transition-colors ${
+        className={`w-11 h-11 rounded-lg text-sm font-semibold transition-all ${
           current === false
-            ? "bg-red-600 text-white"
-            : "bg-gray-100 text-gray-500 hover:bg-red-50"
+            ? "bg-red-600 text-white shadow-sm"
+            : "bg-gray-100 text-gray-500 hover:bg-red-50 active:scale-95"
         }`}
       >
         NOK
@@ -100,10 +101,10 @@ function CheckInput({
       <button
         type="button"
         onClick={() => toggle(null)}
-        className={`w-11 h-11 rounded-lg text-sm transition-colors ${
+        className={`w-11 h-11 rounded-lg text-sm transition-all ${
           current === null && value !== undefined
-            ? "bg-gray-400 text-white"
-            : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+            ? "bg-gray-400 text-white shadow-sm"
+            : "bg-gray-100 text-gray-400 hover:bg-gray-200 active:scale-95"
         }`}
       >
         ?
@@ -130,10 +131,10 @@ function RatingInput({
           key={n}
           type="button"
           onClick={() => onChange({ value: current === n ? null : n })}
-          className={`w-9 h-9 text-lg transition-colors ${
+          className={`w-10 h-10 text-xl transition-all ${
             current !== null && n <= current
               ? "text-amber-400"
-              : "text-gray-300"
+              : "text-gray-300 active:scale-110"
           }`}
         >
           ★
@@ -158,7 +159,7 @@ function TextInput({
       value={value?.value ?? ""}
       onChange={(e) => onChange({ value: e.target.value })}
       placeholder="Précisez..."
-      className="mt-1 w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+      className="mt-1 w-full text-[13px] px-2.5 py-1.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
     />
   );
 }
@@ -180,11 +181,10 @@ function NoteField({
       value={note}
       onChange={(e) => {
         setNote(e.target.value);
-        // Store NOK note as a separate text answer with _note suffix
         onChange(`${itemKey}_note`, { value: e.target.value });
       }}
       placeholder="Précisez le problème..."
-      className="mt-1.5 w-full text-sm px-3 py-2 border border-red-200 rounded-lg bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
+      className="mt-1 w-full text-[13px] px-2.5 py-1.5 border border-red-200 rounded-lg bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
     />
   );
 }

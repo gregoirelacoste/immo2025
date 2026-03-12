@@ -24,16 +24,12 @@ export default function VisitVerdict({
   submitting,
 }: Props) {
   return (
-    <section id="visit-verdict" className="space-y-5">
-      <h2 className="text-base font-bold text-gray-900">Verdict final</h2>
+    <section id="visit-verdict" className="space-y-3">
+      <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Verdict final</h2>
 
       {/* Star rating */}
-      <div className="text-center space-y-2">
-        <p className="text-sm text-gray-600">Votre impression globale :</p>
+      <div className="text-center space-y-1">
         <StarRating value={rating} onChange={onRatingChange} size="lg" />
-        {rating !== null && (
-          <p className="text-sm font-medium text-gray-700">{rating}/5</p>
-        )}
       </div>
 
       {/* Comment */}
@@ -51,7 +47,7 @@ export default function VisitVerdict({
           type="button"
           onClick={onValidate}
           disabled={submitting}
-          className="w-full bg-green-600 text-white font-semibold py-3.5 rounded-xl min-h-[48px] hover:bg-green-700 transition-colors disabled:opacity-50"
+          className="w-full bg-green-600 text-white font-semibold py-3.5 rounded-xl min-h-[48px] hover:bg-green-700 transition-colors active:scale-[0.98] disabled:opacity-50"
         >
           Je valide ce bien
         </button>
@@ -59,7 +55,7 @@ export default function VisitVerdict({
           type="button"
           onClick={onReject}
           disabled={submitting}
-          className="w-full bg-red-50 text-red-700 font-semibold py-3.5 rounded-xl min-h-[48px] border border-red-200 hover:bg-red-100 transition-colors disabled:opacity-50"
+          className="w-full bg-red-50 text-red-700 font-semibold py-3.5 rounded-xl min-h-[48px] border border-red-200 hover:bg-red-100 transition-colors active:scale-[0.98] disabled:opacity-50"
         >
           Je ne valide pas
         </button>
@@ -67,7 +63,7 @@ export default function VisitVerdict({
           type="button"
           onClick={onDefer}
           disabled={submitting}
-          className="w-full text-sm text-gray-500 py-2 hover:text-gray-700 transition-colors"
+          className="w-full text-sm text-gray-500 py-2 min-h-[44px] hover:text-gray-700 transition-colors"
         >
           Décider plus tard
         </button>
