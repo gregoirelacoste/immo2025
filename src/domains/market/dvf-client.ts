@@ -9,6 +9,7 @@ interface DvfMutation {
   surface_reelle_bati: string;
   type_local: string;
   date_mutation: string;
+  nombre_pieces_principales: string;
 }
 
 /** Résout un nom de ville vers son code INSEE via geo.api.gouv.fr */

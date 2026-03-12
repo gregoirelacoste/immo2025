@@ -9,13 +9,14 @@ export function stripMeta(p: Property) {
     id, user_id, created_at, updated_at,
     latitude, longitude, market_data, investment_score, score_breakdown,
     socioeconomic_data, enrichment_status, enrichment_error, enrichment_at,
-    collect_urls, collect_texts,
+    collect_urls, collect_texts, is_favorite, status_changed_at,
     ...rest
   } = p;
   void id; void user_id; void created_at; void updated_at;
   void latitude; void longitude; void market_data; void investment_score;
   void score_breakdown; void socioeconomic_data; void enrichment_status;
   void enrichment_error; void enrichment_at; void collect_urls; void collect_texts;
+  void is_favorite; void status_changed_at;
   return rest;
 }
 
@@ -112,7 +113,7 @@ export async function getPropertyBySourceUrl(
 }
 
 export async function createProperty(
-  property: Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status">
+  property: Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at">
 ): Promise<string> {
   const db = await getDb();
   const id = crypto.randomUUID();
@@ -125,13 +126,15 @@ export async function createProperty(
         loan_amount, interest_rate, loan_duration, personal_contribution,
         insurance_rate, loan_fees, notary_fees, rent_per_m2, monthly_rent, condo_charges,
         property_tax, vacancy_rate, airbnb_price_per_night, airbnb_occupancy_rate,
-        airbnb_charges, amenities, source_url, image_urls, prefill_sources, created_at, updated_at
+        airbnb_charges, renovation_cost, dpe_rating, fiscal_regime,
+        amenities, source_url, image_urls, prefill_sources, created_at, updated_at
       ) VALUES (
         $id, $user_id, $visibility, $address, $city, $postal_code, $purchase_price, $surface, $property_type, $description,
         $loan_amount, $interest_rate, $loan_duration, $personal_contribution,
         $insurance_rate, $loan_fees, $notary_fees, $rent_per_m2, $monthly_rent, $condo_charges,
         $property_tax, $vacancy_rate, $airbnb_price_per_night, $airbnb_occupancy_rate,
-        $airbnb_charges, $amenities, $source_url, $image_urls, $prefill_sources, $created_at, $updated_at
+        $airbnb_charges, $renovation_cost, $dpe_rating, $fiscal_regime,
+        $amenities, $source_url, $image_urls, $prefill_sources, $created_at, $updated_at
       )
     `,
     args: { ...property, id, created_at: now, updated_at: now },
@@ -143,7 +146,7 @@ export async function createProperty(
 export async function updateProperty(
   id: string,
   userId: string,
-  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status">
+  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at">
 ): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
@@ -161,6 +164,7 @@ export async function updateProperty(
         condo_charges = $condo_charges, property_tax = $property_tax,
         vacancy_rate = $vacancy_rate, airbnb_price_per_night = $airbnb_price_per_night,
         airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
+        renovation_cost = $renovation_cost, dpe_rating = $dpe_rating, fiscal_regime = $fiscal_regime,
         amenities = $amenities, source_url = $source_url, image_urls = $image_urls,
         prefill_sources = $prefill_sources, updated_at = $updated_at
       WHERE id = $id AND user_id = $user_id
@@ -172,7 +176,7 @@ export async function updateProperty(
 /** Update an orphaned property (no owner check — only for user_id = '' or NULL) */
 export async function updateOrphanProperty(
   id: string,
-  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status">
+  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at">
 ): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
@@ -190,6 +194,7 @@ export async function updateOrphanProperty(
         condo_charges = $condo_charges, property_tax = $property_tax,
         vacancy_rate = $vacancy_rate, airbnb_price_per_night = $airbnb_price_per_night,
         airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
+        renovation_cost = $renovation_cost, dpe_rating = $dpe_rating, fiscal_regime = $fiscal_regime,
         amenities = $amenities, source_url = $source_url, image_urls = $image_urls,
         prefill_sources = $prefill_sources, updated_at = $updated_at
       WHERE id = $id AND (user_id = '' OR user_id IS NULL)
@@ -269,8 +274,19 @@ export async function updatePropertyStatus(
 ): Promise<void> {
   const db = await getDb();
   await db.execute({
-    sql: "UPDATE properties SET property_status = ?, updated_at = datetime('now') WHERE id = ?",
+    sql: "UPDATE properties SET property_status = ?, status_changed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?",
     args: [status, id],
+  });
+}
+
+export async function togglePropertyFavorite(
+  id: string,
+  userId: string
+): Promise<void> {
+  const db = await getDb();
+  await db.execute({
+    sql: "UPDATE properties SET is_favorite = CASE WHEN is_favorite = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ? AND user_id = ?",
+    args: [id, userId],
   });
 }
 

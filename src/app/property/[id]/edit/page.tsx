@@ -5,6 +5,8 @@ import {
   getOwnPropertyById,
   getOrphanPropertyById,
 } from "@/domains/property/repository";
+import { getUserProfile } from "@/domains/auth/repository";
+import { DEFAULT_INPUTS, mergeDefaults } from "@/domains/auth/defaults";
 import Navbar from "@/components/Navbar";
 import PropertyForm from "@/components/property/form/PropertyForm";
 
@@ -16,6 +18,16 @@ export default async function EditPropertyPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await auth();
+
+  // Load user defaults if authenticated
+  let defaultInputs = DEFAULT_INPUTS;
+  if (session?.user?.id) {
+    const profile = await getUserProfile(session.user.id);
+    if (profile) {
+      defaultInputs = mergeDefaults(DEFAULT_INPUTS, profile.default_inputs);
+    }
+  }
 
   // Orphaned property (no owner) — anyone may edit it.
   const orphan = await getOrphanPropertyById(id);
@@ -28,7 +40,7 @@ export default async function EditPropertyPage({
             Modifier le bien
           </h1>
           <Suspense fallback={<div className="text-gray-400">Chargement...</div>}>
-            <PropertyForm existingProperty={orphan} />
+            <PropertyForm existingProperty={orphan} defaultInputs={defaultInputs} />
           </Suspense>
         </main>
       </div>
@@ -36,7 +48,6 @@ export default async function EditPropertyPage({
   }
 
   // Owned property — require auth and verify ownership.
-  const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
   const property = await getOwnPropertyById(id, session.user.id);
@@ -53,7 +64,7 @@ export default async function EditPropertyPage({
           Modifier le bien
         </h1>
         <Suspense fallback={<div className="text-gray-400">Chargement...</div>}>
-          <PropertyForm existingProperty={property} />
+          <PropertyForm existingProperty={property} defaultInputs={defaultInputs} />
         </Suspense>
       </main>
     </div>

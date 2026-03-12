@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getPropertyById } from "@/domains/property/repository";
+import { getUserProfile } from "@/domains/auth/repository";
+import { getPhotosForProperty } from "@/domains/photo/repository";
 import Navbar from "@/components/Navbar";
 import PropertyDetail from "@/components/property/detail/PropertyDetail";
 
@@ -22,12 +24,16 @@ export default async function PropertyPage({
   }
 
   const isOwner = !!userId && property.user_id === userId;
+  const [userProfile, photos] = await Promise.all([
+    userId ? getUserProfile(userId) : null,
+    getPhotosForProperty(id),
+  ]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <PropertyDetail property={property} isOwner={isOwner} />
+        <PropertyDetail property={property} isOwner={isOwner} userProfile={userProfile} photos={photos} />
       </main>
     </div>
   );

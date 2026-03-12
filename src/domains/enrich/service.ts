@@ -57,11 +57,9 @@ export async function runEnrichmentPipeline(
     {
       purchase_price: property.purchase_price,
       surface: property.surface,
-      monthly_rent: property.monthly_rent,
     },
     calcs,
-    marketData,
-    socioData
+    marketData
   );
 
   return {

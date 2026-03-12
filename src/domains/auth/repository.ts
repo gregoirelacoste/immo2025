@@ -1,6 +1,6 @@
 import { getDb } from "@/infrastructure/database/client";
 import { rowAs } from "@/infrastructure/database/row-mapper";
-import { User } from "./types";
+import { User, UserProfile } from "./types";
 
 export async function getUserByEmail(email: string): Promise<User | undefined> {
   const db = await getDb();
@@ -61,4 +61,43 @@ export async function upsertOAuthUser(user: {
     plan: "free" as const, stripe_customer_id: "", image: user.image,
     created_at: new Date().toISOString(),
   };
+}
+
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  const db = await getDb();
+  const result = await db.execute({
+    sql: "SELECT * FROM user_profile WHERE user_id = ?",
+    args: [userId],
+  });
+  return result.rows[0] ? rowAs<UserProfile>(result.rows[0]) : null;
+}
+
+export async function upsertUserProfile(
+  userId: string,
+  data: Partial<Omit<UserProfile, "user_id" | "updated_at">>
+): Promise<void> {
+  const db = await getDb();
+  const now = new Date().toISOString();
+
+  // Build columns and values for UPSERT
+  const setClauses: string[] = ["updated_at = ?"];
+  const insertCols = ["user_id", "updated_at"];
+  const insertVals: (string | number | null)[] = [userId, now];
+  const updateVals: (string | number | null)[] = [now];
+
+  for (const [key, value] of Object.entries(data)) {
+    insertCols.push(key);
+    insertVals.push((value ?? null) as string | number | null);
+    setClauses.push(`${key} = ?`);
+    updateVals.push((value ?? null) as string | number | null);
+  }
+
+  const placeholders = insertCols.map(() => "?").join(", ");
+
+  await db.execute({
+    sql: `INSERT INTO user_profile (${insertCols.join(", ")})
+          VALUES (${placeholders})
+          ON CONFLICT(user_id) DO UPDATE SET ${setClauses.join(", ")}`,
+    args: [...insertVals, ...updateVals],
+  });
 }

@@ -5,11 +5,9 @@ interface ScoreBreakdown {
   netYieldScore: number;
   cashflowScore: number;
   priceVsMarketScore: number;
-  rentVsMarketScore: number;
-  demographicScore: number;
-  incomeScore: number;
-  employmentScore: number;
-  attractivenessScore: number;
+  financialTotal: number;
+  visitScore: number;
+  terrainTotal: number;
   total: number;
 }
 
@@ -37,17 +35,13 @@ function getScoreBg(score: number): string {
 }
 
 const FINANCIAL_CRITERIA = [
-  { key: "netYieldScore" as const, label: "Rendement net", max: 20 },
-  { key: "cashflowScore" as const, label: "Cash-flow", max: 15 },
-  { key: "priceVsMarketScore" as const, label: "Prix vs marché", max: 15 },
-  { key: "rentVsMarketScore" as const, label: "Loyer vs marché", max: 10 },
+  { key: "netYieldScore" as const, label: "Rendement net", max: 25 },
+  { key: "cashflowScore" as const, label: "Cash-flow", max: 25 },
+  { key: "priceVsMarketScore" as const, label: "Prix vs march\u00e9", max: 20 },
 ];
 
-const SOCIO_CRITERIA = [
-  { key: "demographicScore" as const, label: "Démographie", max: 10 },
-  { key: "incomeScore" as const, label: "Revenus", max: 10 },
-  { key: "employmentScore" as const, label: "Emploi", max: 10 },
-  { key: "attractivenessScore" as const, label: "Attractivité", max: 10 },
+const TERRAIN_CRITERIA = [
+  { key: "visitScore" as const, label: "Note de visite", max: 30 },
 ];
 
 function CriteriaBar({ label, value, max }: { label: string; value: number; max: number }) {
@@ -66,6 +60,15 @@ function CriteriaBar({ label, value, max }: { label: string; value: number; max:
           style={{ width: `${widthPct}%` }}
         />
       </div>
+    </div>
+  );
+}
+
+function SectionTotal({ label, value, max }: { label: string; value: number; max: number }) {
+  return (
+    <div className="flex justify-between text-xs font-semibold text-gray-700 mt-1 pt-1 border-t border-gray-200">
+      <span>{label}</span>
+      <span>{value}/{max}</span>
     </div>
   );
 }
@@ -93,7 +96,7 @@ export default function InvestmentScorePanel({ score, breakdown, status, error, 
               disabled={refreshing}
               className="text-sm text-red-600 underline hover:text-red-800"
             >
-              Réessayer
+              R&eacute;essayer
             </button>
           )}
         </div>
@@ -105,9 +108,7 @@ export default function InvestmentScorePanel({ score, breakdown, status, error, 
 
   const pct = Math.round((score / 100) * 283);
   const label = getScoreLabel(score);
-  // Check if we have socio-economic data (not just neutral defaults)
-  const hasSocioData = breakdown.demographicScore !== 5 || breakdown.incomeScore !== 5 ||
-    breakdown.employmentScore !== 5 || breakdown.attractivenessScore !== 5;
+  const hasVisit = breakdown.visitScore !== 15;
 
   return (
     <section className={`bg-gradient-to-br ${getScoreBg(score)} rounded-xl border p-4 md:p-6`}>
@@ -149,15 +150,17 @@ export default function InvestmentScorePanel({ score, breakdown, status, error, 
             {FINANCIAL_CRITERIA.map(({ key, label: l, max }) => (
               <CriteriaBar key={key} label={l} value={breakdown[key] ?? 0} max={max} />
             ))}
+            <SectionTotal label="Sous-total" value={breakdown.financialTotal ?? 0} max={70} />
           </div>
           <div className="space-y-2">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Socio-économique
-              {!hasSocioData && <span className="font-normal normal-case ml-1">(données partielles)</span>}
+              Terrain
+              {!hasVisit && <span className="font-normal normal-case ml-1">(pas de visite)</span>}
             </p>
-            {SOCIO_CRITERIA.map(({ key, label: l, max }) => (
+            {TERRAIN_CRITERIA.map(({ key, label: l, max }) => (
               <CriteriaBar key={key} label={l} value={breakdown[key] ?? 0} max={max} />
             ))}
+            <SectionTotal label="Sous-total" value={breakdown.terrainTotal ?? 0} max={30} />
           </div>
         </div>
       </div>

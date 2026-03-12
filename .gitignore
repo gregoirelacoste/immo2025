@@ -45,6 +45,10 @@ data.db-wal
 data.db-shm
 identifier.sqlite
 
+# Uploaded photos
+public/uploads/photos/*
+!public/uploads/photos/.gitkeep
+
 # IDE
 .idea/
 

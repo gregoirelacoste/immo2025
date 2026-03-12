@@ -1,14 +1,12 @@
 export interface InvestmentScoreBreakdown {
-  // Financier (50 pts)
-  netYieldScore: number;         // 0-20
-  cashflowScore: number;         // 0-15
-  priceVsMarketScore: number;    // 0-15
-  // Socio-économique (50 pts)
-  rentVsMarketScore: number;     // 0-10
-  demographicScore: number;      // 0-10
-  incomeScore: number;           // 0-10
-  employmentScore: number;       // 0-10
-  attractivenessScore: number;   // 0-10
+  // Financier (70 pts weighted)
+  netYieldScore: number;         // 0-25
+  cashflowScore: number;         // 0-25
+  priceVsMarketScore: number;    // 0-20
+  financialTotal: number;        // 0-70
+  // Terrain (30 pts weighted)
+  visitScore: number;            // 0-30 (from visit overall_rating, neutral if no visit)
+  terrainTotal: number;          // 0-30
   total: number;                 // 0-100
   label: "Faible" | "Moyen" | "Bon" | "Excellent";
 }

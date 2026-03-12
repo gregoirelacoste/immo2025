@@ -14,9 +14,10 @@ interface Props {
   onSort: (key: SortKey) => void;
   currentUserId?: string;
   onDelete: (e: React.MouseEvent, id: string) => void;
+  onToggleFavorite?: (e: React.MouseEvent, id: string) => void;
 }
 
-export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, currentUserId, onDelete }: Props) {
+export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, currentUserId, onDelete, onToggleFavorite }: Props) {
   const sortIcon = (key: SortKey) =>
     sortKey === key ? (sortAsc ? " ↑" : " ↓") : "";
 
@@ -28,6 +29,7 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
+            <th className={`${thClass} w-8`}></th>
             <th className={thClass} onClick={() => onSort("city")}>
               Ville{sortIcon("city")}
             </th>
@@ -56,6 +58,18 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
         <tbody className="divide-y divide-gray-200">
           {sorted.map(({ property: p, calcs: c }) => (
             <tr key={p.id} className="hover:bg-gray-50">
+              <td className="px-1 py-4 text-center">
+                {currentUserId && p.user_id === currentUserId && onToggleFavorite ? (
+                  <button
+                    onClick={(e) => onToggleFavorite(e, p.id)}
+                    className="text-amber-400 hover:text-amber-500 text-lg"
+                  >
+                    {p.is_favorite ? "\u2605" : "\u2606"}
+                  </button>
+                ) : (
+                  <span className="text-gray-300 text-lg">{p.is_favorite ? "\u2605" : ""}</span>
+                )}
+              </td>
               <td className="px-3 py-4 text-sm font-medium text-gray-900">
                 <div className="flex items-center gap-3">
                   {(() => {

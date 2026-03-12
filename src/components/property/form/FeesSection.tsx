@@ -1,5 +1,6 @@
 import { PropertyFormData, PropertyCalculations } from "@/domains/property/types";
 import { formatCurrency } from "@/lib/calculations";
+import FieldTooltip from "@/components/ui/FieldTooltip";
 
 interface Props {
   form: PropertyFormData;
@@ -20,6 +21,7 @@ export default function FeesSection({ form, onChange, calcs, effectiveNotary }: 
         <div>
           <label className={labelClass}>
             Frais de notaire ({form.property_type === "ancien" ? "7.5%" : "2.5%"})
+            <FieldTooltip text="Frais d'acquisition obligatoires. ~7.5% dans l'ancien, ~2.5% dans le neuf. Laissez vide pour le calcul automatique." />
           </label>
           <input
             type="number"
@@ -34,7 +36,7 @@ export default function FeesSection({ form, onChange, calcs, effectiveNotary }: 
           </p>
         </div>
         <div>
-          <label className={labelClass}>Frais de dossier bancaire</label>
+          <label className={labelClass}>Frais de dossier bancaire<FieldTooltip text="Frais facturés par la banque pour monter le dossier de prêt. Souvent négociables (500-1500€)." /></label>
           <input
             type="number"
             inputMode="numeric"

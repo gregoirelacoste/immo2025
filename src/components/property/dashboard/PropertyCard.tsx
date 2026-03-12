@@ -12,6 +12,7 @@ interface Props {
   calcs: PropertyCalculations;
   currentUserId?: string;
   onDelete: (e: React.MouseEvent, id: string) => void;
+  onToggleFavorite?: (e: React.MouseEvent, id: string) => void;
 }
 
 /** Barre colorée en haut de la card selon le cashflow */
@@ -40,7 +41,7 @@ function getScoreBg(score: number | null): string {
   return "bg-red-400";
 }
 
-export default function PropertyCard({ property: p, calcs: c, currentUserId, onDelete }: Props) {
+export default function PropertyCard({ property: p, calcs: c, currentUserId, onDelete, onToggleFavorite }: Props) {
   const images: string[] = (() => {
     try { return JSON.parse(p.image_urls || "[]"); }
     catch { return []; }
@@ -102,6 +103,14 @@ export default function PropertyCard({ property: p, calcs: c, currentUserId, onD
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {currentUserId && p.user_id === currentUserId && onToggleFavorite && (
+              <button
+                onClick={(e) => onToggleFavorite(e, p.id)}
+                className="p-2 -mt-1 text-amber-400 hover:text-amber-500 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              >
+                <span className="text-lg">{p.is_favorite ? "\u2605" : "\u2606"}</span>
+              </button>
+            )}
             {currentUserId && p.user_id === currentUserId && (
               <button
                 onClick={(e) => onDelete(e, p.id)}

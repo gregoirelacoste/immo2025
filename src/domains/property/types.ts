@@ -27,8 +27,14 @@ export interface Property {
   airbnb_price_per_night: number;
   airbnb_occupancy_rate: number; // en %
   airbnb_charges: number;
+  // Travaux & diagnostic
+  renovation_cost: number;
+  dpe_rating: string | null; // A-G
+  fiscal_regime: string; // 'micro_bic' | 'lmnp_reel' | 'micro_foncier' | 'reel_foncier'
   // Suivi
   property_status: string; // PropertyStatus — "added" par défaut
+  is_favorite: number; // 0 or 1 (SQLite boolean)
+  status_changed_at: string;
   // Ownership & visibility
   user_id: string;
   visibility: "public" | "private";
@@ -55,11 +61,12 @@ export interface Property {
   updated_at: string;
 }
 
-export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "socioeconomic_data" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "collect_urls" | "collect_texts" | "property_status">;
+export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "socioeconomic_data" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at">;
+
+export type FiscalRegime = "micro_bic" | "lmnp_reel" | "micro_foncier" | "reel_foncier";
 
 export const PROPERTY_STATUSES = [
   "added",
-  "favorite",
   "contacted",
   "visit_planned",
   "visited",
@@ -67,13 +74,16 @@ export const PROPERTY_STATUSES = [
   "not_validated",
   "offer_sent",
   "accepted",
+  "negotiation",
+  "under_contract",
+  "purchased",
+  "managed",
 ] as const;
 
 export type PropertyStatus = typeof PROPERTY_STATUSES[number];
 
 export const PROPERTY_STATUS_CONFIG: Record<PropertyStatus, { label: string; color: string; bgColor: string; icon: string }> = {
   added:          { label: "Ajouté",          color: "text-gray-600",    bgColor: "bg-gray-100",    icon: "+" },
-  favorite:       { label: "Favoris",         color: "text-amber-600",   bgColor: "bg-amber-50",    icon: "\u2605" },
   contacted:      { label: "Contacté",        color: "text-blue-600",    bgColor: "bg-blue-50",     icon: "\u2709" },
   visit_planned:  { label: "Visite prévue",   color: "text-purple-600",  bgColor: "bg-purple-50",   icon: "\uD83D\uDCC5" },
   visited:        { label: "Visité",          color: "text-indigo-600",  bgColor: "bg-indigo-50",   icon: "\uD83D\uDC41" },
@@ -81,7 +91,19 @@ export const PROPERTY_STATUS_CONFIG: Record<PropertyStatus, { label: string; col
   not_validated:  { label: "Non validé",      color: "text-red-600",     bgColor: "bg-red-50",      icon: "\u2717" },
   offer_sent:     { label: "Offre envoyée",   color: "text-orange-600",  bgColor: "bg-orange-50",   icon: "\uD83D\uDCE8" },
   accepted:       { label: "Accepté",         color: "text-emerald-600", bgColor: "bg-emerald-50",  icon: "\uD83C\uDF89" },
+  negotiation:    { label: "En négociation",  color: "text-orange-600",  bgColor: "bg-orange-50",   icon: "\u2696" },
+  under_contract: { label: "Sous compromis",  color: "text-cyan-600",    bgColor: "bg-cyan-50",     icon: "\uD83D\uDCCB" },
+  purchased:      { label: "Acheté",          color: "text-emerald-600", bgColor: "bg-emerald-50",  icon: "\uD83C\uDFE0" },
+  managed:        { label: "En gestion",      color: "text-teal-600",    bgColor: "bg-teal-50",     icon: "\uD83D\uDCCA" },
 };
+
+export interface FiscalImpact {
+  micro_bic_tax: number;
+  lmnp_reel_tax: number;
+  fiscal_savings: number;      // micro_bic - lmnp_reel
+  net_net_income_micro: number; // revenu après impôts micro-BIC
+  net_net_income_reel: number;  // revenu après impôts LMNP réel
+}
 
 export interface PropertyCalculations {
   // Prêt
@@ -96,6 +118,9 @@ export interface PropertyCalculations {
   monthly_cashflow: number;
   annual_rent_income: number;
   annual_charges: number;
+  // Fiscalité
+  fiscal: FiscalImpact;
+  net_net_yield: number; // rendement net-net (après impôts selon régime choisi)
   // Airbnb
   airbnb_gross_yield: number;
   airbnb_net_yield: number;

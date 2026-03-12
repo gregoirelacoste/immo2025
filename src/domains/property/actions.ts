@@ -10,6 +10,7 @@ import {
   stripMeta,
   getOwnerOrAllowOrphan,
   updatePropertyStatus,
+  togglePropertyFavorite,
 } from "@/domains/property/repository";
 import { requireUserId, getOptionalUserId } from "@/lib/auth-actions";
 import { calculateNotaryFees } from "@/lib/calculations";
@@ -173,6 +174,20 @@ export async function rescrapeProperty(
   enrichPropertyQuiet(id).catch(() => {});
 
   return { success: true };
+}
+
+export async function toggleFavorite(
+  propertyId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const userId = await requireUserId();
+    await togglePropertyFavorite(propertyId, userId);
+    revalidatePath(`/property/${propertyId}`);
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
 }
 
 export async function changePropertyStatus(
