@@ -223,16 +223,22 @@ export default function PropertyForm({ existingProperty }: Props) {
     }
   }
 
+  // When auto-scraping from URL share, block the entire form — only show loading
+  if (autoScraping) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16">
+        <div className="animate-spin w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full" />
+        <p className="text-sm text-gray-600 font-medium">Import de l&apos;annonce en cours...</p>
+        <p className="text-xs text-gray-400">Vous serez redirigé automatiquement</p>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-safe">
       {error && <Alert variant="error">{error}</Alert>}
 
-      {autoScraping ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex items-center justify-center gap-3">
-          <div className="animate-spin w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full" />
-          <span className="text-sm text-gray-600">Import de l&apos;annonce en cours...</span>
-        </div>
-      ) : existingProperty ? (
+      {existingProperty ? (
         <SmartCollector
           existingPropertyId={existingProperty.id}
           existingPhotos={(() => { try { return JSON.parse(existingProperty.image_urls || "[]"); } catch { return []; } })()}
