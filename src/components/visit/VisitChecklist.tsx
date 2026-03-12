@@ -39,19 +39,21 @@ export default function VisitChecklist({
   }, [categoryProgress, openCategory, checklist]);
 
   return (
-    <section className="space-y-3">
-      {/* Global progress */}
+    <section className="space-y-2.5">
+      {/* Global progress — title + bar inline */}
       <div className="flex items-center gap-3">
-        <h2 className="text-base font-bold text-gray-900">Checklist</h2>
-        <span className="text-sm text-gray-500">
-          {globalProgress.answered}/{globalProgress.total} ({globalProgress.percent}%)
+        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide shrink-0">
+          Checklist
+        </h2>
+        <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+            style={{ width: `${globalProgress.percent}%` }}
+          />
+        </div>
+        <span className="text-xs text-gray-500 tabular-nums shrink-0">
+          {globalProgress.answered}/{globalProgress.total}
         </span>
-      </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-indigo-600 rounded-full transition-all duration-300"
-          style={{ width: `${globalProgress.percent}%` }}
-        />
       </div>
 
       {/* Categories */}
@@ -78,20 +80,20 @@ export default function VisitChecklist({
             <button
               type="button"
               onClick={() => setOpenCategory(isOpen ? null : cat.key)}
-              className="w-full flex items-center justify-between px-4 py-3 min-h-[48px]"
+              className="w-full flex items-center justify-between px-3 py-2.5 min-h-[44px]"
             >
               <div className="flex items-center gap-2">
-                <span className="text-lg">{cat.icon}</span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-base">{cat.icon}</span>
+                <span className="text-[13px] font-semibold text-gray-900">
                   {cat.label}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 tabular-nums">
                   {progress?.answered ?? 0}/{progress?.total ?? 0}
                 </span>
                 {/* Mini progress bar */}
-                <div className="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div className="w-10 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-300 ${
                       isComplete ? "bg-green-500" : "bg-indigo-500"
@@ -119,7 +121,7 @@ export default function VisitChecklist({
 
             {/* Items */}
             {isOpen && (
-              <div className="px-4 pb-3 space-y-0">
+              <div className="px-3 pb-2 space-y-0">
                 {cat.items.map((item) => (
                   <ChecklistItemRow
                     key={item.key}
@@ -135,13 +137,13 @@ export default function VisitChecklist({
                     <p className="text-xs text-gray-500 mb-1">
                       Photos ({catPhotos.length})
                     </p>
-                    <div className="flex gap-2 overflow-x-auto pb-1">
+                    <div className="flex gap-1.5 overflow-x-auto pb-1">
                       {catPhotos.map((photo) => (
                         <img
                           key={photo.localId}
                           src={photo.uri}
                           alt={photo.tag}
-                          className="w-16 h-16 rounded-lg object-cover shrink-0"
+                          className="w-14 h-14 rounded-lg object-cover shrink-0"
                         />
                       ))}
                     </div>

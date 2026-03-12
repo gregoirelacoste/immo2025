@@ -124,8 +124,8 @@ export default function VisitMode({ property }: Props) {
       <VisitStickyHeader property={property} calculations={calculations} />
 
       {/* Full header recap */}
-      <header className="bg-white border-b border-gray-200 px-4 py-4">
-        <div className="max-w-lg mx-auto space-y-3">
+      <header className="bg-white border-b border-gray-200 px-4 py-2.5">
+        <div className="max-w-lg mx-auto space-y-2">
           {/* Back + title */}
           <div className="flex items-center justify-between">
             <button
@@ -138,14 +138,14 @@ export default function VisitMode({ property }: Props) {
               </svg>
               Retour fiche
             </button>
-            <span className="text-sm font-bold text-indigo-600 uppercase tracking-wide">
+            <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">
               Mode visite
             </span>
           </div>
 
           {/* Property info */}
           <div>
-            <h1 className="text-lg font-bold text-gray-900">
+            <h1 className="text-base font-bold text-gray-900 truncate">
               {property.city || "Bien"}{" "}
               {property.address && (
                 <span className="font-normal text-gray-500">
@@ -163,7 +163,7 @@ export default function VisitMode({ property }: Props) {
           </div>
 
           {/* KPIs */}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-1">
             <KPI label="Renta nette" value={formatPercent(calculations.net_yield)} />
             <KPI
               label="Cash-flow"
@@ -194,7 +194,7 @@ export default function VisitMode({ property }: Props) {
       </header>
 
       {/* Main content */}
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-8">
+      <main className="max-w-lg mx-auto px-4 py-4 space-y-6">
         {/* Checklist */}
         <VisitChecklist
           checklist={config.checklist}
@@ -227,10 +227,10 @@ export default function VisitMode({ property }: Props) {
         {/* Untagged photos gallery */}
         {photos.length > 0 && (
           <section className="space-y-2">
-            <h2 className="text-base font-bold text-gray-900">
+            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
               Photos ({photos.length})
             </h2>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-1.5">
               {photos.map((photo) => (
                 <div key={photo.localId} className="relative">
                   <img
@@ -241,7 +241,7 @@ export default function VisitMode({ property }: Props) {
                   <button
                     type="button"
                     onClick={() => removePhoto(photo.localId)}
-                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center text-xs"
+                    className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-xs shadow-sm"
                   >
                     ✕
                   </button>

@@ -23,7 +23,7 @@ export default function VisitBottomBar({
       style={{ paddingBottom: "var(--sab, 0px)" }}
     >
       {/* Progress bar */}
-      <div className="h-1 bg-gray-200">
+      <div className="h-0.5 bg-gray-200">
         <div
           className="h-full bg-indigo-600 transition-all duration-300"
           style={{ width: `${progressPercent}%` }}
@@ -64,7 +64,7 @@ export default function VisitBottomBar({
           className={`px-4 py-2 rounded-lg text-sm font-semibold min-h-[44px] transition-colors ${
             verdictReady
               ? "bg-green-600 text-white hover:bg-green-700"
-              : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+              : "bg-gray-200 text-gray-600 border border-gray-300 hover:bg-gray-300"
           }`}
         >
           {verdictReady ? "Terminer la visite" : "Terminer"}

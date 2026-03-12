@@ -43,7 +43,7 @@ export default function PhotoTagSheet({
             <img
               src={photoUrl}
               alt="Photo"
-              className="w-20 h-20 rounded-lg object-cover shrink-0"
+              className="w-14 h-14 rounded-lg object-cover shrink-0"
             />
             <div>
               <p className="font-semibold text-gray-900">Tagger cette photo</p>
@@ -54,7 +54,7 @@ export default function PhotoTagSheet({
           </div>
 
           {/* Tags */}
-          <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+          <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
             {tags.map((tag) => (
               <button
                 key={tag.key}
@@ -62,7 +62,7 @@ export default function PhotoTagSheet({
                 onClick={() =>
                   setSelectedTag(selectedTag === tag.key ? "" : tag.key)
                 }
-                className={`inline-flex items-center gap-1 px-3 py-2 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors min-h-[40px] ${
                   selectedTag === tag.key
                     ? "bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"

@@ -16,7 +16,7 @@ export default function VisitRedFlags({ redFlags, flaggedKeys, onToggle }: Props
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
-        <h2 className="text-base font-bold text-gray-900">Red flags</h2>
+        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Alertes</h2>
         {flaggedCount > 0 && (
           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-600 text-white text-xs font-bold">
             {flaggedCount}
@@ -72,7 +72,7 @@ function FlagRow({
     <button
       type="button"
       onClick={onToggle}
-      className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left min-h-[44px] transition-all ${
+      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left min-h-[44px] transition-all active:scale-[0.98] ${
         checked
           ? isCritical
             ? "bg-red-100 ring-2 ring-red-400"
@@ -82,7 +82,7 @@ function FlagRow({
     >
       {/* Checkbox */}
       <div
-        className={`w-5 h-5 rounded border-2 shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+        className={`w-6 h-6 rounded-md border-2 shrink-0 flex items-center justify-center transition-colors ${
           checked
             ? isCritical
               ? "bg-red-600 border-red-600"
