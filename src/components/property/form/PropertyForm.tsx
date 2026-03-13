@@ -11,7 +11,7 @@ import {
 import { saveProperty } from "@/domains/property/actions";
 import { scrapeAndSaveProperty } from "@/domains/scraping/actions";
 import { useLoanAutoCalc } from "./useLoanAutoCalc";
-import { useRentAutoCalc } from "./useRentAutoCalc";
+
 import SmartCollector from "@/components/collect/SmartCollector";
 import PropertyInfoSection from "./PropertyInfoSection";
 import LoanSection from "./LoanSection";
@@ -75,6 +75,8 @@ function stripToFormData(p: Property): PropertyFormData {
     investment_score: _is, score_breakdown: _sb, socioeconomic_data: _sed,
     enrichment_status: _es, enrichment_error: _ee, enrichment_at: _ea,
     collect_urls: _cu, collect_texts: _ct,
+    is_favorite: _fav, status_changed_at: _sca,
+    property_status: _ps,
     ...rest
   } = p;
   return rest;
@@ -122,7 +124,6 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
   }, [existingProperty]);
 
   const { loanManuallySet, setLoanManuallySet } = useLoanAutoCalc(form, setForm);
-  const { rentManuallySet, setRentManuallySet } = useRentAutoCalc(form, setForm);
 
   const effectiveNotary =
     form.notary_fees > 0
@@ -139,13 +140,6 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
   }
 
   function handleRentChange(field: keyof PropertyFormData, value: string | number) {
-    if (field === "monthly_rent") {
-      setRentManuallySet(true);
-    }
-    if (field === "rent_per_m2") {
-      // When user changes rent_per_m2, recalculate monthly_rent
-      setRentManuallySet(false);
-    }
     updateField(field, value);
   }
 
@@ -285,7 +279,7 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
       />
       <LoanSection form={form} onChange={updateField} onLoanChange={handleLoanChange} calcs={calcs} monthlyPaymentPreview={monthlyPaymentPreview} prefillHint={prefillHint} loanAutoCalc={!loanManuallySet} />
       <FeesSection form={form} onChange={updateField} calcs={calcs} effectiveNotary={effectiveNotary} />
-      <ClassicRentalSection form={form} onChange={handleRentChange} calcs={calcs} prefillHint={prefillHint} rentAutoCalc={!rentManuallySet} />
+      <ClassicRentalSection form={form} onChange={handleRentChange} calcs={calcs} prefillHint={prefillHint} />
       <RenovationSection form={form} onChange={updateField} prefillHint={prefillHint} />
       <FiscalSection calcs={calcs} fiscalRegime={form.fiscal_regime || "micro_bic"} />
 

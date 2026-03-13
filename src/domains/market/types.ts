@@ -5,5 +5,11 @@ export interface MarketData {
   communeName: string;
   period: string;
   avgRentPerM2: number | null;
-  rentSource: "reference" | "dvf-estimate" | null;
+  rentSource: "reference" | "dvf-estimate" | "locality" | null;
+  // Extended fields from locality data
+  avgCondoChargesPerM2: number | null;
+  avgPropertyTaxPerM2: number | null;
+  vacancyRate: number | null;
+  avgAirbnbNightPrice: number | null;
+  avgAirbnbOccupancyRate: number | null;
 }

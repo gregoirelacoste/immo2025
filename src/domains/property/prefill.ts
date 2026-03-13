@@ -53,9 +53,11 @@ export function applyMarketDataToPrefill(
 
   if (market.avgRentPerM2) {
     const rentSource =
-      market.rentSource === "reference"
-        ? "Observatoire des loyers"
-        : "Estimation DVF (5.5%)";
+      market.rentSource === "locality"
+        ? "Données locales"
+        : market.rentSource === "reference"
+          ? "Observatoire des loyers"
+          : "Estimation DVF (5.5%)";
     rentPerM2 = market.avgRentPerM2;
     // Only set rent_per_m2 in prefill (always from market)
     prefill.rent_per_m2 = { source: rentSource, value: Math.round(rentPerM2 * 100) / 100 };
@@ -68,20 +70,30 @@ export function applyMarketDataToPrefill(
       monthlyRent = Number(prefill.monthly_rent.value) || 0;
     }
 
-    // property_tax: only fill if not already set by scraping
+    // property_tax: use real local data if available, otherwise estimate
     if (!prefill.property_tax) {
-      propertyTax = Math.round(monthlyRent * 1.5);
-      prefill.property_tax = { source: "Estimation (~1.5× loyer)", value: propertyTax };
+      if (market.avgPropertyTaxPerM2) {
+        propertyTax = Math.round(market.avgPropertyTaxPerM2 * surface / 12);
+        prefill.property_tax = { source: "Données locales (taxe foncière)", value: propertyTax };
+      } else {
+        propertyTax = Math.round(monthlyRent * 1.5);
+        prefill.property_tax = { source: "Estimation (~1.5× loyer)", value: propertyTax };
+      }
     } else {
       propertyTax = Number(prefill.property_tax.value) || 0;
     }
   }
 
-  // condo_charges: only fill if not already set by scraping
-  if (!prefill.condo_charges && propertyType === "ancien") {
-    condoCharges = Math.round(surface * 2.5);
-    prefill.condo_charges = { source: "Estimation (2.5 €/m²)", value: condoCharges };
-  } else if (prefill.condo_charges) {
+  // condo_charges: use real local data if available, otherwise estimate
+  if (!prefill.condo_charges) {
+    if (market.avgCondoChargesPerM2) {
+      condoCharges = Math.round(market.avgCondoChargesPerM2 * surface);
+      prefill.condo_charges = { source: "Données locales (charges copro)", value: condoCharges };
+    } else if (propertyType === "ancien") {
+      condoCharges = Math.round(surface * 2.5);
+      prefill.condo_charges = { source: "Estimation (2.5 €/m²)", value: condoCharges };
+    }
+  } else {
     condoCharges = Number(prefill.condo_charges.value) || 0;
   }
 

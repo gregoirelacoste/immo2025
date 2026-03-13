@@ -37,9 +37,11 @@ export default function MarketDataPanel({ property, marketData, loading }: Props
         Données du marché — {marketData.communeName}
       </h2>
       <p className="text-xs text-emerald-600 mb-4">
-        {marketData.transactionCount > 0
-          ? `DVF (data.gouv.fr) — ${marketData.transactionCount} ventes (${marketData.period})`
-          : `Données ${marketData.period}`}
+        {marketData.rentSource === "locality"
+          ? `Données locales`
+          : marketData.transactionCount > 0
+            ? `DVF (data.gouv.fr) — ${marketData.transactionCount} ventes (${marketData.period})`
+            : `Données ${marketData.period}`}
         {marketData.rentSource === "reference" && " + observatoire des loyers"}
       </p>
 
@@ -81,6 +83,9 @@ export default function MarketDataPanel({ property, marketData, loading }: Props
 
       <h3 className="text-sm font-medium text-emerald-800 mb-2">
         Données locatives
+        {marketData.rentSource === "locality" && (
+          <span className="ml-2 text-xs font-normal text-emerald-600">(données locales)</span>
+        )}
         {marketData.rentSource === "reference" && (
           <span className="ml-2 text-xs font-normal text-emerald-600">(observatoire des loyers)</span>
         )}

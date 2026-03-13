@@ -1,73 +1,34 @@
 import { MarketData } from "./types";
-import { getReferenceRent } from "./rent-reference";
-import { getCommuneCode, fetchDvfMutations } from "./dvf-client";
+import { resolveLocalityData } from "@/domains/locality/resolver";
 
-/** Calcule le prix moyen au m² depuis les mutations DVF */
-export async function getMarketData(cityName: string): Promise<MarketData | null> {
+/** Resolve market data from locality database */
+export async function getMarketData(
+  cityName: string,
+  postalCode?: string,
+  codeInsee?: string
+): Promise<MarketData | null> {
   if (!cityName.trim()) return null;
 
-  const commune = await getCommuneCode(cityName);
-  if (!commune) return null;
+  const resolved = await resolveLocalityData(cityName, postalCode, codeInsee);
+  if (!resolved) return null;
 
-  const mutations = await fetchDvfMutations(commune.code);
+  const f = resolved.fields;
 
-  // Filtrer : garder uniquement les ventes avec prix et surface valides
-  const validSales = mutations
-    .filter((m) => {
-      const price = parseFloat(m.valeur_fonciere);
-      const surface = parseFloat(m.surface_reelle_bati);
-      const type = (m.type_local || "").toLowerCase();
-      return (
-        price > 10000 &&
-        surface > 5 &&
-        surface < 500 &&
-        (type.includes("appartement") || type.includes("maison"))
-      );
-    })
-    .map((m) => ({
-      pricePerM2: parseFloat(m.valeur_fonciere) / parseFloat(m.surface_reelle_bati),
-    }));
-
-  // Calculer les données d'achat (même avec peu de ventes)
-  let avgPurchase: number | null = null;
-  let medianPurchase: number | null = null;
-  let transactionCount = 0;
-
-  if (validSales.length >= 3) {
-    const prices = validSales.map((s) => s.pricePerM2).sort((a, b) => a - b);
-    avgPurchase = Math.round(
-      prices.reduce((sum, p) => sum + p, 0) / prices.length
-    );
-    medianPurchase = Math.round(prices[Math.floor(prices.length / 2)]);
-    transactionCount = validSales.length;
-  }
-
-  // Données locatives : table de référence > estimation DVF
-  const refRent = getReferenceRent(cityName);
-  let avgRentPerM2: number | null = null;
-  let rentSource: MarketData["rentSource"] = null;
-
-  if (refRent) {
-    avgRentPerM2 = refRent;
-    rentSource = "reference";
-  } else if (medianPurchase) {
-    // Estimation : rendement brut moyen ~5.5% → loyer = prixM2 * 5.5% / 12
-    avgRentPerM2 = Math.round((medianPurchase * 0.055) / 12 * 10) / 10;
-    rentSource = "dvf-estimate";
-  }
-
-  // Retourner null seulement si on n'a ni données d'achat ni données de location
-  if (!avgPurchase && !avgRentPerM2) return null;
-
-  const currentYear = new Date().getFullYear();
+  // Need at least purchase price or rent data
+  if (!f.avg_purchase_price_per_m2 && !f.avg_rent_per_m2) return null;
 
   return {
-    avgPurchasePricePerM2: avgPurchase,
-    medianPurchasePricePerM2: medianPurchase,
-    transactionCount,
-    communeName: commune.nom,
-    period: `${currentYear - 2}–${currentYear}`,
-    avgRentPerM2,
-    rentSource,
+    avgPurchasePricePerM2: f.avg_purchase_price_per_m2 ?? null,
+    medianPurchasePricePerM2: f.median_purchase_price_per_m2 ?? null,
+    transactionCount: f.transaction_count ?? 0,
+    communeName: resolved.locality.name,
+    period: "Données locales",
+    avgRentPerM2: f.avg_rent_per_m2 ?? null,
+    rentSource: f.avg_rent_per_m2 ? "locality" : null,
+    avgCondoChargesPerM2: f.avg_condo_charges_per_m2 ?? null,
+    avgPropertyTaxPerM2: f.avg_property_tax_per_m2 ?? null,
+    vacancyRate: f.vacancy_rate ?? null,
+    avgAirbnbNightPrice: f.avg_airbnb_night_price ?? null,
+    avgAirbnbOccupancyRate: f.avg_airbnb_occupancy_rate ?? null,
   };
 }
