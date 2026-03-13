@@ -23,6 +23,7 @@ import {
 } from "@/domains/property/prefill";
 import { Property } from "@/domains/property/types";
 import { enrichPropertyQuiet } from "@/domains/enrich/actions";
+import { resolveLocalityData } from "@/domains/locality/resolver";
 
 export async function scrapeAndSaveProperty(
   url: string,
@@ -92,6 +93,31 @@ export async function scrapeAndSaveProperty(
     } catch {
       // Pas de données marché → garder les défauts à 0
     }
+  }
+
+  // Locality data fallback for fields not filled by scraping or market data
+  if (city) {
+    try {
+      const localityData = await resolveLocalityData(city, d.postal_code || undefined);
+      if (localityData?.fields && surface > 0) {
+        const f = localityData.fields;
+        const src = `Données locales (${localityData.locality.name})`;
+        if (rentPerM2 === 0 && monthlyRent === 0 && f.avg_rent_per_m2) {
+          rentPerM2 = f.avg_rent_per_m2;
+          monthlyRent = Math.round(f.avg_rent_per_m2 * surface);
+          prefill.rent_per_m2 = { source: src, value: rentPerM2 };
+          prefill.monthly_rent = { source: src, value: monthlyRent };
+        }
+        if (propertyTax === 0 && f.avg_property_tax_per_m2) {
+          propertyTax = Math.round(f.avg_property_tax_per_m2 * surface);
+          prefill.property_tax = { source: src, value: propertyTax };
+        }
+        if (condoCharges === 0 && f.avg_condo_charges_per_m2) {
+          condoCharges = Math.round(f.avg_condo_charges_per_m2 * surface);
+          prefill.condo_charges = { source: src, value: condoCharges };
+        }
+      }
+    } catch { /* locality data not available */ }
   }
 
   const loanAmount = Math.max(0, price + notary);
@@ -197,6 +223,31 @@ export async function createPropertyFromText(
           condoCharges = applied.condoCharges || condoCharges;
         }
       } catch { /* pas de données marché */ }
+    }
+
+    // Locality data fallback for fields not filled by text extraction or market data
+    if (city) {
+      try {
+        const localityData = await resolveLocalityData(city, d.postal_code || undefined);
+        if (localityData?.fields && surface > 0) {
+          const f = localityData.fields;
+          const src = `Données locales (${localityData.locality.name})`;
+          if (rentPerM2 === 0 && monthlyRent === 0 && f.avg_rent_per_m2) {
+            rentPerM2 = f.avg_rent_per_m2;
+            monthlyRent = Math.round(f.avg_rent_per_m2 * surface);
+            prefill.rent_per_m2 = { source: src, value: rentPerM2 };
+            prefill.monthly_rent = { source: src, value: monthlyRent };
+          }
+          if (propertyTax === 0 && f.avg_property_tax_per_m2) {
+            propertyTax = Math.round(f.avg_property_tax_per_m2 * surface);
+            prefill.property_tax = { source: src, value: propertyTax };
+          }
+          if (condoCharges === 0 && f.avg_condo_charges_per_m2) {
+            condoCharges = Math.round(f.avg_condo_charges_per_m2 * surface);
+            prefill.condo_charges = { source: src, value: condoCharges };
+          }
+        }
+      } catch { /* locality data not available */ }
     }
 
     const loanAmount = Math.max(0, price + notary);

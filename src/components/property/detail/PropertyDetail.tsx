@@ -15,8 +15,6 @@ import PropertyHeader from "./PropertyHeader";
 import InvestmentScorePanel from "./InvestmentScorePanel";
 import MarketDataPanel from "./MarketDataPanel";
 import SocioEconomicPanel from "./SocioEconomicPanel";
-import RescrapePanel from "./RescrapePanel";
-import DvfHistoryPanel from "./DvfHistoryPanel";
 import StatusSelector from "@/components/property/StatusSelector";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import TabNavigation, { type TabId } from "./TabNavigation";
@@ -280,9 +278,6 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
             </div>
           </CollapsibleSection>
 
-          {/* Simulation fiscale */}
-          <FiscalSection calcs={calcs} fiscalRegime={property.fiscal_regime || "micro_bic"} />
-
           {/* Airbnb (si renseigné) */}
           {property.airbnb_price_per_night > 0 && (
             <CollapsibleSection title="Airbnb" variant="purple">
@@ -314,16 +309,14 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
             <MarketDataPanel property={property} marketData={marketData} loading={property.enrichment_status === "running"} />
           </CollapsibleSection>
 
-          {/* Historique DVF */}
-          {property.city && (
-            <DvfHistoryPanel
-              city={property.city}
-              postalCode={property.postal_code || ""}
-              currentPricePerM2={pricePerM2}
-            />
-          )}
+          {/* Simulation fiscale (en bas) */}
+          <FiscalSection calcs={calcs} fiscalRegime={property.fiscal_regime || "micro_bic"} />
+        </div>
+      )}
 
-          {/* Score investissement */}
+      {/* ═══════════════════ ONGLET SCORE ═══════════════════ */}
+      {activeTab === "score" && (
+        <div className="space-y-4 mt-4">
           <InvestmentScorePanel
             score={property.investment_score}
             breakdown={scoreBreakdown}
@@ -393,13 +386,6 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
               Le mode visite vous guide pour photographier chaque pièce et noter vos observations.
             </p>
           </section>
-        </div>
-      )}
-
-      {/* Rescrape panel (toujours visible, bas de page) */}
-      {activeTab === "financier" && (
-        <div className="mt-4">
-          <RescrapePanel property={property} isOwner={isOwner} />
         </div>
       )}
     </div>
