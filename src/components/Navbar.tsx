@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -14,7 +14,6 @@ export default function Navbar() {
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const [capturing, setCapturing] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const handleStreetPhoto = async () => {
     if (capturing) return;
@@ -52,81 +51,17 @@ export default function Navbar() {
     setMenuOpen(false);
   }, [pathname]);
 
-  // Close menu on click outside
-  useEffect(() => {
-    if (!menuOpen) return;
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [menuOpen]);
-
   if (isVisitMode) return null;
 
-  const menuItems = (
-    <>
-      <Link
-        href="/localities"
-        className={`block px-4 py-3 text-sm font-medium ${
-          isActive("/localities") ? "text-indigo-600 bg-indigo-50" : "text-gray-700 hover:bg-gray-50"
-        }`}
-      >
-        Localités
-      </Link>
-      <Link
-        href="/compare"
-        className={`block px-4 py-3 text-sm font-medium ${
-          isActive("/compare") ? "text-indigo-600 bg-indigo-50" : "text-gray-700 hover:bg-gray-50"
-        }`}
-      >
-        Comparer
-      </Link>
-      <Link
-        href="/portfolio"
-        className={`block px-4 py-3 text-sm font-medium ${
-          isActive("/portfolio") ? "text-indigo-600 bg-indigo-50" : "text-gray-700 hover:bg-gray-50"
-        }`}
-      >
-        Patrimoine
-      </Link>
-      {session?.user && (
-        <Link
-          href="/profile"
-          className={`block px-4 py-3 text-sm font-medium ${
-            isActive("/profile") ? "text-indigo-600 bg-indigo-50" : "text-gray-700 hover:bg-gray-50"
-          }`}
-        >
-          Profil
-        </Link>
-      )}
-      <div className="border-t border-gray-100" />
-      {session?.user ? (
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="block w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Déconnexion
-        </button>
-      ) : (
-        <>
-          <Link
-            href="/login"
-            className="block px-4 py-3 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
-          >
-            Se connecter
-          </Link>
-          <Link
-            href="/register"
-            className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Créer un compte
-          </Link>
-        </>
-      )}
-    </>
+  const drawerLink = (href: string, label: string) => (
+    <Link
+      href={href}
+      className={`block px-6 py-3 text-sm font-medium transition-colors ${
+        isActive(href) ? "text-indigo-600 bg-indigo-50" : "text-gray-700 hover:bg-gray-50"
+      }`}
+    >
+      {label}
+    </Link>
   );
 
   const burgerIcon = (
@@ -135,20 +70,71 @@ export default function Navbar() {
       className="p-2 -mr-2 text-gray-600 hover:text-gray-900"
       aria-label="Menu"
     >
-      {menuOpen ? (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-        </svg>
-      ) : (
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-        </svg>
-      )}
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+      </svg>
     </button>
+  );
+
+  const drawer = (
+    <>
+      {/* Backdrop */}
+      <div
+        className={`fixed inset-0 bg-black/30 z-[60] transition-opacity duration-300 ${
+          menuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setMenuOpen(false)}
+      />
+      {/* Drawer panel */}
+      <div
+        className={`fixed top-0 right-0 h-full w-72 bg-white shadow-xl z-[70] transform transition-transform duration-300 ease-in-out ${
+          menuOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between px-6 h-16 border-b border-gray-200">
+          <span className="text-lg font-bold text-indigo-600">Menu</span>
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="p-2 -mr-2 text-gray-600 hover:text-gray-900"
+            aria-label="Fermer"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <nav className="py-2">
+          {drawerLink("/dashboard", "Dashboard")}
+          {drawerLink("/property/new", "+ Nouveau bien")}
+          <div className="border-t border-gray-100 my-1" />
+          {drawerLink("/localities", "Localités")}
+          {drawerLink("/compare", "Comparer")}
+          {drawerLink("/portfolio", "Patrimoine")}
+          {session?.user && drawerLink("/profile", "Profil")}
+          <div className="border-t border-gray-100 my-1" />
+          {session?.user ? (
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="block w-full text-left px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Déconnexion
+            </button>
+          ) : (
+            <>
+              {drawerLink("/login", "Se connecter")}
+              {drawerLink("/register", "Créer un compte")}
+            </>
+          )}
+        </nav>
+      </div>
+    </>
   );
 
   return (
     <>
+      {/* Drawer (shared between desktop and mobile) */}
+      {drawer}
+
       {/* Desktop top nav */}
       <nav className="hidden md:block bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -174,14 +160,7 @@ export default function Navbar() {
                 + Nouveau bien
               </Link>
             </div>
-            <div className="relative" ref={menuRef}>
-              {burgerIcon}
-              {menuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
-                  {menuItems}
-                </div>
-              )}
-            </div>
+            {burgerIcon}
           </div>
         </div>
       </nav>
@@ -190,14 +169,7 @@ export default function Navbar() {
       <nav className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-40" style={{ paddingTop: "var(--sat)" }}>
         <div className="flex items-center justify-between h-12 px-4">
           <span className="text-lg font-bold text-indigo-600">Immo2025</span>
-          <div className="relative" ref={menuRef}>
-            {burgerIcon}
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
-                {menuItems}
-              </div>
-            )}
-          </div>
+          {burgerIcon}
         </div>
       </nav>
 

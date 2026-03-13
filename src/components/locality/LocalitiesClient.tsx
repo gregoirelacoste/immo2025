@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Locality, LocalityData, LOCALITY_TYPES, LocalityType } from "@/domains/locality/types";
+import { Locality, LocalityData, LocalityType } from "@/domains/locality/types";
 import { addLocality, removeLocality, importLocalityData, removeLocalityData } from "@/domains/locality/actions";
 import Alert from "@/components/ui/Alert";
 
@@ -98,7 +98,85 @@ export default function LocalitiesClient({ localities, dataMap }: Props) {
   );
 }
 
-// ─── Add Locality Form ───
+// ─── Add Locality Form (JSON import) ───
+
+const ADD_LOCALITY_EXAMPLE = `{
+  "name": "Albi",
+  "type": "ville",
+  "code": "81004",
+  "postal_codes": ["81000"],
+  "parent_id": null,
+  "data": {
+    "valid_from": "2025-01-01",
+    "fields": {
+      "avg_purchase_price_per_m2": 2500,
+      "median_purchase_price_per_m2": 2300,
+      "avg_rent_per_m2": 10.5,
+      "avg_rent_furnished_per_m2": 13,
+      "vacancy_rate": 7,
+      "avg_condo_charges_per_m2": 2.5,
+      "avg_property_tax_per_m2": 12,
+      "avg_airbnb_night_price": 65,
+      "avg_airbnb_occupancy_rate": 55,
+      "population": 50000,
+      "population_growth_pct": 0.3,
+      "median_income": 21000,
+      "poverty_rate": 15,
+      "unemployment_rate": 9.5,
+      "school_count": 35,
+      "university_nearby": true,
+      "public_transport_score": 6,
+      "risk_level": "faible"
+    }
+  }
+}`;
+
+function buildPrompt(sector: string) {
+  return `Tu es un expert en analyse immobilière en France. Analyse le secteur suivant : "${sector}".
+
+Recherche les données les plus récentes disponibles et retourne un JSON strictement conforme au format ci-dessous. Tous les champs "fields" sont optionnels — remplis ceux pour lesquels tu as des données fiables, mets null pour les autres.
+
+Format JSON attendu :
+\`\`\`json
+{
+  "name": "${sector}",
+  "type": "ville",
+  "code": "<code INSEE si connu>",
+  "postal_codes": ["<code postal>"],
+  "parent_id": null,
+  "data": {
+    "valid_from": "${new Date().toISOString().split("T")[0]}",
+    "fields": {
+      "avg_purchase_price_per_m2": <number|null>,
+      "median_purchase_price_per_m2": <number|null>,
+      "transaction_count": <number|null>,
+      "avg_rent_per_m2": <number|null>,
+      "avg_rent_furnished_per_m2": <number|null>,
+      "vacancy_rate": <number en %|null>,
+      "avg_condo_charges_per_m2": <number|null>,
+      "avg_property_tax_per_m2": <number|null>,
+      "avg_airbnb_night_price": <number|null>,
+      "avg_airbnb_occupancy_rate": <number en %|null>,
+      "population": <number|null>,
+      "population_growth_pct": <number en %|null>,
+      "median_income": <number annuel|null>,
+      "poverty_rate": <number en %|null>,
+      "unemployment_rate": <number en %|null>,
+      "school_count": <number|null>,
+      "university_nearby": <boolean|null>,
+      "public_transport_score": <1-10|null>,
+      "risk_level": <"faible"|"moyen"|"élevé"|null>
+    }
+  }
+}
+\`\`\`
+
+IMPORTANT :
+- Retourne UNIQUEMENT le JSON, sans texte avant ni après.
+- "type" peut être : pays, region, departement, canton, ville, quartier, rue.
+- Adapte le "type" en fonction du secteur demandé.
+- Sources possibles : DVF, INSEE, observatoires des loyers, AirDNA, Georisques.`;
+}
 
 function AddLocalityForm({
   localities,
@@ -109,108 +187,128 @@ function AddLocalityForm({
   onSuccess: (msg: string) => void;
   onError: (msg: string) => void;
 }) {
-  const [name, setName] = useState("");
-  const [type, setType] = useState<string>("ville");
-  const [parentId, setParentId] = useState<string>("");
-  const [code, setCode] = useState("");
-  const [postalCodes, setPostalCodes] = useState("");
+  const [jsonText, setJsonText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [sector, setSector] = useState("");
+  const [copied, setCopied] = useState<"example" | "prompt" | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
 
-    const postalCodesArr = postalCodes
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    try {
+      const parsed = JSON.parse(jsonText);
+      const { name, type, code, postal_codes, parent_id, data } = parsed;
 
-    const result = await addLocality({
-      name,
-      type,
-      parent_id: parentId || null,
-      code,
-      postal_codes: postalCodesArr,
-    });
+      if (!name || !type) {
+        onError("Le JSON doit contenir au minimum 'name' et 'type'.");
+        setSaving(false);
+        return;
+      }
+
+      // Create locality
+      const result = await addLocality({
+        name,
+        type,
+        parent_id: parent_id || null,
+        code: code || "",
+        postal_codes: postal_codes || [],
+      });
+
+      if (!result.success) {
+        onError(result.error || "Erreur lors de la création");
+        setSaving(false);
+        return;
+      }
+
+      // If data is provided, import it
+      if (data?.fields && result.id) {
+        const dataResult = await importLocalityData(
+          result.id,
+          data.valid_from || new Date().toISOString().split("T")[0],
+          JSON.stringify(data.fields)
+        );
+        if (!dataResult.success) {
+          onError(`Localité créée mais erreur données : ${dataResult.error}`);
+          setSaving(false);
+          return;
+        }
+      }
+
+      onSuccess(`Localité "${name}" créée${data?.fields ? " avec données" : ""}.`);
+    } catch {
+      onError("JSON invalide. Vérifiez le format.");
+    }
 
     setSaving(false);
-    if (result.success) {
-      onSuccess(`Localité "${name}" créée.`);
-    } else {
-      onError(result.error || "Erreur");
-    }
+  }
+
+  function handleCopy(text: string, type: "example" | "prompt") {
+    navigator.clipboard.writeText(text);
+    setCopied(type);
+    setTimeout(() => setCopied(null), 2000);
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Nom</label>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
+      {/* Prompt generator */}
+      <div className="bg-indigo-50 rounded-lg p-3 space-y-2">
+        <p className="text-xs font-medium text-indigo-800">
+          Générer les données via IA (Gemini, ChatGPT...)
+        </p>
+        <div className="flex gap-2">
           <input
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="ex: Albi"
+            value={sector}
+            onChange={(e) => setSector(e.target.value)}
+            placeholder="ex: Albi, Toulouse centre, Tarn..."
+            className="flex-1 px-3 py-2 border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          <button
+            type="button"
+            disabled={!sector.trim()}
+            onClick={() => handleCopy(buildPrompt(sector.trim()), "prompt")}
+            className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 whitespace-nowrap"
           >
-            {LOCALITY_TYPES.map((t) => (
-              <option key={t} value={t}>{TYPE_LABELS[t]}</option>
-            ))}
-          </select>
+            {copied === "prompt" ? "Copié !" : "Copier le prompt"}
+          </button>
         </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Parent</label>
-          <select
-            value={parentId}
-            onChange={(e) => setParentId(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Aucun (racine)</option>
-            {localities.map((l) => (
-              <option key={l.id} value={l.id}>
-                {TYPE_LABELS[l.type]} — {l.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Code INSEE</label>
-          <input
-            type="text"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="ex: 81004"
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="block text-xs font-medium text-gray-700 mb-1">Codes postaux (séparés par virgule)</label>
-          <input
-            type="text"
-            value={postalCodes}
-            onChange={(e) => setPostalCodes(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="ex: 81000, 81100"
-          />
-        </div>
+        <p className="text-xs text-indigo-600">
+          Copiez le prompt, collez-le dans Gemini/ChatGPT, puis collez le résultat JSON ci-dessous.
+        </p>
       </div>
-      <button
-        type="submit"
-        disabled={saving}
-        className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
-      >
-        {saving ? "Création..." : "Créer"}
-      </button>
-    </form>
+
+      {/* JSON input */}
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-medium text-gray-700">Coller le JSON ici</label>
+            <button
+              type="button"
+              onClick={() => handleCopy(ADD_LOCALITY_EXAMPLE, "example")}
+              className="text-xs text-indigo-600 hover:underline"
+            >
+              {copied === "example" ? "Copié !" : "Copier l'exemple"}
+            </button>
+          </div>
+          <textarea
+            value={jsonText}
+            onChange={(e) => setJsonText(e.target.value)}
+            required
+            rows={12}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder={ADD_LOCALITY_EXAMPLE}
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {saving ? "Import..." : "Importer"}
+        </button>
+      </form>
+    </div>
   );
 }
 
