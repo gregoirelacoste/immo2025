@@ -30,6 +30,16 @@ export default function ClassicRentalSection({ form, onChange, calcs, prefillHin
           <input type="number" inputMode="numeric" value={form.condo_charges || ""} onChange={(e) => onChange("condo_charges", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="100" />
           {prefillHint("condo_charges")}
         </div>
+        <div>
+          <label className={labelClass}>Taxe foncière / an<FieldTooltip text="Taxe foncière annuelle. Demandez le montant au vendeur ou consultez l'avis d'imposition." /></label>
+          <input type="number" inputMode="numeric" value={form.property_tax || ""} onChange={(e) => onChange("property_tax", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="800" />
+          {prefillHint("property_tax")}
+        </div>
+        <div>
+          <label className={labelClass}>Vacance locative (%)<FieldTooltip text="Pourcentage du temps où le bien est inoccupé. 5-8% est courant." /></label>
+          <input type="number" inputMode="decimal" step="1" value={form.vacancy_rate || ""} onChange={(e) => onChange("vacancy_rate", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="5" />
+          {prefillHint("vacancy_rate")}
+        </div>
       </div>
       {form.monthly_rent > 0 && (
         <div className="mt-4 p-4 bg-blue-50 rounded-lg">
