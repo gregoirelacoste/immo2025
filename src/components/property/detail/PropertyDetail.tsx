@@ -166,10 +166,6 @@ export default function PropertyDetail({ property, isOwner = false }: Props) {
             <p className="font-semibold">{pricePerM2 > 0 ? formatCurrency(pricePerM2) : "—"}</p>
           </div>
           <div>
-            <span className="text-gray-500">Loyer / m²</span>
-            <p className="font-semibold">{property.rent_per_m2 > 0 ? `${property.rent_per_m2.toFixed(1)} €` : "—"}</p>
-          </div>
-          <div>
             <span className="text-gray-500">Loyer mensuel</span>
             <p className="font-semibold">{property.monthly_rent > 0 ? formatCurrency(property.monthly_rent) : "—"}</p>
           </div>

@@ -11,7 +11,7 @@ import {
 import { saveProperty } from "@/domains/property/actions";
 import { scrapeAndSaveProperty } from "@/domains/scraping/actions";
 import { useLoanAutoCalc } from "./useLoanAutoCalc";
-import { useRentAutoCalc } from "./useRentAutoCalc";
+
 import SmartCollector from "@/components/collect/SmartCollector";
 import PropertyInfoSection from "./PropertyInfoSection";
 import LoanSection from "./LoanSection";
@@ -102,7 +102,6 @@ export default function PropertyForm({ existingProperty }: Props) {
   }, [existingProperty]);
 
   const { setLoanManuallySet } = useLoanAutoCalc(form, setForm);
-  const { setRentManuallySet } = useRentAutoCalc(form, setForm);
 
   const effectiveNotary =
     form.notary_fees > 0
@@ -119,13 +118,6 @@ export default function PropertyForm({ existingProperty }: Props) {
   }
 
   function handleRentChange(field: keyof PropertyFormData, value: string | number) {
-    if (field === "monthly_rent") {
-      setRentManuallySet(true);
-    }
-    if (field === "rent_per_m2") {
-      // When user changes rent_per_m2, recalculate monthly_rent
-      setRentManuallySet(false);
-    }
     updateField(field, value);
   }
 

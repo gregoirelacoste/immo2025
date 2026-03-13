@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -8,12 +9,103 @@ import AppVersion from "@/components/AppVersion";
 export default function Navbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
   const isVisitMode = /^\/property\/[^/]+\/visit/.test(pathname);
 
-  // Hide navbar entirely during visit mode (visit has its own bottom bar)
+  // Close menu on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  // Close menu on click outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [menuOpen]);
+
   if (isVisitMode) return null;
+
+  const menuItems = (
+    <>
+      <Link
+        href="/localities"
+        className={`block px-4 py-3 text-sm font-medium ${
+          isActive("/localities") ? "text-indigo-600 bg-indigo-50" : "text-gray-700 hover:bg-gray-50"
+        }`}
+      >
+        Localités
+      </Link>
+      <Link
+        href="/compare"
+        className={`block px-4 py-3 text-sm font-medium ${
+          isActive("/compare") ? "text-indigo-600 bg-indigo-50" : "text-gray-700 hover:bg-gray-50"
+        }`}
+      >
+        Comparer
+      </Link>
+      {session?.user && (
+        <Link
+          href="/profile"
+          className={`block px-4 py-3 text-sm font-medium ${
+            isActive("/profile") ? "text-indigo-600 bg-indigo-50" : "text-gray-700 hover:bg-gray-50"
+          }`}
+        >
+          Profil
+        </Link>
+      )}
+      <div className="border-t border-gray-100" />
+      {session?.user ? (
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="block w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Déconnexion
+        </button>
+      ) : (
+        <>
+          <Link
+            href="/login"
+            className="block px-4 py-3 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+          >
+            Se connecter
+          </Link>
+          <Link
+            href="/register"
+            className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Créer un compte
+          </Link>
+        </>
+      )}
+    </>
+  );
+
+  const burgerIcon = (
+    <button
+      onClick={() => setMenuOpen((o) => !o)}
+      className="p-2 -mr-2 text-gray-600 hover:text-gray-900"
+      aria-label="Menu"
+    >
+      {menuOpen ? (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      ) : (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+      )}
+    </button>
+  );
 
   return (
     <>
@@ -22,7 +114,7 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-8">
-              <Link href="/dashboard" className="text-xl font-bold text-indigo-600 flex items-baseline gap-1">
+              <Link href="/dashboard" className="text-xl font-bold text-indigo-600">
                 Immo2025
               </Link>
               <Link
@@ -41,32 +133,15 @@ export default function Navbar() {
               >
                 + Nouveau bien
               </Link>
-              <Link
-                href="/localities"
-                className={`text-sm font-medium ${
-                  isActive("/localities") ? "text-indigo-600" : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Localités
-              </Link>
             </div>
-            {session?.user ? (
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-600">
-                  {session.user.name || session.user.email}
-                </span>
-                <button
-                  onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  Déconnexion
-                </button>
-              </div>
-            ) : (
-              <Link href="/login" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
-                Connexion
-              </Link>
-            )}
+            <div className="relative" ref={menuRef}>
+              {burgerIcon}
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
+                  {menuItems}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
@@ -75,18 +150,14 @@ export default function Navbar() {
       <nav className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-40" style={{ paddingTop: "var(--sat)" }}>
         <div className="flex items-center justify-between h-12 px-4">
           <span className="text-lg font-bold text-indigo-600">Immo2025</span>
-          {session?.user ? (
-            <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="text-xs text-gray-500 hover:text-gray-700"
-            >
-              Déconnexion
-            </button>
-          ) : (
-            <Link href="/login" className="text-xs font-medium text-indigo-600">
-              Connexion
-            </Link>
-          )}
+          <div className="relative" ref={menuRef}>
+            {burgerIcon}
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
+                {menuItems}
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -121,20 +192,6 @@ export default function Navbar() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
             <span className="text-xs mt-0.5 font-medium">Nouveau</span>
-          </Link>
-          <Link
-            href="/localities"
-            className={`flex-1 flex flex-col items-center justify-center py-2 min-h-[56px] ${
-              isActive("/localities")
-                ? "text-indigo-600"
-                : "text-gray-500"
-            }`}
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-            </svg>
-            <span className="text-xs mt-0.5 font-medium">Localités</span>
           </Link>
         </div>
         <AppVersion />
