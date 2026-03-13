@@ -35,7 +35,7 @@ export default function LoanSection({ form, onChange, onLoanChange, calcs, month
             Montant emprunté
             {loanAutoCalc && <span className="ml-1 text-[10px] text-blue-500 font-normal">(auto)</span>}
           </label>
-          <input type="number" inputMode="numeric" value={form.loan_amount || ""} onChange={(e) => onLoanChange(e.target.value)} className={loanAutoCalc ? autoCalcClass : inputClass} placeholder="190000" />
+          <input type="number" inputMode="numeric" value={form.loan_amount || ""} onChange={(e) => onLoanChange(e.target.value)} className={loanAutoCalc ? autoCalcClass : inputClass} placeholder="190000" readOnly={loanAutoCalc} />
           {prefillHint("loan_amount")}
         </div>
         <div>

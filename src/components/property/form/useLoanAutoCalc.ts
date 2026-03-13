@@ -8,9 +8,7 @@ export function useLoanAutoCalc(
   form: PropertyFormData,
   setForm: Dispatch<SetStateAction<PropertyFormData>>
 ): { loanManuallySet: boolean; setLoanManuallySet: Dispatch<SetStateAction<boolean>> } {
-  const [loanManuallySet, setLoanManuallySet] = useState(
-    () => form.loan_amount > 0
-  );
+  const [loanManuallySet, setLoanManuallySet] = useState(false);
 
   useEffect(() => {
     if (form.purchase_price > 0 && !loanManuallySet) {
