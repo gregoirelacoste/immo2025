@@ -10,9 +10,6 @@ export interface DefaultInputs {
   interest_rate: number;             // %
   insurance_rate: number;            // %
   loan_fees: number;                 // €
-  rent_per_m2: number;               // €/m²/mois
-  property_tax_per_m2: number;       // €/m²/an
-  vacancy_rate: number;              // %
 }
 
 export const DEFAULT_INPUTS: DefaultInputs = {
@@ -21,9 +18,6 @@ export const DEFAULT_INPUTS: DefaultInputs = {
   interest_rate: 3.5,
   insurance_rate: 0.34,
   loan_fees: 0,
-  rent_per_m2: 12,
-  property_tax_per_m2: 13,
-  vacancy_rate: 8,
 };
 
 export interface ScoringWeights {
