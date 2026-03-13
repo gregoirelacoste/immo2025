@@ -2,15 +2,47 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import AppVersion from "@/components/AppVersion";
+import { captureStreetPhoto } from "@/domains/photo/street-capture";
+import { createPropertyFromPhoto } from "@/domains/photo/street-actions";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [capturing, setCapturing] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleStreetPhoto = async () => {
+    if (capturing) return;
+    setCapturing(true);
+    try {
+      const result = await captureStreetPhoto();
+      if (!result) {
+        setCapturing(false);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("file", result.file);
+      formData.set("latitude", String(result.latitude));
+      formData.set("longitude", String(result.longitude));
+
+      const { propertyId, error } = await createPropertyFromPhoto(formData);
+      if (propertyId) {
+        router.push(`/property/${propertyId}/edit`);
+      } else {
+        console.error("Street photo error:", error);
+      }
+    } catch (e) {
+      console.error("Street photo error:", e);
+    } finally {
+      setCapturing(false);
+    }
+  };
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
   const isVisitMode = /^\/property\/[^/]+\/visit/.test(pathname);
@@ -51,6 +83,14 @@ export default function Navbar() {
         }`}
       >
         Comparer
+      </Link>
+      <Link
+        href="/portfolio"
+        className={`block px-4 py-3 text-sm font-medium ${
+          isActive("/portfolio") ? "text-indigo-600 bg-indigo-50" : "text-gray-700 hover:bg-gray-50"
+        }`}
+      >
+        Patrimoine
       </Link>
       {session?.user && (
         <Link
@@ -193,6 +233,24 @@ export default function Navbar() {
             </svg>
             <span className="text-xs mt-0.5 font-medium">Nouveau</span>
           </Link>
+          {session?.user && (
+            <button
+              type="button"
+              onClick={handleStreetPhoto}
+              disabled={capturing}
+              className={`flex-1 flex flex-col items-center justify-center py-2 min-h-[56px] text-gray-500 ${capturing ? "opacity-50" : ""}`}
+            >
+              {capturing ? (
+                <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+                </svg>
+              )}
+              <span className="text-xs mt-0.5 font-medium">Photo</span>
+            </button>
+          )}
         </div>
         <AppVersion />
       </nav>

@@ -18,6 +18,8 @@ import LoanSection from "./LoanSection";
 import FeesSection from "./FeesSection";
 import ClassicRentalSection from "./ClassicRentalSection";
 import AirbnbSection from "./AirbnbSection";
+import RenovationSection from "./RenovationSection";
+import FiscalSection from "./FiscalSection";
 import AmenitiesSection from "./AmenitiesSection";
 import { parseAmenities, type AmenityKey } from "@/domains/property/amenities";
 import ResultsSummarySection from "./ResultsSummarySection";
@@ -26,37 +28,45 @@ import InvestmentScorePanel from "@/components/property/detail/InvestmentScorePa
 import Alert from "@/components/ui/Alert";
 import { PhotoMetadata } from "@/domains/collect/types";
 import { reverseGeocode } from "@/domains/collect/geocoding";
+import type { DefaultInputs } from "@/domains/auth/defaults";
 
-const defaultFormData: PropertyFormData = {
-  user_id: "",
-  visibility: "public",
-  address: "",
-  city: "",
-  postal_code: "",
-  purchase_price: 0,
-  surface: 0,
-  property_type: "ancien",
-  description: "",
-  loan_amount: 0,
-  interest_rate: 3.5,
-  loan_duration: 20,
-  personal_contribution: 0,
-  insurance_rate: 0.34,
-  loan_fees: 0,
-  notary_fees: 0,
-  rent_per_m2: 0,
-  monthly_rent: 0,
-  condo_charges: 0,
-  property_tax: 0,
-  vacancy_rate: 5,
-  airbnb_price_per_night: 0,
-  airbnb_occupancy_rate: 60,
-  airbnb_charges: 0,
-  amenities: "[]",
-  source_url: "",
-  image_urls: "[]",
-  prefill_sources: "{}",
-};
+function buildDefaultFormData(defaults?: DefaultInputs): PropertyFormData {
+  return {
+    user_id: "",
+    visibility: "public",
+    address: "",
+    city: "",
+    postal_code: "",
+    purchase_price: 0,
+    surface: 0,
+    property_type: "ancien",
+    description: "",
+    loan_amount: 0,
+    interest_rate: defaults?.interest_rate ?? 3.5,
+    loan_duration: defaults?.loan_duration ?? 20,
+    personal_contribution: 0,
+    insurance_rate: defaults?.insurance_rate ?? 0.34,
+    loan_fees: defaults?.loan_fees ?? 0,
+    notary_fees: 0,
+    rent_per_m2: 0,
+    monthly_rent: 0,
+    condo_charges: 0,
+    property_tax: 0,
+    vacancy_rate: defaults?.vacancy_rate ?? 8,
+    airbnb_price_per_night: 0,
+    airbnb_occupancy_rate: 60,
+    airbnb_charges: 0,
+    renovation_cost: 0,
+    dpe_rating: null,
+    fiscal_regime: "micro_bic",
+    amenities: "[]",
+    source_url: "",
+    image_urls: "[]",
+    prefill_sources: "{}",
+  };
+}
+
+const defaultFormData = buildDefaultFormData();
 
 function stripToFormData(p: Property): PropertyFormData {
   const {
@@ -65,6 +75,8 @@ function stripToFormData(p: Property): PropertyFormData {
     investment_score: _is, score_breakdown: _sb, socioeconomic_data: _sed,
     enrichment_status: _es, enrichment_error: _ee, enrichment_at: _ea,
     collect_urls: _cu, collect_texts: _ct,
+    is_favorite: _fav, status_changed_at: _sca,
+    property_status: _ps,
     ...rest
   } = p;
   return rest;
@@ -72,13 +84,15 @@ function stripToFormData(p: Property): PropertyFormData {
 
 interface Props {
   existingProperty?: Property;
+  defaultInputs?: DefaultInputs;
 }
 
-export default function PropertyForm({ existingProperty }: Props) {
+export default function PropertyForm({ existingProperty, defaultInputs }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const autoScrapeTriggered = useRef(false);
   // Track property ID created by auto-scrape or SmartCollector on /property/new
   // so subsequent actions (text paste, photos) update the same property
@@ -86,8 +100,16 @@ export default function PropertyForm({ existingProperty }: Props) {
   const [autoScraping, setAutoScraping] = useState(false);
 
   const [form, setForm] = useState<PropertyFormData>(() =>
-    existingProperty ? stripToFormData(existingProperty) : defaultFormData
+    existingProperty ? stripToFormData(existingProperty) : buildDefaultFormData(defaultInputs)
   );
+
+  // Auto-show advanced if Airbnb data exists
+  useEffect(() => {
+    if (form.airbnb_price_per_night > 0 || form.loan_fees > 0) {
+      setShowAdvanced(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync form state when existingProperty changes (after router.refresh())
   const lastUpdatedAt = useRef(existingProperty?.updated_at);
@@ -101,7 +123,7 @@ export default function PropertyForm({ existingProperty }: Props) {
     }
   }, [existingProperty]);
 
-  const { setLoanManuallySet } = useLoanAutoCalc(form, setForm);
+  const { loanManuallySet, setLoanManuallySet } = useLoanAutoCalc(form, setForm);
 
   const effectiveNotary =
     form.notary_fees > 0
@@ -161,7 +183,7 @@ export default function PropertyForm({ existingProperty }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fakeProperty: Property = {
+  const fakeProperty = {
     id: "", created_at: "", updated_at: "",
     latitude: null, longitude: null, market_data: "",
     investment_score: null, score_breakdown: "{}", socioeconomic_data: "",
@@ -169,7 +191,7 @@ export default function PropertyForm({ existingProperty }: Props) {
     collect_urls: "[]", collect_texts: "[]",
     property_status: existingProperty?.property_status || "added",
     ...form,
-  };
+  } as Property;
   const calcs = calculateAll(fakeProperty);
   const monthlyPaymentPreview = calculateMonthlyPayment(
     form.loan_amount,
@@ -177,7 +199,7 @@ export default function PropertyForm({ existingProperty }: Props) {
     form.loan_duration
   );
 
-  const showAirbnb = form.airbnb_price_per_night > 0;
+  const showAirbnb = showAdvanced || form.airbnb_price_per_night > 0;
 
   // Parse prefill sources pour afficher les hints
   const prefillSources: Record<string, { source: string; value: number | string }> = (() => {
@@ -255,10 +277,24 @@ export default function PropertyForm({ existingProperty }: Props) {
         selected={parseAmenities(form.amenities)}
         onChange={(keys: AmenityKey[]) => updateField("amenities", JSON.stringify(keys))}
       />
-      <LoanSection form={form} onChange={updateField} onLoanChange={handleLoanChange} calcs={calcs} monthlyPaymentPreview={monthlyPaymentPreview} prefillHint={prefillHint} />
+      <LoanSection form={form} onChange={updateField} onLoanChange={handleLoanChange} calcs={calcs} monthlyPaymentPreview={monthlyPaymentPreview} prefillHint={prefillHint} loanAutoCalc={!loanManuallySet} />
       <FeesSection form={form} onChange={updateField} calcs={calcs} effectiveNotary={effectiveNotary} />
       <ClassicRentalSection form={form} onChange={handleRentChange} calcs={calcs} prefillHint={prefillHint} />
-      <AirbnbSection form={form} onChange={updateField} calcs={calcs} />
+      <RenovationSection form={form} onChange={updateField} prefillHint={prefillHint} />
+      <FiscalSection calcs={calcs} fiscalRegime={form.fiscal_regime || "micro_bic"} />
+
+      {/* Toggle avancé */}
+      <button
+        type="button"
+        onClick={() => setShowAdvanced(!showAdvanced)}
+        className="w-full text-sm text-indigo-600 hover:text-indigo-800 font-medium py-2"
+      >
+        {showAdvanced ? "▲ Masquer les options avancées" : "▼ Afficher les options avancées (Airbnb, frais...)"}
+      </button>
+
+      {showAdvanced && (
+        <AirbnbSection form={form} onChange={updateField} calcs={calcs} />
+      )}
       <ResultsSummarySection calcs={calcs} showAirbnb={showAirbnb} />
 
       {/* Investment score: persisted for existing, preview for new */}

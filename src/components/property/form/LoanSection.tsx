@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { PropertyFormData, PropertyCalculations } from "@/domains/property/types";
 import { formatCurrency } from "@/lib/calculations";
+import FieldTooltip from "@/components/ui/FieldTooltip";
 
 interface Props {
   form: PropertyFormData;
@@ -9,29 +10,36 @@ interface Props {
   calcs: PropertyCalculations;
   monthlyPaymentPreview: number;
   prefillHint: (field: string) => ReactNode;
+  loanAutoCalc?: boolean;
 }
 
 const inputClass =
   "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]";
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
-export default function LoanSection({ form, onChange, onLoanChange, calcs, monthlyPaymentPreview, prefillHint }: Props) {
+const autoCalcClass =
+  "w-full px-3 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px] bg-blue-50/50";
+
+export default function LoanSection({ form, onChange, onLoanChange, calcs, monthlyPaymentPreview, prefillHint, loanAutoCalc }: Props) {
   return (
     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-4">Prêt immobilier</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
-          <label className={labelClass}>Apport personnel</label>
+          <label className={labelClass}>Apport personnel<FieldTooltip text="Somme investie sans emprunt. Réduit le montant emprunté et donc les mensualités." /></label>
           <input type="number" inputMode="numeric" value={form.personal_contribution || ""} onChange={(e) => onChange("personal_contribution", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="10000" />
           {prefillHint("personal_contribution")}
         </div>
         <div>
-          <label className={labelClass}>Montant emprunté</label>
-          <input type="number" inputMode="numeric" value={form.loan_amount || ""} onChange={(e) => onLoanChange(e.target.value)} className={inputClass} placeholder="190000" />
+          <label className={labelClass}>
+            Montant emprunté
+            {loanAutoCalc && <span className="ml-1 text-[10px] text-blue-500 font-normal">(auto)</span>}
+          </label>
+          <input type="number" inputMode="numeric" value={form.loan_amount || ""} onChange={(e) => onLoanChange(e.target.value)} className={loanAutoCalc ? autoCalcClass : inputClass} placeholder="190000" />
           {prefillHint("loan_amount")}
         </div>
         <div>
-          <label className={labelClass}>Taux d&apos;intérêt (%)</label>
+          <label className={labelClass}>Taux d&apos;intérêt (%)<FieldTooltip text="Taux nominal annuel du prêt. En 2024-2025, les taux oscillent entre 3% et 4% sur 20 ans." /></label>
           <input type="number" inputMode="decimal" step="0.01" value={form.interest_rate || ""} onChange={(e) => onChange("interest_rate", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="3.5" />
         </div>
         <div>
@@ -39,7 +47,7 @@ export default function LoanSection({ form, onChange, onLoanChange, calcs, month
           <input type="number" inputMode="numeric" value={form.loan_duration || ""} onChange={(e) => onChange("loan_duration", parseInt(e.target.value, 10) || 0)} className={inputClass} placeholder="20" />
         </div>
         <div>
-          <label className={labelClass}>Assurance emprunteur (% /an)</label>
+          <label className={labelClass}>Assurance emprunteur (% /an)<FieldTooltip text="Assurance obligatoire sur le capital emprunté. Environ 0.30% à 0.40% /an selon l'âge et la santé." /></label>
           <input type="number" inputMode="decimal" step="0.01" value={form.insurance_rate || ""} onChange={(e) => onChange("insurance_rate", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="0.34" />
         </div>
       </div>
