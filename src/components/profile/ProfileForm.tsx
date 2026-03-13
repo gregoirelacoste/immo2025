@@ -192,9 +192,6 @@ export default function ProfileForm({ profile }: Props) {
             { key: "interest_rate" as const, label: "Taux d'intérêt (%)", step: 0.1 },
             { key: "insurance_rate" as const, label: "Assurance emprunteur (%)", step: 0.01 },
             { key: "personal_contribution_pct" as const, label: "Apport personnel (%)", step: 1 },
-            { key: "rent_per_m2" as const, label: "Loyer au m²/mois (€)", step: 0.5 },
-            { key: "property_tax_per_m2" as const, label: "Taxe foncière/an au m² (€)", step: 1 },
-            { key: "vacancy_rate" as const, label: "Vacance locative (%)", step: 1 },
             { key: "loan_fees" as const, label: "Frais de dossier bancaire (€)", step: 100 },
           ]).map(({ key, label, step }) => (
             <div key={key}>

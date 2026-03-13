@@ -52,7 +52,7 @@ function buildDefaultFormData(defaults?: DefaultInputs): PropertyFormData {
     monthly_rent: 0,
     condo_charges: 0,
     property_tax: 0,
-    vacancy_rate: defaults?.vacancy_rate ?? 8,
+    vacancy_rate: 8,
     airbnb_price_per_night: 0,
     airbnb_occupancy_rate: 60,
     airbnb_charges: 0,
