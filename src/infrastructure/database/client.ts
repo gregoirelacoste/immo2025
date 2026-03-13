@@ -100,6 +100,36 @@ export async function getDb(): Promise<Client> {
       try { await client.execute(stmt); } catch { /* already exists */ }
     }
 
+    // Localities tables
+    await client.executeMultiple(`
+      CREATE TABLE IF NOT EXISTS localities (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK (type IN ('pays','region','departement','canton','ville','quartier','rue')),
+        parent_id TEXT DEFAULT NULL,
+        code TEXT DEFAULT '',
+        postal_codes TEXT DEFAULT '[]',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_localities_type ON localities(type);
+      CREATE INDEX IF NOT EXISTS idx_localities_parent ON localities(parent_id);
+      CREATE INDEX IF NOT EXISTS idx_localities_code ON localities(code);
+
+      CREATE TABLE IF NOT EXISTS locality_data (
+        id TEXT PRIMARY KEY,
+        locality_id TEXT NOT NULL,
+        valid_from TEXT NOT NULL,
+        valid_to TEXT DEFAULT NULL,
+        data TEXT NOT NULL DEFAULT '{}',
+        created_by TEXT DEFAULT '',
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (locality_id) REFERENCES localities(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_locality_data_locality ON locality_data(locality_id);
+      CREATE INDEX IF NOT EXISTS idx_locality_data_valid ON locality_data(valid_from, valid_to);
+    `);
+
     _initialized = true;
   }
   return client;

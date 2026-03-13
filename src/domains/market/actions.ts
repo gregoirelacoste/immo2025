@@ -29,9 +29,11 @@ export async function estimateMonthlyRent(
 
     const rent = Math.round(market.avgRentPerM2 * surface);
     const source =
-      market.rentSource === "reference"
-        ? "Observatoire des loyers"
-        : "Estimation DVF (5.5%)";
+      market.rentSource === "locality"
+        ? "Données locales"
+        : market.rentSource === "reference"
+          ? "Observatoire des loyers"
+          : "Estimation DVF (5.5%)";
 
     return { rent, source };
   } catch {

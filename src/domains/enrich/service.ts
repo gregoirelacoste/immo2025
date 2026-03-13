@@ -4,7 +4,44 @@ import { calculateAll } from "@/lib/calculations";
 import { computeInvestmentScore } from "./scoring";
 import { EnrichmentResult } from "./types";
 import { Property } from "@/domains/property/types";
-import { fetchSocioEconomicData } from "./socioeconomic-service";
+import { SocioEconomicData } from "./socioeconomic-types";
+import { resolveLocalityData } from "@/domains/locality/resolver";
+
+/** Build SocioEconomicData from locality resolver (replaces INSEE/Géorisques API calls) */
+async function buildSocioDataFromLocality(
+  city: string,
+  postalCode?: string
+): Promise<SocioEconomicData | null> {
+  const resolved = await resolveLocalityData(city, postalCode);
+  if (!resolved) return null;
+
+  const f = resolved.fields;
+
+  // Need at least some socio data
+  if (f.population == null && f.median_income == null && f.unemployment_rate == null) {
+    return null;
+  }
+
+  return {
+    communeCode: resolved.locality.code || "",
+    communeName: resolved.locality.name,
+    irisCode: null,
+    irisName: null,
+    dataLevel: "commune",
+    population: f.population ?? null,
+    populationYear: null,
+    ageDistribution: null,
+    medianIncome: f.median_income ?? null,
+    povertyRate: f.poverty_rate ?? null,
+    unemploymentRate: f.unemployment_rate ?? null,
+    totalJobs: null,
+    schoolCount: f.school_count ?? null,
+    universityNearby: f.university_nearby ?? null,
+    equipmentScore: f.public_transport_score ?? null,
+    naturalRisks: f.natural_risks ?? [],
+    riskLevel: f.risk_level ?? null,
+  };
+}
 
 export async function runEnrichmentPipeline(
   property: Property
@@ -27,24 +64,24 @@ export async function runEnrichmentPipeline(
     /* geocoding failure is non-fatal */
   }
 
-  // Step 2: Market data (fail-safe)
+  // Step 2: Market data from locality database (fail-safe)
   let marketData = null;
   let marketDataJson = "";
   try {
     if (property.city) {
-      marketData = await getMarketData(property.city);
+      marketData = await getMarketData(property.city, property.postal_code || undefined);
       marketDataJson = marketData ? JSON.stringify(marketData) : "";
     }
   } catch {
     /* market data failure is non-fatal */
   }
 
-  // Step 3: Socio-economic data (fail-safe)
+  // Step 3: Socio-economic data from locality database (fail-safe)
   let socioData = null;
   let socioDataJson = "";
   try {
     if (property.city) {
-      socioData = await fetchSocioEconomicData(property.city, latitude, longitude);
+      socioData = await buildSocioDataFromLocality(property.city, property.postal_code || undefined);
       socioDataJson = socioData ? JSON.stringify(socioData) : "";
     }
   } catch {

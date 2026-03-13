@@ -41,6 +41,14 @@ export default function Navbar() {
               >
                 + Nouveau bien
               </Link>
+              <Link
+                href="/localities"
+                className={`text-sm font-medium ${
+                  isActive("/localities") ? "text-indigo-600" : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Localités
+              </Link>
             </div>
             {session?.user ? (
               <div className="flex items-center gap-4">
@@ -113,6 +121,20 @@ export default function Navbar() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
             <span className="text-xs mt-0.5 font-medium">Nouveau</span>
+          </Link>
+          <Link
+            href="/localities"
+            className={`flex-1 flex flex-col items-center justify-center py-2 min-h-[56px] ${
+              isActive("/localities")
+                ? "text-indigo-600"
+                : "text-gray-500"
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+            </svg>
+            <span className="text-xs mt-0.5 font-medium">Localités</span>
           </Link>
         </div>
         <AppVersion />
