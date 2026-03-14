@@ -14,11 +14,12 @@ interface Props {
   sortAsc: boolean;
   onSort: (key: SortKey) => void;
   currentUserId?: string;
+  isAdmin?: boolean;
   onDelete: (e: React.MouseEvent, id: string) => void;
   onToggleFavorite?: (e: React.MouseEvent, id: string) => void;
 }
 
-export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, currentUserId, onDelete, onToggleFavorite }: Props) {
+export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, currentUserId, isAdmin, onDelete, onToggleFavorite }: Props) {
   const sortIcon = (key: SortKey) =>
     sortKey === key ? (sortAsc ? " \u2191" : " \u2193") : "";
 
@@ -62,7 +63,7 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
             return (
               <tr key={p.id} className="hover:bg-tiili-surface/50">
                 <td className="px-1 py-4 text-center">
-                  {currentUserId && p.user_id === currentUserId && onToggleFavorite ? (
+                  {(isAdmin || (currentUserId && p.user_id === currentUserId)) && onToggleFavorite ? (
                     <button
                       onClick={(e) => onToggleFavorite(e, p.id)}
                       className="text-amber-400 hover:text-amber-500 text-lg"
@@ -129,7 +130,7 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
                   <Link href={`/property/${p.id}`} className="text-amber-600 hover:underline">
                     Voir
                   </Link>
-                  {currentUserId && p.user_id === currentUserId && (
+                  {(isAdmin || (currentUserId && p.user_id === currentUserId)) && (
                     <button
                       onClick={(e) => onDelete(e, p.id)}
                       className="text-red-500 hover:underline"

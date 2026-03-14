@@ -4,7 +4,9 @@ import { auth } from "@/lib/auth";
 import {
   getOwnPropertyById,
   getOrphanPropertyById,
+  getPropertyByIdPublic,
 } from "@/domains/property/repository";
+import { isAdmin as checkIsAdmin } from "@/lib/auth-actions";
 import { getUserProfile } from "@/domains/auth/repository";
 import { DEFAULT_INPUTS, mergeDefaults } from "@/domains/auth/defaults";
 import Navbar from "@/components/Navbar";
@@ -47,10 +49,13 @@ export default async function EditPropertyPage({
     );
   }
 
-  // Owned property — require auth and verify ownership.
+  // Owned property — require auth and verify ownership (admin can edit any).
   if (!session?.user?.id) redirect("/login");
 
-  const property = await getOwnPropertyById(id, session.user.id);
+  const admin = await checkIsAdmin();
+  const property = admin
+    ? await getPropertyByIdPublic(id)
+    : await getOwnPropertyById(id, session.user.id);
 
   if (!property) {
     notFound();
