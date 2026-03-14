@@ -447,3 +447,11 @@ export async function deleteProperty(id: string, userId: string): Promise<void> 
     args: [id, userId],
   });
 }
+
+export async function deletePropertyAsAdmin(id: string): Promise<void> {
+  const db = await getDb();
+  await db.execute({
+    sql: "DELETE FROM properties WHERE id = ?",
+    args: [id],
+  });
+}

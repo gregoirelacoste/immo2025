@@ -6,13 +6,14 @@ import {
   updateProperty,
   updateOrphanProperty,
   deleteProperty,
+  deletePropertyAsAdmin,
   getOrphanPropertyById,
   stripMeta,
   getOwnerOrAllowOrphan,
   updatePropertyStatus,
   togglePropertyFavorite,
 } from "@/domains/property/repository";
-import { requireUserId, getOptionalUserId } from "@/lib/auth-actions";
+import { requireUserId, getOptionalUserId, isAdmin } from "@/lib/auth-actions";
 import { calculateNotaryFees } from "@/lib/calculations";
 import { scrapeUrl } from "@/domains/scraping/pipeline/orchestrator";
 import { Property, PropertyFormData, PROPERTY_STATUSES, type PropertyStatus } from "@/domains/property/types";
@@ -66,7 +67,13 @@ export async function saveProperty(
 export async function removeProperty(id: string): Promise<{ success: boolean; error?: string }> {
   try {
     const userId = await requireUserId();
-    await deleteProperty(id, userId);
+    // Admin can delete any property
+    const admin = await isAdmin();
+    if (admin) {
+      await deletePropertyAsAdmin(id);
+    } else {
+      await deleteProperty(id, userId);
+    }
     revalidatePath("/dashboard");
     return { success: true };
   } catch (e) {

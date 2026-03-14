@@ -138,6 +138,9 @@ export async function getDb(): Promise<Client> {
       "ALTER TABLE properties ADD COLUMN status_changed_at TEXT DEFAULT ''",
       // Phase 6.4: Alert thresholds on user profile
       "ALTER TABLE user_profile ADD COLUMN alert_thresholds TEXT DEFAULT '{}'",
+      "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
+      // Set admin for gregoire.lacoste@gmail.com
+      "UPDATE users SET role = 'admin' WHERE LOWER(email) = 'gregoire.lacoste@gmail.com'",
       // Phase 6.5: Rental tracking
       `CREATE TABLE IF NOT EXISTS rental_entries (
         id TEXT PRIMARY KEY,

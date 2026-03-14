@@ -1,27 +1,16 @@
-import { getAllLocalities } from "@/domains/locality/repository";
-import { getLocalityDataHistory } from "@/domains/locality/repository";
-import LocalitiesClient from "@/components/locality/LocalitiesClient";
-import { Locality, LocalityData } from "@/domains/locality/types";
-import Navbar from "@/components/Navbar";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { getUserById } from "@/domains/auth/repository";
 
 export default async function LocalitiesPage() {
-  const localities = await getAllLocalities();
+  // Localities management is admin-only → redirect to /admin
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
 
-  // Load latest data count per locality
-  const dataMap: Record<string, LocalityData[]> = {};
-  for (const loc of localities) {
-    dataMap[loc.id] = await getLocalityDataHistory(loc.id);
+  const user = await getUserById(session.user.id);
+  if (user?.role === "admin") {
+    redirect("/admin");
   }
 
-  return (
-    <>
-      <Navbar />
-      <main className="min-h-screen bg-gray-50 pb-24 md:pb-8">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Données locales</h1>
-          <LocalitiesClient localities={localities} dataMap={dataMap} />
-        </div>
-      </main>
-    </>
-  );
+  redirect("/dashboard");
 }
