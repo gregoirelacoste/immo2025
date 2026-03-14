@@ -296,7 +296,7 @@ export default function PropertyForm({ existingProperty, defaultInputs, readOnly
   if (autoScraping) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16">
-        <div className="animate-spin w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full" />
         <p className="text-sm text-gray-600 font-medium">Import de l&apos;annonce en cours...</p>
         <p className="text-xs text-gray-400">Vous serez redirigé automatiquement</p>
       </div>
@@ -315,7 +315,7 @@ export default function PropertyForm({ existingProperty, defaultInputs, readOnly
           <div className="flex items-baseline justify-between mb-4">
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-xl font-bold text-gray-900">{existingProperty.city}</h2>
+                <h2 className="text-xl font-bold text-[#1a1a2e]">{existingProperty.city}</h2>
                 <StatusSelector propertyId={existingProperty.id} currentStatus={(existingProperty.property_status || "added") as PropertyStatus} />
               </div>
               {existingProperty.address && (
@@ -323,7 +323,7 @@ export default function PropertyForm({ existingProperty, defaultInputs, readOnly
               )}
             </div>
             <div className="text-right shrink-0">
-              <p className="text-xl font-bold text-gray-900">{formatCurrency(existingProperty.purchase_price)}</p>
+              <p className="text-xl font-bold text-[#1a1a2e]">{formatCurrency(existingProperty.purchase_price)}</p>
               <div className="flex items-center justify-end gap-2">
                 <p className="text-sm text-gray-500">{existingProperty.surface} m²</p>
                 <BudgetIndicator monthlyPayment={calcs.monthly_payment} monthlyInsurance={calcs.monthly_insurance} userProfile={userProfile} />
@@ -420,7 +420,7 @@ export default function PropertyForm({ existingProperty, defaultInputs, readOnly
 
         {/* Map */}
         {existingProperty.latitude != null && existingProperty.longitude != null && (
-          <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <section className="bg-white rounded-xl border border-tiili-border overflow-hidden">
             <PropertyMap
               latitude={existingProperty.latitude}
               longitude={existingProperty.longitude}
@@ -438,7 +438,7 @@ export default function PropertyForm({ existingProperty, defaultInputs, readOnly
         )}
 
         {/* Visit mode link */}
-        <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 text-center">
+        <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6 text-center">
           <Link
             href={`/property/${existingProperty.id}/visit`}
             className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors min-h-[48px]"
@@ -497,7 +497,7 @@ export default function PropertyForm({ existingProperty, defaultInputs, readOnly
       <button
         type="button"
         onClick={() => setShowAdvanced(!showAdvanced)}
-        className="w-full text-sm text-indigo-600 hover:text-indigo-800 font-medium py-2"
+        className="w-full text-sm text-amber-600 hover:text-amber-800 font-medium py-2"
       >
         {showAdvanced ? "▲ Masquer les options avancées" : "▼ Afficher les options avancées (Airbnb, frais...)"}
       </button>
@@ -529,7 +529,7 @@ export default function PropertyForm({ existingProperty, defaultInputs, readOnly
         <button
           type="submit"
           disabled={saving}
-          className="px-8 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[48px] text-base"
+          className="px-8 py-3 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 min-h-[48px] text-base"
         >
           {saving ? "Sauvegarde..." : existingProperty ? "Mettre à jour" : "Sauvegarder le bien"}
         </button>

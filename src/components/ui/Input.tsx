@@ -17,7 +17,7 @@ export default function Input({ label, hint, error, id, className = "", ...props
       )}
       <input
         id={inputId}
-        className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-h-[44px] ${
+        className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-amber-500 focus:border-amber-500 min-h-[44px] ${
           error ? "border-red-300" : "border-gray-300"
         } ${className}`}
         {...props}

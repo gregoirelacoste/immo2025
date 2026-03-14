@@ -46,7 +46,7 @@ export default function SharePreview({
         <p className="text-sm text-red-600">{error}</p>
         <button
           onClick={() => router.push("/dashboard")}
-          className="text-sm text-indigo-600 underline"
+          className="text-sm text-amber-600 underline"
         >
           Retour au tableau de bord
         </button>

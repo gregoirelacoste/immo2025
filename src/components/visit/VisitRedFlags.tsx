@@ -16,7 +16,7 @@ export default function VisitRedFlags({ redFlags, flaggedKeys, onToggle }: Props
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
-        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Alertes</h2>
+        <h2 className="text-sm font-bold text-[#1a1a2e] uppercase tracking-wide">Alertes</h2>
         {flaggedCount > 0 && (
           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-600 text-white text-xs font-bold">
             {flaggedCount}
@@ -77,7 +77,7 @@ function FlagRow({
           ? isCritical
             ? "bg-red-100 ring-2 ring-red-400"
             : "bg-amber-100 ring-2 ring-amber-400"
-          : "bg-white border border-gray-200 hover:bg-gray-50"
+          : "bg-white border border-tiili-border hover:bg-gray-50"
       }`}
     >
       {/* Checkbox */}
@@ -98,7 +98,7 @@ function FlagRow({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900">{flag.label}</p>
+        <p className="text-sm font-medium text-[#1a1a2e]">{flag.label}</p>
         {flag.hint && (
           <p className="text-xs text-gray-500 mt-0.5">{flag.hint}</p>
         )}

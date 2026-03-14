@@ -20,7 +20,7 @@ export default function PropertyGallery({ imageUrls, city }: Props) {
   if (images.length === 0 || visible.length === 0) return null;
 
   return (
-    <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <section className="bg-white rounded-xl border border-tiili-border overflow-hidden">
       <div className="flex gap-1 overflow-x-auto snap-x snap-mandatory">
         {images.map((url: string, i: number) => {
           if (failed.has(i)) return null;

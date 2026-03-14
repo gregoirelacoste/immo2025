@@ -8,7 +8,7 @@ interface Props {
 
 export default function FinancingPanel({ property, calcs }: Props) {
   return (
-    <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+    <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-4">Financement</h2>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
         <div>
@@ -45,7 +45,7 @@ export default function FinancingPanel({ property, calcs }: Props) {
         </div>
         <div>
           <span className="text-gray-500">Coût total projet</span>
-          <p className="font-semibold text-indigo-600">{formatCurrency(calcs.total_project_cost)}</p>
+          <p className="font-semibold text-amber-600">{formatCurrency(calcs.total_project_cost)}</p>
         </div>
       </div>
     </section>

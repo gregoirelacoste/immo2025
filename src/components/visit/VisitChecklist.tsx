@@ -47,12 +47,12 @@ export default function VisitChecklist({
     <section className="space-y-2.5">
       {/* Global progress — title + bar inline */}
       <div className="flex items-center gap-3">
-        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide shrink-0">
+        <h2 className="text-sm font-bold text-[#1a1a2e] uppercase tracking-wide shrink-0">
           Checklist
         </h2>
         <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+            className="h-full bg-amber-600 rounded-full transition-all duration-300"
             style={{ width: `${globalProgress.percent}%` }}
           />
         </div>
@@ -78,7 +78,7 @@ export default function VisitChecklist({
             className={`rounded-xl border transition-colors ${
               isComplete
                 ? "border-green-200 bg-green-50/50"
-                : "border-gray-200 bg-white"
+                : "border-tiili-border bg-white"
             }`}
           >
             {/* Category header */}
@@ -89,7 +89,7 @@ export default function VisitChecklist({
             >
               <div className="flex items-center gap-2">
                 <span className="text-base">{cat.icon}</span>
-                <span className="text-[13px] font-semibold text-gray-900">
+                <span className="text-[13px] font-semibold text-[#1a1a2e]">
                   {cat.label}
                 </span>
               </div>
@@ -101,7 +101,7 @@ export default function VisitChecklist({
                 <div className="w-10 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-300 ${
-                      isComplete ? "bg-green-500" : "bg-indigo-500"
+                      isComplete ? "bg-green-500" : "bg-amber-500"
                     }`}
                     style={{ width: `${progress?.percent ?? 0}%` }}
                   />

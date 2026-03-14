@@ -13,8 +13,8 @@ interface Props {
 
 const variantClasses = {
   default: {
-    section: "bg-white border-gray-200",
-    header: "text-gray-900 hover:bg-gray-50",
+    section: "bg-white border-tiili-border",
+    header: "text-[#1a1a2e] hover:bg-gray-50",
     chevron: "text-gray-400",
   },
   blue: {

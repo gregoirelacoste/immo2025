@@ -36,8 +36,8 @@ export default function InvestmentScorePreview({ calcs }: Props) {
   }
 
   return (
-    <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
-      <h2 className="text-lg font-semibold mb-3 text-gray-900">Score estimé</h2>
+    <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
+      <h2 className="text-lg font-semibold mb-3 text-[#1a1a2e]">Score estimé</h2>
       <div className="flex items-center gap-4">
         <div className="relative shrink-0">
           <svg width="80" height="80" viewBox="0 0 100 100">
@@ -51,7 +51,7 @@ export default function InvestmentScorePreview({ calcs }: Props) {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-xl font-bold text-gray-900">{total}</span>
+            <span className="text-xl font-bold text-[#1a1a2e]">{total}</span>
             <span className="text-[10px] text-gray-400">/100</span>
           </div>
         </div>

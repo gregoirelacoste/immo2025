@@ -7,7 +7,7 @@ interface Props {
 
 export default function PropertyInfoPanel({ property }: Props) {
   return (
-    <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+    <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-4">Le bien</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
         <div>

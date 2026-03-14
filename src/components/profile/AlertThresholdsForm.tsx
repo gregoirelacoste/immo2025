@@ -3,7 +3,7 @@
 import { AlertThresholds, DEFAULT_ALERT_THRESHOLDS } from "@/domains/auth/alert-types";
 
 const inputClass =
-  "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]";
+  "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]";
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
 interface Props {
@@ -37,14 +37,14 @@ export default function AlertThresholdsForm({ thresholds, onChange, matchCount }
     thresholds.target_cities.length > 0;
 
   return (
-    <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+    <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Alertes seuils</h2>
         {hasAny && (
           <button
             type="button"
             onClick={reset}
-            className="text-sm text-indigo-600 hover:text-indigo-800"
+            className="text-sm text-amber-600 hover:text-amber-800"
           >
             Effacer
           </button>
@@ -116,8 +116,8 @@ export default function AlertThresholdsForm({ thresholds, onChange, matchCount }
       </div>
 
       {hasAny && matchCount !== undefined && (
-        <div className="mt-4 p-3 bg-indigo-50 rounded-lg">
-          <p className="text-sm font-medium text-indigo-700">
+        <div className="mt-4 p-3 bg-amber-50 rounded-lg">
+          <p className="text-sm font-medium text-amber-700">
             {matchCount === 0
               ? "Aucun bien ne correspond actuellement a vos criteres."
               : `${matchCount} bien${matchCount > 1 ? "s" : ""} correspond${matchCount > 1 ? "ent" : ""} a vos criteres.`}

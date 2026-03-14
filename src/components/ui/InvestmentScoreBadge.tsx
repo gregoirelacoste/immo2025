@@ -1,5 +1,7 @@
 "use client";
 
+import { getGrade, type GradeLetter } from "@/lib/grade";
+
 interface Props {
   score: number | null;
   size?: "sm" | "md" | "lg";
@@ -23,16 +25,35 @@ function getScoreLabel(score: number): string {
 export default function InvestmentScoreBadge({ score, size = "sm", showLabel = false }: Props) {
   if (score == null) return null;
 
+  const grade = getGrade(score);
+
   const sizeClasses = {
-    sm: "text-xs px-1.5 py-0.5",
-    md: "text-sm px-2 py-1",
-    lg: "text-base px-3 py-1.5",
+    sm: "px-1.5 py-0.5 gap-1",
+    md: "px-2 py-1 gap-1.5",
+    lg: "px-3 py-1.5 gap-2",
+  };
+
+  const letterSize = {
+    sm: "text-[10px]",
+    md: "text-xs",
+    lg: "text-sm",
+  };
+
+  const scoreSize = {
+    sm: "text-xs",
+    md: "text-sm",
+    lg: "text-base",
   };
 
   return (
-    <span className={`inline-flex items-center gap-1 font-bold rounded-full border ${getScoreColor(score)} ${sizeClasses[size]}`}>
-      {score}
-      {showLabel && <span className="font-medium">{getScoreLabel(score)}</span>}
+    <span className={`inline-flex items-center rounded-md ${grade.bg} ${sizeClasses[size]}`}>
+      <span className={`${letterSize[size]} font-extrabold ${grade.color}`}>
+        {grade.letter}
+      </span>
+      <span className={`${scoreSize[size]} font-bold font-[family-name:var(--font-mono)] ${grade.color}`}>
+        {score}
+      </span>
+      {showLabel && <span className={`text-xs font-medium ${grade.color}`}>{getScoreLabel(score)}</span>}
     </span>
   );
 }

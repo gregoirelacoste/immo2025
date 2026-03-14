@@ -51,19 +51,19 @@ export default function MarketDataPanel({ property, marketData, loading }: Props
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <div className="bg-white rounded-lg p-3 border border-emerald-100">
               <p className="text-xs text-gray-500">Prix médian /m²</p>
-              <p className="text-lg font-bold text-gray-900">
+              <p className="text-lg font-bold text-[#1a1a2e]">
                 {formatCurrency(marketData.medianPurchasePricePerM2)}
               </p>
             </div>
             <div className="bg-white rounded-lg p-3 border border-emerald-100">
               <p className="text-xs text-gray-500">Prix moyen /m²</p>
-              <p className="text-lg font-bold text-gray-900">
+              <p className="text-lg font-bold text-[#1a1a2e]">
                 {formatCurrency(marketData.avgPurchasePricePerM2 ?? 0)}
               </p>
             </div>
             <div className="bg-white rounded-lg p-3 border border-emerald-100">
               <p className="text-xs text-gray-500">Votre prix /m²</p>
-              <p className="text-lg font-bold text-gray-900">
+              <p className="text-lg font-bold text-[#1a1a2e]">
                 {propertyPricePerM2 > 0 ? formatCurrency(propertyPricePerM2) : "—"}
               </p>
             </div>
@@ -96,20 +96,20 @@ export default function MarketDataPanel({ property, marketData, loading }: Props
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white rounded-lg p-3 border border-emerald-100">
           <p className="text-xs text-gray-500">Loyer moyen /m²</p>
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-lg font-bold text-[#1a1a2e]">
             {marketData.avgRentPerM2 ? `${marketData.avgRentPerM2.toFixed(1)} €` : "—"}
           </p>
         </div>
         <div className="bg-white rounded-lg p-3 border border-emerald-100">
           <p className="text-xs text-gray-500">Loyer estimé /mois</p>
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-lg font-bold text-[#1a1a2e]">
             {estimatedMonthlyRent ? formatCurrency(estimatedMonthlyRent) : "—"}
           </p>
         </div>
         {property.monthly_rent > 0 ? (
           <div className="bg-white rounded-lg p-3 border border-emerald-100">
             <p className="text-xs text-gray-500">Votre loyer /mois</p>
-            <p className="text-lg font-bold text-gray-900">{formatCurrency(property.monthly_rent)}</p>
+            <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(property.monthly_rent)}</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg p-3 border border-emerald-100">

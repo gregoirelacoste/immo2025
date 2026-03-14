@@ -34,17 +34,17 @@ export default function CompareSelector({
             onClick={() => onToggle(p.id)}
             className={`relative text-left rounded-xl border-2 p-3 transition-all ${
               isSelected
-                ? "border-indigo-500 ring-2 ring-indigo-200 bg-indigo-50"
+                ? "border-amber-500 ring-2 ring-amber-200 bg-amber-50"
                 : isDisabled
-                  ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
-                  : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm cursor-pointer"
+                  ? "border-tiili-border bg-gray-50 opacity-50 cursor-not-allowed"
+                  : "border-tiili-border bg-white hover:border-gray-300 hover:shadow-sm cursor-pointer"
             }`}
           >
             {/* Checkbox indicator */}
             <div
               className={`absolute top-2 right-2 w-5 h-5 rounded-md border-2 flex items-center justify-center ${
                 isSelected
-                  ? "bg-indigo-600 border-indigo-600"
+                  ? "bg-amber-600 border-amber-600"
                   : "border-gray-300 bg-white"
               }`}
             >
@@ -65,7 +65,7 @@ export default function CompareSelector({
 
             {/* Info */}
             <div className="pr-6">
-              <p className="font-semibold text-sm text-gray-900 truncate">
+              <p className="font-semibold text-sm text-[#1a1a2e] truncate">
                 {p.city || "Ville inconnue"}
               </p>
               {p.address && (

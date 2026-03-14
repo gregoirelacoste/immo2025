@@ -55,7 +55,7 @@ export default function StatusSelector({ propertyId, currentStatus }: Props) {
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 left-0">
+        <div className="absolute z-50 mt-1 w-48 bg-white rounded-xl shadow-lg border border-tiili-border py-1 left-0">
           {PROPERTY_STATUSES.map((s) => {
             const c = PROPERTY_STATUS_CONFIG[s];
             const active = s === status;
@@ -69,7 +69,7 @@ export default function StatusSelector({ propertyId, currentStatus }: Props) {
                 <span className={`w-5 text-center ${c.color}`}>{c.icon}</span>
                 <span className={active ? c.color : "text-gray-700"}>{c.label}</span>
                 {active && (
-                  <svg className="w-4 h-4 ml-auto text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-4 h-4 ml-auto text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 )}

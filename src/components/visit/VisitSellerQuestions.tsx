@@ -18,7 +18,7 @@ export default function VisitSellerQuestions({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+      <h2 className="text-sm font-bold text-[#1a1a2e] uppercase tracking-wide">
         Questions au vendeur
       </h2>
 
@@ -29,7 +29,7 @@ export default function VisitSellerQuestions({
         ).length;
 
         return (
-          <div key={cat.key} className="rounded-xl border border-gray-200 bg-white">
+          <div key={cat.key} className="rounded-xl border border-tiili-border bg-white">
             <button
               type="button"
               onClick={() => setOpenCat(isOpen ? null : cat.key)}
@@ -37,7 +37,7 @@ export default function VisitSellerQuestions({
             >
               <div className="flex items-center gap-2">
                 <span className="text-base">{cat.icon}</span>
-                <span className="text-[13px] font-semibold text-gray-900">
+                <span className="text-[13px] font-semibold text-[#1a1a2e]">
                   {cat.label}
                 </span>
               </div>
@@ -78,7 +78,7 @@ export default function VisitSellerQuestions({
                         onAnswer(q.key, { value: e.target.value })
                       }
                       placeholder="Réponse..."
-                      className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full text-sm px-3 py-2 border border-tiili-border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     />
                   </div>
                 ))}

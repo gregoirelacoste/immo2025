@@ -29,7 +29,7 @@ function getScoreRingColor(score: number): string {
 
 function getScoreBg(score: number): string {
   if (score >= 71) return "from-green-50 to-emerald-50 border-green-200";
-  if (score >= 51) return "from-blue-50 to-indigo-50 border-blue-200";
+  if (score >= 51) return "from-blue-50 to-amber-50 border-blue-200";
   if (score >= 31) return "from-amber-50 to-yellow-50 border-amber-200";
   return "from-red-50 to-orange-50 border-red-200";
 }
@@ -66,7 +66,7 @@ function CriteriaBar({ label, value, max }: { label: string; value: number; max:
 
 function SectionTotal({ label, value, max }: { label: string; value: number; max: number }) {
   return (
-    <div className="flex justify-between text-xs font-semibold text-gray-700 mt-1 pt-1 border-t border-gray-200">
+    <div className="flex justify-between text-xs font-semibold text-gray-700 mt-1 pt-1 border-t border-tiili-border">
       <span>{label}</span>
       <span>{value}/{max}</span>
     </div>
@@ -76,7 +76,7 @@ function SectionTotal({ label, value, max }: { label: string; value: number; max
 export default function InvestmentScorePanel({ score, breakdown, status, error, onRefresh, refreshing }: Props) {
   if (status === "running") {
     return (
-      <section className="bg-gray-50 rounded-xl border border-gray-200 p-4 md:p-6">
+      <section className="bg-gray-50 rounded-xl border border-tiili-border p-4 md:p-6">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <Spinner />
           Analyse en cours...
@@ -113,7 +113,7 @@ export default function InvestmentScorePanel({ score, breakdown, status, error, 
   return (
     <section className={`bg-gradient-to-br ${getScoreBg(score)} rounded-xl border p-4 md:p-6`}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">Score d&apos;investissement</h2>
+        <h2 className="text-lg font-semibold text-[#1a1a2e]">Score d&apos;investissement</h2>
         {onRefresh && (
           <button
             onClick={onRefresh}
@@ -138,7 +138,7 @@ export default function InvestmentScorePanel({ score, breakdown, status, error, 
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-bold text-gray-900">{score}</span>
+            <span className="text-3xl font-bold text-[#1a1a2e]">{score}</span>
             <span className="text-xs text-gray-500">{label}</span>
           </div>
         </div>

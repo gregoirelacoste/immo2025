@@ -86,7 +86,7 @@ export const PROPERTY_STATUS_CONFIG: Record<PropertyStatus, { label: string; col
   added:          { label: "Ajouté",          color: "text-gray-600",    bgColor: "bg-gray-100",    icon: "+" },
   contacted:      { label: "Contacté",        color: "text-blue-600",    bgColor: "bg-blue-50",     icon: "\u2709" },
   visit_planned:  { label: "Visite prévue",   color: "text-purple-600",  bgColor: "bg-purple-50",   icon: "\uD83D\uDCC5" },
-  visited:        { label: "Visité",          color: "text-indigo-600",  bgColor: "bg-indigo-50",   icon: "\uD83D\uDC41" },
+  visited:        { label: "Visité",          color: "text-amber-600",  bgColor: "bg-amber-50",   icon: "\uD83D\uDC41" },
   validated:      { label: "Validé",          color: "text-green-600",   bgColor: "bg-green-50",    icon: "\u2713" },
   not_validated:  { label: "Non validé",      color: "text-red-600",     bgColor: "bg-red-50",      icon: "\u2717" },
   offer_sent:     { label: "Offre envoyée",   color: "text-orange-600",  bgColor: "bg-orange-50",   icon: "\uD83D\uDCE8" },

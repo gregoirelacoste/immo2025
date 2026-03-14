@@ -166,7 +166,7 @@ function TextInput({
       value={value?.value ?? ""}
       onChange={(e) => onChange({ value: e.target.value })}
       placeholder="Précisez..."
-      className="mt-1 w-full text-[13px] px-2.5 py-1.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+      className="mt-1 w-full text-[13px] px-2.5 py-1.5 border border-tiili-border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
     />
   );
 }
@@ -186,7 +186,7 @@ function SelectInput({
     <select
       value={value?.value ?? ""}
       onChange={(e) => onChange({ value: e.target.value })}
-      className="mt-1 w-full text-[13px] px-2.5 py-1.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none"
+      className="mt-1 w-full text-[13px] px-2.5 py-1.5 border border-tiili-border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent appearance-none"
     >
       <option value="">Sélectionner...</option>
       {options.map((opt) => (

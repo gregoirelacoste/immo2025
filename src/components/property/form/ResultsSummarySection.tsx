@@ -8,11 +8,11 @@ interface Props {
 
 export default function ResultsSummarySection({ calcs, showAirbnb = true }: Props) {
   return (
-    <section className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-4 md:p-6 text-white">
+    <section className="bg-gradient-to-r from-amber-600 to-purple-600 rounded-xl shadow-lg p-4 md:p-6 text-white">
       <h2 className="text-lg font-semibold mb-4">Résultats estimés</h2>
       <div className={`grid grid-cols-1 ${showAirbnb ? "md:grid-cols-2" : ""} gap-4 md:gap-6`}>
         <div className="bg-white/10 rounded-lg p-4">
-          <h3 className="font-medium mb-3 text-indigo-100">Location classique</h3>
+          <h3 className="font-medium mb-3 text-amber-100">Location classique</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span>Rentabilité brute</span>
@@ -33,7 +33,7 @@ export default function ResultsSummarySection({ calcs, showAirbnb = true }: Prop
 
         {showAirbnb && (
           <div className="bg-white/10 rounded-lg p-4">
-            <h3 className="font-medium mb-3 text-indigo-100">Airbnb</h3>
+            <h3 className="font-medium mb-3 text-amber-100">Airbnb</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Rentabilité brute</span>

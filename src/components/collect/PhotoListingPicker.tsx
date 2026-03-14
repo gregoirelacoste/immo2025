@@ -14,7 +14,7 @@ export default function PhotoListingPicker({ listings, onSelect, onCancel, loadi
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-indigo-700">
+        <span className="text-sm font-semibold text-amber-700">
           {listings.length} annonces détectées
         </span>
         <span className="text-xs text-gray-500">— sélectionnez celle à importer</span>
@@ -27,10 +27,10 @@ export default function PhotoListingPicker({ listings, onSelect, onCancel, loadi
             type="button"
             onClick={() => onSelect(listing)}
             disabled={loading}
-            className="w-full text-left px-3 py-3 rounded-lg border border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 transition-colors disabled:opacity-50"
+            className="w-full text-left px-3 py-3 rounded-lg border border-tiili-border hover:border-amber-400 hover:bg-amber-50 transition-colors disabled:opacity-50"
           >
             <div className="flex items-baseline justify-between gap-2">
-              <span className="font-semibold text-gray-900 text-sm">
+              <span className="font-semibold text-[#1a1a2e] text-sm">
                 {listing.purchase_price
                   ? formatCurrency(listing.purchase_price)
                   : "Prix non indiqué"}
