@@ -1,21 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Property, PropertyCalculations, type PropertyStatus } from "@/domains/property/types";
+import { Property, PropertyCalculations, PROPERTY_STATUS_CONFIG, type PropertyStatus } from "@/domains/property/types";
 import { getGrade, rentaColor, cashflowColor, gradeBorderClass } from "@/lib/grade";
 
 interface Props {
   property: Property;
   calcs: PropertyCalculations;
 }
-
-const STATUS_DOT_COLORS: Record<string, string> = {
-  added: "bg-blue-500",
-  visited: "bg-violet-500",
-  offer_made: "bg-amber-500",
-  won: "bg-green-500",
-  invalid: "bg-red-500",
-};
 
 /** Format number with narrow non-breaking spaces */
 function fmt(n: number): string {
@@ -57,7 +49,7 @@ export default function PropertyCard({ property: p, calcs: c }: Props) {
         {/* Row 1: City + Score badge */}
         <div className="flex justify-between items-center mb-px">
           <div className="flex items-center gap-1.5">
-            <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${STATUS_DOT_COLORS[status] || "bg-gray-400"}`} />
+            <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${PROPERTY_STATUS_CONFIG[status]?.dotColor || "bg-gray-400"}`} />
             <span className="text-[15px] font-extrabold text-[#1a1a2e] tracking-tight truncate">
               {p.city}
             </span>

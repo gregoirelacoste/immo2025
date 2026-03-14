@@ -11,7 +11,7 @@ import type { MarketData } from "@/domains/market/types";
 import type { SocioEconomicData } from "@/domains/enrich/socioeconomic-types";
 import type { InvestmentScoreBreakdown } from "@/domains/enrich/types";
 import { parseAmenities, AMENITY_LABELS, AMENITY_ICONS } from "@/domains/property/amenities";
-import { getGrade, rentaColor, cashflowColor } from "@/lib/grade";
+import { getGrade, rentaColor, cashflowColor, getVerdict, verdictColor } from "@/lib/grade";
 import Link from "next/link";
 import PropertyHeader from "./PropertyHeader";
 import InvestmentScorePanel from "./InvestmentScorePanel";
@@ -77,16 +77,14 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
     router.refresh();
   }
 
+  const grade = getGrade(property.investment_score);
+
   return (
     <div className="space-y-0 pb-safe">
       <PropertyHeader property={property} isOwner={isOwner} onDelete={handleDelete} />
 
       {/* Hero KPIs — tiili style */}
       <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6 mb-4">
-        {(() => {
-          const grade = getGrade(property.investment_score);
-          return (
-            <>
               {/* Header: City + Score circle */}
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -145,17 +143,11 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
 
               {/* Quick verdict bar */}
               <div className="flex gap-1">
-                {[
-                  { label: "Prix", val: property.purchase_price < 150000 ? 1 : property.purchase_price < 200000 ? 0 : -1 },
-                  { label: "Renta", val: calcs.net_yield >= 7 ? 1 : calcs.net_yield >= 5 ? 0 : -1 },
-                  { label: "Cashflow", val: calcs.monthly_cashflow > 50 ? 1 : calcs.monthly_cashflow >= 0 ? 0 : -1 },
-                  { label: "Risque", val: (property.investment_score ?? 0) > 65 ? 1 : (property.investment_score ?? 0) > 45 ? 0 : -1 },
-                ].map(({ label, val }) => {
-                  const color = val === 1 ? "text-green-600" : val === 0 ? "text-amber-600" : "text-red-600";
-                  const bg = val === 1 ? "bg-green-50" : val === 0 ? "bg-amber-50" : "bg-red-50";
+                {getVerdict(property.purchase_price, calcs.net_yield, calcs.monthly_cashflow, property.investment_score).map(({ label, val }) => {
+                  const vc = verdictColor(val);
                   return (
-                    <div key={label} className={`flex-1 text-center py-1.5 rounded-lg ${bg}`}>
-                      <div className={`text-xs font-bold ${color}`}>
+                    <div key={label} className={`flex-1 text-center py-1.5 rounded-lg ${vc.bg}`}>
+                      <div className={`text-xs font-bold ${vc.text}`}>
                         {val === 1 ? "\u2713" : val === 0 ? "~" : "\u2717"}
                       </div>
                       <div className="text-[8px] font-semibold text-[#9ca3af] uppercase tracking-wide mt-0.5">{label}</div>
@@ -163,9 +155,6 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
                   );
                 })}
               </div>
-            </>
-          );
-        })()}
       </section>
 
       {/* Sticky header (visible on scroll) */}
