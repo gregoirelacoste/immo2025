@@ -291,7 +291,7 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
       {properties.length === 0 ? (
         <div className="bg-white rounded-xl border border-tiili-border p-12 text-center">
           <p className="text-[#9ca3af] text-lg mb-4">
-            Aucun bien enregistre pour le moment.
+            Aucun bien enregistré pour le moment.
           </p>
           <Link
             href="/property/new"
@@ -324,9 +324,6 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
                 key={property.id}
                 property={property}
                 calcs={calcs}
-                currentUserId={currentUserId}
-                onDelete={handleDelete}
-                onToggleFavorite={handleToggleFavorite}
               />
             ))}
           </div>

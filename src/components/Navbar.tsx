@@ -32,10 +32,7 @@ export default function Navbar() {
     setCapturing(true);
     try {
       const result = await captureStreetPhoto();
-      if (!result) {
-        setCapturing(false);
-        return;
-      }
+      if (!result) return;
 
       const formData = new FormData();
       formData.set("file", result.file);

@@ -35,7 +35,7 @@ export default function SortBar({ sortKey, sortAsc, onSort }: Props) {
       <select
         value={sortKey}
         onChange={(e) => onSort(e.target.value as SortKey)}
-        className="flex-1 px-3 py-1.5 rounded-md text-xs border border-tiili-border bg-tiili-surface text-gray-700 min-h-[32px] font-medium"
+        className="flex-1 px-3 py-1.5 rounded-md text-xs border border-tiili-border bg-tiili-surface text-gray-700 min-h-[44px] font-medium"
       >
         {SORT_OPTIONS.map((opt) => (
           <option key={opt.key} value={opt.key}>
@@ -46,7 +46,7 @@ export default function SortBar({ sortKey, sortAsc, onSort }: Props) {
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className="px-2 py-1.5 rounded-md border border-tiili-border bg-tiili-surface text-gray-600 text-xs min-h-[32px]"
+        className="px-2 py-1.5 rounded-md border border-tiili-border bg-tiili-surface text-gray-600 text-xs min-h-[44px]"
         title={sortAsc ? "Tri croissant" : "Tri décroissant"}
       >
         {sortAsc ? "\u2191" : "\u2193"}

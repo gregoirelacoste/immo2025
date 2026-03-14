@@ -9,6 +9,7 @@ import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
 import type { SocioEconomicData } from "@/domains/enrich/socioeconomic-types";
+import type { InvestmentScoreBreakdown } from "@/domains/enrich/types";
 import { parseAmenities, AMENITY_LABELS, AMENITY_ICONS } from "@/domains/property/amenities";
 import { getGrade, rentaColor, cashflowColor } from "@/lib/grade";
 import Link from "next/link";
@@ -49,8 +50,7 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
   const activeTab = (searchParams.get("tab") as TabId) || "financier";
 
   const marketData = parseJson<MarketData | null>(property.market_data, null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const scoreBreakdown = parseJson<any>(property.score_breakdown, null);
+  const scoreBreakdown = parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null);
   const socioData = parseJson<SocioEconomicData | null>(property.socioeconomic_data, null);
   const amenities = parseAmenities(property.amenities);
   const images: string[] = parseJson(property.image_urls, []);

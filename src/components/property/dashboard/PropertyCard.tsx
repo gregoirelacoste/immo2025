@@ -2,15 +2,11 @@
 
 import Link from "next/link";
 import { Property, PropertyCalculations, type PropertyStatus } from "@/domains/property/types";
-import { formatCurrency, formatPercent } from "@/lib/calculations";
 import { getGrade, rentaColor, cashflowColor, gradeBorderClass } from "@/lib/grade";
 
 interface Props {
   property: Property;
   calcs: PropertyCalculations;
-  currentUserId?: string;
-  onDelete: (e: React.MouseEvent, id: string) => void;
-  onToggleFavorite?: (e: React.MouseEvent, id: string) => void;
 }
 
 const STATUS_DOT_COLORS: Record<string, string> = {
@@ -39,7 +35,7 @@ function timeAgo(dateStr: string): string {
   return `${diffD}j`;
 }
 
-export default function PropertyCard({ property: p, calcs: c, currentUserId, onDelete, onToggleFavorite }: Props) {
+export default function PropertyCard({ property: p, calcs: c }: Props) {
   const grade = getGrade(p.investment_score);
   const status = (p.property_status || "added") as PropertyStatus;
 

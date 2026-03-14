@@ -1,6 +1,6 @@
 "use client";
 
-import { getGrade, type GradeLetter } from "@/lib/grade";
+import { getGrade } from "@/lib/grade";
 
 interface Props {
   score: number | null;
