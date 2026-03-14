@@ -22,7 +22,7 @@ export default function ClassicRentalSection({ form, onChange, calcs, prefillHin
   return (
     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-4">Location classique</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className={labelClass}>Loyer mensuel</label>
           {readOnly ? (
@@ -42,6 +42,17 @@ export default function ClassicRentalSection({ form, onChange, calcs, prefillHin
             <>
               <input type="number" inputMode="numeric" value={form.condo_charges || ""} onChange={(e) => onChange("condo_charges", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="100" />
               {prefillHint("condo_charges")}
+            </>
+          )}
+        </div>
+        <div>
+          <label className={labelClass}>Taxe foncière / an{!readOnly && <FieldTooltip text="Taxe foncière annuelle. Consultez l'avis d'imposition du vendeur ou estimez ~1 mois de loyer." />}</label>
+          {readOnly ? (
+            <p className={valueClass}>{form.property_tax > 0 ? formatCurrency(form.property_tax) : "—"}</p>
+          ) : (
+            <>
+              <input type="number" inputMode="numeric" value={form.property_tax || ""} onChange={(e) => onChange("property_tax", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="800" />
+              {prefillHint("property_tax")}
             </>
           )}
         </div>
