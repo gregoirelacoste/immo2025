@@ -3,7 +3,8 @@
 import { signIn, auth } from "@/lib/auth";
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
-import { getUserByEmail, createUser } from "@/domains/auth/repository";
+import { getUserByEmail, getUserById, createUser } from "@/domains/auth/repository";
+import type { UserRole } from "@/domains/auth/types";
 
 export async function requireUserId(): Promise<string> {
   const session = await auth();
@@ -14,6 +15,25 @@ export async function requireUserId(): Promise<string> {
 export async function getOptionalUserId(): Promise<string> {
   const session = await auth();
   return session?.user?.id || "";
+}
+
+export async function getUserRole(): Promise<UserRole> {
+  const session = await auth();
+  if (!session?.user?.id) return "user";
+  const user = await getUserById(session.user.id);
+  return user?.role || "user";
+}
+
+export async function requireAdmin(): Promise<string> {
+  const userId = await requireUserId();
+  const user = await getUserById(userId);
+  if (user?.role !== "admin") throw new Error("Accès réservé aux administrateurs");
+  return userId;
+}
+
+export async function isAdmin(): Promise<boolean> {
+  const role = await getUserRole();
+  return role === "admin";
 }
 
 export async function loginWithCredentials(

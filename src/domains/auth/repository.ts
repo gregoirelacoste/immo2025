@@ -58,7 +58,7 @@ export async function upsertOAuthUser(user: {
   const id = await createUser({ ...user, password_hash: "" });
   return {
     id, email: user.email, name: user.name, password_hash: "",
-    plan: "free" as const, stripe_customer_id: "", image: user.image,
+    plan: "free" as const, role: "user" as const, stripe_customer_id: "", image: user.image,
     created_at: new Date().toISOString(),
   };
 }

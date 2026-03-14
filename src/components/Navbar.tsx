@@ -52,6 +52,8 @@ export default function Navbar() {
     }
   };
 
+  const userRole = (session?.user as Record<string, unknown> | undefined)?.role as string | undefined;
+  const isUserAdmin = userRole === "admin";
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
   const isVisitMode = /^\/property\/[^/]+\/visit/.test(pathname);
 
@@ -116,10 +118,24 @@ export default function Navbar() {
           {drawerLink("/dashboard", "Dashboard")}
           {drawerLink("/property/new", "+ Nouveau bien")}
           <div className="border-t border-gray-100 my-1" />
-          {drawerLink("/localities", "Localites")}
           {drawerLink("/compare", "Comparer")}
           {drawerLink("/portfolio", "Patrimoine")}
           {session?.user && drawerLink("/profile", "Profil")}
+          {isUserAdmin && (
+            <>
+              <div className="border-t border-gray-100 my-1" />
+              <Link
+                href="/admin"
+                className={`block px-6 py-3 text-sm font-medium transition-colors ${
+                  isActive("/admin")
+                    ? "text-red-600 bg-red-50"
+                    : "text-red-600 hover:bg-red-50"
+                }`}
+              >
+                Admin
+              </Link>
+            </>
+          )}
           <div className="border-t border-gray-100 my-1" />
           {session?.user ? (
             <button

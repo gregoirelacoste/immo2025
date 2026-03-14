@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
-import { getUserByEmail, upsertOAuthUser } from "@/domains/auth/repository";
+import { getUserByEmail, getUserById, upsertOAuthUser } from "@/domains/auth/repository";
 import type { Provider } from "next-auth/providers";
 
 // Build providers list dynamically — only add Google if configured
@@ -57,15 +57,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
+        // Fetch role from DB on sign-in
+        const dbUser = await getUserById(user.id as string);
+        token.role = dbUser?.role || "user";
+      }
+      // Refresh role periodically (on session update)
+      if (trigger === "update" && token.id) {
+        const dbUser = await getUserById(token.id as string);
+        token.role = dbUser?.role || "user";
       }
       return token;
     },
     async session({ session, token }) {
       if (token.id) {
         session.user.id = token.id as string;
+      }
+      if (token.role) {
+        (session.user as unknown as Record<string, unknown>).role = token.role;
       }
       return session;
     },

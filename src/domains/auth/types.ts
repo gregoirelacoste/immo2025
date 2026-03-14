@@ -1,9 +1,12 @@
+export type UserRole = "user" | "premium" | "admin";
+
 export interface User {
   id: string;
   email: string;
   name: string;
   password_hash: string;
   plan: "free" | "premium";
+  role: UserRole;
   stripe_customer_id: string;
   image: string;
   created_at: string;
