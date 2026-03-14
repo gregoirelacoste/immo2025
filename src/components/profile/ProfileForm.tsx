@@ -10,7 +10,7 @@ import BorrowingCapacity from "./BorrowingCapacity";
 import AlertThresholdsForm from "./AlertThresholdsForm";
 
 const inputClass =
-  "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]";
+  "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]";
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
 interface Props {
@@ -92,7 +92,7 @@ export default function ProfileForm({ profile }: Props) {
   return (
     <div className="space-y-6">
       {/* Section 1: Profil financier */}
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+      <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
         <h2 className="text-lg font-semibold mb-4">Profil financier</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -141,7 +141,7 @@ export default function ProfileForm({ profile }: Props) {
       </section>
 
       {/* Section 2: Préférences de recherche */}
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+      <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
         <h2 className="text-lg font-semibold mb-4">Préférences de recherche</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
@@ -173,12 +173,12 @@ export default function ProfileForm({ profile }: Props) {
       </section>
 
       {/* Section 3: Inputs par défaut */}
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+      <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Valeurs par défaut</h2>
           <button
             type="button" onClick={resetDefaults}
-            className="text-sm text-indigo-600 hover:text-indigo-800"
+            className="text-sm text-amber-600 hover:text-amber-800"
           >
             Réinitialiser
           </button>
@@ -207,7 +207,7 @@ export default function ProfileForm({ profile }: Props) {
       </section>
 
       {/* Section 4: Pondération du score */}
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+      <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
         <h2 className="text-lg font-semibold mb-4">Pondération du score</h2>
         <p className="text-sm text-gray-500 mb-4">
           Ajustez l&apos;importance de chaque critère dans le score d&apos;investissement (1 = normal, 2 = double, 0 = ignoré).
@@ -246,7 +246,7 @@ export default function ProfileForm({ profile }: Props) {
         )}
         <button
           type="button" onClick={handleSave} disabled={saving}
-          className="px-8 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[48px] text-base"
+          className="px-8 py-3 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 min-h-[48px] text-base"
         >
           {saving ? "Enregistrement..." : "Enregistrer"}
         </button>

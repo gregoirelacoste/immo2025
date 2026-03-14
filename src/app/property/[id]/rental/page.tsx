@@ -35,7 +35,7 @@ export default async function RentalPage({
   const calcs = calculateAll(property);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f4f3ef]">
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         <div className="flex items-center gap-3 mb-6">
@@ -48,7 +48,7 @@ export default async function RentalPage({
             </svg>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Suivi locatif</h1>
+            <h1 className="text-2xl font-bold text-[#1a1a2e]">Suivi locatif</h1>
             <p className="text-sm text-gray-500">
               {property.address ? `${property.address}, ` : ""}{property.city}
             </p>

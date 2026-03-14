@@ -14,9 +14,9 @@ interface Props {
 export default function ProfileClient({ user }: Props) {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Profil</h1>
+      <h1 className="text-2xl font-bold text-[#1a1a2e]">Profil</h1>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-6">
         <div className="flex items-center gap-4 mb-6">
           {user.image ? (
             <img
@@ -25,15 +25,15 @@ export default function ProfileClient({ user }: Props) {
               className="w-16 h-16 rounded-full"
             />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center">
-              <span className="text-2xl font-bold text-indigo-600">
+            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
+              <span className="text-2xl font-bold text-amber-600">
                 {(user.name || user.email || "?").charAt(0).toUpperCase()}
               </span>
             </div>
           )}
           <div>
             {user.name && (
-              <p className="text-lg font-semibold text-gray-900">{user.name}</p>
+              <p className="text-lg font-semibold text-[#1a1a2e]">{user.name}</p>
             )}
             {user.email && (
               <p className="text-sm text-gray-500">{user.email}</p>

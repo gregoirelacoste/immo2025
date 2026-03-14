@@ -83,7 +83,7 @@ export default function SmartImportBar() {
     mode === "url" ? "Importer" : mode === "text" ? "Analyser" : "Ajouter";
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-5 mb-6">
+    <div className="bg-white rounded-xl border border-tiili-border p-4 md:p-5 mb-6">
       <div className="flex gap-2 items-start">
         <div className="flex-1 relative">
           <textarea
@@ -93,7 +93,7 @@ export default function SmartImportBar() {
             onKeyDown={handleKeyDown}
             placeholder="Collez un lien d'annonce ou le texte d'une annonce..."
             rows={1}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none overflow-hidden min-h-[44px] leading-relaxed"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none overflow-hidden min-h-[44px] leading-relaxed"
             disabled={loading}
           />
           {modeLabel && (
@@ -106,7 +106,7 @@ export default function SmartImportBar() {
           type="button"
           onClick={handleSubmit}
           disabled={loading || !value.trim()}
-          className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[44px] min-w-[100px] shrink-0 flex items-center justify-center gap-2"
+          className="px-5 py-2.5 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 min-h-[44px] min-w-[100px] shrink-0 flex items-center justify-center gap-2"
         >
           {loading ? <><Spinner /> Analyse...</> : buttonLabel}
         </button>

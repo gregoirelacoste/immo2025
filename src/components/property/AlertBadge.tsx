@@ -45,7 +45,7 @@ export default function AlertBadge({ alertResult }: Props) {
       </button>
 
       {showTooltip && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-3 z-50">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-white rounded-lg shadow-lg border border-tiili-border p-3 z-50">
           <p className="text-xs font-semibold text-gray-700 mb-2">Alertes seuils</p>
           <div className="space-y-1.5">
             {alertResult.alerts.map((alert) => (

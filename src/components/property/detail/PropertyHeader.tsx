@@ -40,7 +40,7 @@ export default function PropertyHeader({ property, isOwner, onDelete }: Props) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold text-gray-900 truncate">{property.city}</h1>
+        <h1 className="text-2xl font-bold text-[#1a1a2e] truncate">{property.city}</h1>
         {property.address && (
           <p className="text-gray-500 text-sm truncate">{property.address}</p>
         )}
@@ -53,7 +53,7 @@ export default function PropertyHeader({ property, isOwner, onDelete }: Props) {
             href={property.source_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-indigo-500 hover:underline mt-0.5 inline-block"
+            className="text-xs text-amber-500 hover:underline mt-0.5 inline-block"
           >
             Voir l&apos;annonce source
           </a>
@@ -74,7 +74,7 @@ export default function PropertyHeader({ property, isOwner, onDelete }: Props) {
           <>
             <Link
               href={`/property/${property.id}/edit`}
-              className="px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 min-h-[44px] flex items-center"
+              className="px-4 py-2.5 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700 min-h-[44px] flex items-center"
             >
               Modifier
             </Link>

@@ -77,7 +77,7 @@ export default function AppVersion() {
       {updateAvailable && !updating && (
         <button
           onClick={handleUpdate}
-          className="text-[10px] font-medium text-indigo-500 hover:text-indigo-700 animate-pulse"
+          className="text-[10px] font-medium text-amber-500 hover:text-amber-700 animate-pulse"
         >
           Mise à jour disponible
         </button>

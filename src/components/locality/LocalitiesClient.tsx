@@ -46,7 +46,7 @@ export default function LocalitiesClient({ localities, dataMap }: Props) {
       {/* Add locality button */}
       <button
         onClick={() => { setShowAddForm(!showAddForm); clearMessages(); }}
-        className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+        className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
       >
         {showAddForm ? "Annuler" : "+ Ajouter une localité"}
       </button>
@@ -250,10 +250,10 @@ function AddLocalityForm({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
+    <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 space-y-4">
       {/* Prompt generator */}
-      <div className="bg-indigo-50 rounded-lg p-3 space-y-2">
-        <p className="text-xs font-medium text-indigo-800">
+      <div className="bg-amber-50 rounded-lg p-3 space-y-2">
+        <p className="text-xs font-medium text-amber-800">
           Générer les données via IA (Gemini, ChatGPT...)
         </p>
         <div className="flex gap-2">
@@ -262,18 +262,18 @@ function AddLocalityForm({
             value={sector}
             onChange={(e) => setSector(e.target.value)}
             placeholder="ex: Albi, Toulouse centre, Tarn..."
-            className="flex-1 px-3 py-2 border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+            className="flex-1 px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
           />
           <button
             type="button"
             disabled={!sector.trim()}
             onClick={() => handleCopy(buildPrompt(sector.trim()), "prompt")}
-            className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 whitespace-nowrap"
+            className="px-3 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50 whitespace-nowrap"
           >
             {copied === "prompt" ? "Copié !" : "Copier le prompt"}
           </button>
         </div>
-        <p className="text-xs text-indigo-600">
+        <p className="text-xs text-amber-600">
           Copiez le prompt, collez-le dans Gemini/ChatGPT, puis collez le résultat JSON ci-dessous.
         </p>
       </div>
@@ -286,7 +286,7 @@ function AddLocalityForm({
             <button
               type="button"
               onClick={() => handleCopy(ADD_LOCALITY_EXAMPLE, "example")}
-              className="text-xs text-indigo-600 hover:underline"
+              className="text-xs text-amber-600 hover:underline"
             >
               {copied === "example" ? "Copié !" : "Copier l'exemple"}
             </button>
@@ -296,14 +296,14 @@ function AddLocalityForm({
             onChange={(e) => setJsonText(e.target.value)}
             required
             rows={12}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
             placeholder={ADD_LOCALITY_EXAMPLE}
           />
         </div>
         <button
           type="submit"
           disabled={saving}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+          className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
         >
           {saving ? "Import..." : "Importer"}
         </button>
@@ -350,13 +350,13 @@ function LocalityNode({
 
   return (
     <div style={{ marginLeft: depth * 16 }}>
-      <div className="bg-white rounded-lg border border-gray-200 p-3">
+      <div className="bg-white rounded-lg border border-tiili-border p-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
               {TYPE_LABELS[locality.type]}
             </span>
-            <span className="font-medium text-gray-900 text-sm truncate">{locality.name}</span>
+            <span className="font-medium text-[#1a1a2e] text-sm truncate">{locality.name}</span>
             {locality.code && (
               <span className="text-xs text-gray-400">{locality.code}</span>
             )}
@@ -370,13 +370,13 @@ function LocalityNode({
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setExpandedLocality(isExpanded ? null : locality.id)}
-              className="px-2 py-1 text-xs text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded"
+              className="px-2 py-1 text-xs text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded"
             >
               {isExpanded ? "Fermer" : "Détails"}
             </button>
             <button
               onClick={() => setShowDataImport(showDataImport === locality.id ? null : locality.id)}
-              className="px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded font-medium"
+              className="px-2 py-1 text-xs text-amber-600 hover:bg-amber-50 rounded font-medium"
             >
               + Données
             </button>
@@ -501,7 +501,7 @@ function DataImportForm({
           value={validFrom}
           onChange={(e) => setValidFrom(e.target.value)}
           required
-          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
         />
       </div>
       <div>
@@ -510,7 +510,7 @@ function DataImportForm({
           <button
             type="button"
             onClick={() => setJsonText(EXAMPLE_JSON)}
-            className="ml-2 text-indigo-600 hover:underline"
+            className="ml-2 text-amber-600 hover:underline"
           >
             Insérer exemple
           </button>
@@ -520,14 +520,14 @@ function DataImportForm({
           onChange={(e) => setJsonText(e.target.value)}
           required
           rows={8}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
           placeholder={EXAMPLE_JSON}
         />
       </div>
       <button
         type="submit"
         disabled={saving}
-        className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+        className="px-4 py-1.5 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
       >
         {saving ? "Import..." : "Importer"}
       </button>
@@ -560,7 +560,7 @@ function SnapshotRow({
         <div className="flex items-center gap-1">
           <button
             onClick={() => setShowData(!showData)}
-            className="px-2 py-0.5 text-xs text-gray-600 hover:text-indigo-600 rounded"
+            className="px-2 py-0.5 text-xs text-gray-600 hover:text-amber-600 rounded"
           >
             {showData ? "Masquer" : "Voir"}
           </button>

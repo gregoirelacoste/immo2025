@@ -52,32 +52,32 @@ export default function RentalTracker({ propertyId, entries, summary, calcs }: P
   }
 
   const inputClass =
-    "w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm min-h-[44px]";
+    "w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm min-h-[44px]";
 
   return (
     <div className="space-y-6">
       {/* Summary cards */}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-4">
             <p className="text-xs text-gray-500 mb-1">Revenus totaux</p>
-            <p className="text-lg font-bold text-gray-900">
+            <p className="text-lg font-bold text-[#1a1a2e]">
               {formatCurrency(summary.total_rent_received)}
             </p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-4">
             <p className="text-xs text-gray-500 mb-1">Charges totales</p>
-            <p className="text-lg font-bold text-gray-900">
+            <p className="text-lg font-bold text-[#1a1a2e]">
               {formatCurrency(summary.total_charges_paid)}
             </p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-4">
             <p className="text-xs text-gray-500 mb-1">Rendement reel</p>
             <p className={`text-lg font-bold ${summary.yield_delta >= 0 ? "text-green-600" : "text-red-600"}`}>
               {summary.actual_net_yield.toFixed(2)} %
             </p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-4">
             <p className="text-xs text-gray-500 mb-1">vs Previsionnel</p>
             <p className={`text-lg font-bold ${summary.yield_delta >= 0 ? "text-green-600" : "text-red-600"}`}>
               {summary.yield_delta >= 0 ? "+" : ""}{summary.yield_delta.toFixed(2)} %
@@ -91,32 +91,32 @@ export default function RentalTracker({ propertyId, entries, summary, calcs }: P
 
       {/* Predicted yield from calculations (always shown) */}
       {!summary && (
-        <div className="bg-indigo-50 rounded-xl p-4">
-          <p className="text-sm text-indigo-700">
+        <div className="bg-amber-50 rounded-xl p-4">
+          <p className="text-sm text-amber-700">
             Rendement net previsionnel: <strong>{calcs.net_yield.toFixed(2)} %</strong> |
             Cash-flow mensuel: <strong>{formatCurrency(calcs.monthly_cashflow)}</strong>
           </p>
-          <p className="text-xs text-indigo-500 mt-1">
+          <p className="text-xs text-amber-500 mt-1">
             Ajoutez vos premieres donnees de suivi pour comparer avec le previsionnel.
           </p>
         </div>
       )}
 
       {/* Add entry button + form */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Suivi mensuel</h2>
           <button
             type="button"
             onClick={() => setShowForm(!showForm)}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors min-h-[44px]"
+            className="px-4 py-2 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 transition-colors min-h-[44px]"
           >
             {showForm ? "Annuler" : "+ Ajouter un mois"}
           </button>
         </div>
 
         {showForm && (
-          <div className="border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50">
+          <div className="border border-tiili-border rounded-lg p-4 mb-4 bg-gray-50">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mois</label>
@@ -176,7 +176,7 @@ export default function RentalTracker({ propertyId, entries, summary, calcs }: P
               type="button"
               onClick={handleSubmit}
               disabled={saving || !month}
-              className="px-6 py-2.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[44px]"
+              className="px-6 py-2.5 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 min-h-[44px]"
             >
               {saving ? "Enregistrement..." : "Enregistrer"}
             </button>
@@ -192,7 +192,7 @@ export default function RentalTracker({ propertyId, entries, summary, calcs }: P
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
+                <tr className="border-b border-tiili-border">
                   <th className="text-left py-2 px-2 font-medium text-gray-600">Mois</th>
                   <th className="text-right py-2 px-2 font-medium text-gray-600">Loyer</th>
                   <th className="text-right py-2 px-2 font-medium text-gray-600">Charges</th>

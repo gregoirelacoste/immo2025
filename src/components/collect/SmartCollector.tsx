@@ -411,7 +411,7 @@ export default function SmartCollector({
   return (
     <div
       className={`bg-white rounded-xl shadow-sm border p-4 md:p-5 transition-colors ${
-        isDragOver ? "border-indigo-400 border-dashed border-2 bg-indigo-50" : "border-gray-200"
+        isDragOver ? "border-amber-400 border-dashed border-2 bg-amber-50" : "border-tiili-border"
       }`}
       onPaste={handlePaste}
       onDragOver={handleDragOver}
@@ -428,23 +428,23 @@ export default function SmartCollector({
             disabled={loading}
             className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors min-h-[40px] ${
               activeMode === tab.mode
-                ? "bg-white text-indigo-700 shadow-sm"
+                ? "bg-white text-amber-700 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
             {tab.icon} {tab.label}
             {tab.mode === "photo" && photos.length > 0 && (
-              <span className="ml-1 text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">
+              <span className="ml-1 text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">
                 {photos.length}
               </span>
             )}
             {tab.mode === "url" && collectUrls.length > 0 && (
-              <span className="ml-1 text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">
+              <span className="ml-1 text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">
                 {collectUrls.length}
               </span>
             )}
             {tab.mode === "text" && collectTexts.length > 0 && (
-              <span className="ml-1 text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">
+              <span className="ml-1 text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">
                 {collectTexts.length}
               </span>
             )}
@@ -454,7 +454,7 @@ export default function SmartCollector({
 
       {/* Drag overlay */}
       {isDragOver && (
-        <div className="text-center py-6 text-indigo-500 font-medium text-sm">
+        <div className="text-center py-6 text-amber-500 font-medium text-sm">
           Déposez votre image ici
         </div>
       )}
@@ -472,13 +472,13 @@ export default function SmartCollector({
                 onKeyDown={handleUrlKeyDown}
                 placeholder="https://www.leboncoin.fr/ad/ventes_immobilieres/..."
                 disabled={loading}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-indigo-500 focus:border-transparent min-h-[44px]"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-amber-500 focus:border-transparent min-h-[44px]"
               />
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading || !urlValue.trim()}
-                className="w-full px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[44px] flex items-center justify-center gap-2"
+                className="w-full px-5 py-2.5 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 min-h-[44px] flex items-center justify-center gap-2"
               >
                 {loading ? <><Spinner /> Import...</> : buttonLabel}
               </button>
@@ -494,12 +494,12 @@ export default function SmartCollector({
                         key={i}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
                           isSource
-                            ? "bg-indigo-50 border border-indigo-200"
-                            : "bg-gray-50 border border-gray-200"
+                            ? "bg-amber-50 border border-amber-200"
+                            : "bg-gray-50 border border-tiili-border"
                         }`}
                       >
                         {isSource && (
-                          <span className="shrink-0 text-[10px] font-semibold bg-indigo-600 text-white px-1.5 py-0.5 rounded">
+                          <span className="shrink-0 text-[10px] font-semibold bg-amber-600 text-white px-1.5 py-0.5 rounded">
                             SOURCE
                           </span>
                         )}
@@ -508,7 +508,7 @@ export default function SmartCollector({
                           target="_blank"
                           rel="noopener noreferrer"
                           className={`flex-1 truncate hover:underline ${
-                            isSource ? "text-indigo-700 font-medium" : "text-gray-600"
+                            isSource ? "text-amber-700 font-medium" : "text-gray-600"
                           }`}
                         >
                           {url.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60)}
@@ -545,13 +545,13 @@ export default function SmartCollector({
                 placeholder="Collez le texte d'une annonce immobilière..."
                 rows={compact ? 2 : 4}
                 disabled={loading}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none overflow-hidden min-h-[44px] leading-relaxed"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none overflow-hidden min-h-[44px] leading-relaxed"
               />
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading || !textValue.trim()}
-                className="w-full px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[44px] flex items-center justify-center gap-2"
+                className="w-full px-5 py-2.5 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 min-h-[44px] flex items-center justify-center gap-2"
               >
                 {loading ? <><Spinner /> Analyse...</> : buttonLabel}
               </button>
@@ -563,7 +563,7 @@ export default function SmartCollector({
                   {collectTexts.map((text, i) => (
                     <div
                       key={i}
-                      className="flex items-start gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm"
+                      className="flex items-start gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-tiili-border text-sm"
                     >
                       <p className="flex-1 text-gray-600 line-clamp-2 text-xs leading-relaxed">
                         {text.slice(0, 150)}{text.length > 150 ? "…" : ""}

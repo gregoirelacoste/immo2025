@@ -17,7 +17,7 @@ const paddingClasses: Record<Padding, string> = {
 export default function Card({ children, className = "", padding = "md" }: CardProps) {
   return (
     <section
-      className={`bg-white rounded-xl shadow-sm border border-gray-200 ${paddingClasses[padding]} ${className}`}
+      className={`bg-white rounded-xl shadow-sm border border-tiili-border ${paddingClasses[padding]} ${className}`}
     >
       {children}
     </section>

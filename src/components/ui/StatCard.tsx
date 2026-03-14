@@ -9,14 +9,14 @@ interface StatCardProps {
 const colorClasses: Record<Color, string> = {
   green: "text-green-600",
   red: "text-red-600",
-  default: "text-gray-900",
+  default: "text-[#1a1a2e]",
 };
 
 export default function StatCard({ label, value, color = "default" }: StatCardProps) {
   return (
-    <div className="bg-gray-50 rounded-lg p-3">
-      <div className="text-xs text-gray-500 mb-1">{label}</div>
-      <div className={`text-lg font-bold ${colorClasses[color]}`}>{value}</div>
+    <div className="bg-tiili-surface rounded-lg p-3">
+      <div className="text-[10px] text-tiili-muted uppercase tracking-wide font-semibold mb-1">{label}</div>
+      <div className={`text-lg font-bold font-[family-name:var(--font-mono)] tracking-tight ${colorClasses[color]}`}>{value}</div>
     </div>
   );
 }

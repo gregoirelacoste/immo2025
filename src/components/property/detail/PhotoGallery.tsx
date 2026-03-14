@@ -48,7 +48,7 @@ export default function PhotoGallery({ photos, scrapedImages, isOwner, propertyI
   if (allPhotos.length === 0 && !isOwner) return null;
 
   return (
-    <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+    <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold">
           Photos ({allPhotos.length})
@@ -58,10 +58,10 @@ export default function PhotoGallery({ photos, scrapedImages, isOwner, propertyI
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
           >
             {uploading ? (
-              <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
             ) : (
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -82,7 +82,7 @@ export default function PhotoGallery({ photos, scrapedImages, isOwner, propertyI
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="mt-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+            className="mt-2 text-sm text-amber-600 hover:text-amber-700 font-medium"
           >
             Ajouter une photo
           </button>

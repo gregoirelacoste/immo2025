@@ -52,7 +52,7 @@ export default function NumberInput({
           required={required}
           min={min}
           max={max}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-h-[44px]"
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-amber-500 focus:border-amber-500 font-[family-name:var(--font-mono)] min-h-[44px]"
         />
         {suffix && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">

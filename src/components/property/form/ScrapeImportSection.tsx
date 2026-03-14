@@ -39,10 +39,10 @@ export default function ScrapeImportSection({ onScrapeError }: Props) {
   }
 
   const inputClass =
-    "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]";
+    "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]";
 
   return (
-    <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+    <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-2">Importer depuis une annonce</h2>
       <p className="text-sm text-gray-500 mb-4">
         Collez le lien d&apos;une annonce (LeBonCoin, SeLoger, PAP, Bien&apos;ici...) — le bien sera import&eacute; et sauvegard&eacute; automatiquement.
@@ -66,7 +66,7 @@ export default function ScrapeImportSection({ onScrapeError }: Props) {
           type="button"
           onClick={handleScrape}
           disabled={scraping || !scrapeUrl.trim()}
-          className="px-5 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[44px] min-w-[100px] shrink-0"
+          className="px-5 py-3 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 min-h-[44px] min-w-[100px] shrink-0"
         >
           {scraping ? (
             <span className="flex items-center gap-2">

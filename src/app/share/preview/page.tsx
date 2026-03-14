@@ -12,7 +12,7 @@ export default async function SharePreviewPage({
   // Fast path: URL passed directly in query params (serverless-safe)
   if (params.url) {
     return (
-      <main className="min-h-screen bg-gray-50 px-4 py-6 pb-safe">
+      <main className="min-h-screen bg-[#f4f3ef] px-4 py-6 pb-safe">
         <div className="mx-auto max-w-lg">
           <SharePreview
             url={params.url}
@@ -39,7 +39,7 @@ export default async function SharePreviewPage({
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-6 pb-safe">
+    <main className="min-h-screen bg-[#f4f3ef] px-4 py-6 pb-safe">
       <div className="mx-auto max-w-lg">
         <SharePreview
           sessionId={sessionId}

@@ -31,11 +31,11 @@ export { SORT_OPTIONS };
 export default function SortBar({ sortKey, sortAsc, onSort }: Props) {
   return (
     <div className="md:hidden flex items-center gap-2 mb-4">
-      <label className="text-xs text-gray-500 shrink-0">Trier par</label>
+      <label className="text-[10px] text-[#b0b0b8] font-semibold uppercase tracking-wider shrink-0">Trier</label>
       <select
         value={sortKey}
         onChange={(e) => onSort(e.target.value as SortKey)}
-        className="flex-1 px-3 py-2 rounded-lg text-sm border border-gray-200 bg-white text-gray-700 min-h-[36px]"
+        className="flex-1 px-3 py-1.5 rounded-md text-xs border border-tiili-border bg-tiili-surface text-gray-700 min-h-[44px] font-medium"
       >
         {SORT_OPTIONS.map((opt) => (
           <option key={opt.key} value={opt.key}>
@@ -46,10 +46,10 @@ export default function SortBar({ sortKey, sortAsc, onSort }: Props) {
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className="px-2 py-2 rounded-lg border border-gray-200 bg-white text-gray-600 text-sm min-h-[36px]"
+        className="px-2 py-1.5 rounded-md border border-tiili-border bg-tiili-surface text-gray-600 text-xs min-h-[44px]"
         title={sortAsc ? "Tri croissant" : "Tri décroissant"}
       >
-        {sortAsc ? "↑" : "↓"}
+        {sortAsc ? "\u2191" : "\u2193"}
       </button>
     </div>
   );

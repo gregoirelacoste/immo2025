@@ -46,7 +46,7 @@ export default function PhotoTagSheet({
               className="w-14 h-14 rounded-lg object-cover shrink-0"
             />
             <div>
-              <p className="font-semibold text-gray-900">Tagger cette photo</p>
+              <p className="font-semibold text-[#1a1a2e]">Tagger cette photo</p>
               <p className="text-xs text-gray-500 mt-0.5">
                 Sélectionnez une catégorie pour retrouver la photo facilement
               </p>
@@ -64,7 +64,7 @@ export default function PhotoTagSheet({
                 }
                 className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors min-h-[40px] ${
                   selectedTag === tag.key
-                    ? "bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500"
+                    ? "bg-amber-100 text-amber-700 ring-2 ring-amber-500"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
@@ -80,14 +80,14 @@ export default function PhotoTagSheet({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Note photo (optionnel)..."
-            className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full text-sm px-3 py-2.5 border border-tiili-border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
 
           {/* Actions */}
           <button
             type="button"
             onClick={() => onSave(selectedTag || "photo_other", note || undefined)}
-            className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl min-h-[48px] hover:bg-indigo-700 transition-colors"
+            className="w-full bg-amber-600 text-white font-semibold py-3 rounded-xl min-h-[48px] hover:bg-amber-700 transition-colors"
           >
             Enregistrer
           </button>

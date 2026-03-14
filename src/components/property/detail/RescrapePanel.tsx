@@ -52,7 +52,7 @@ export default function RescrapePanel({ property, isOwner }: Props) {
   }
 
   return (
-    <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+    <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
       <div className="flex flex-col items-center gap-3">
         {isOwner && property.source_url && (
           <div className="flex flex-wrap justify-center gap-2">
@@ -133,7 +133,7 @@ export default function RescrapePanel({ property, isOwner }: Props) {
 
         <Link
           href="/dashboard"
-          className="inline-flex items-center text-indigo-600 hover:underline text-sm min-h-[44px]"
+          className="inline-flex items-center text-amber-600 hover:underline text-sm min-h-[44px]"
         >
           &larr; Retour au dashboard
         </Link>
