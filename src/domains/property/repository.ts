@@ -110,6 +110,45 @@ export async function getPropertyBySourceUrl(
   return result.rows[0] ? rowAs<Property>(result.rows[0]) : undefined;
 }
 
+/**
+ * Check for orphan properties (no user_id) with the same source_url.
+ * Used to prevent duplicate creation when user is not logged in.
+ */
+export async function getOrphanPropertyBySourceUrl(
+  sourceUrl: string
+): Promise<Property | undefined> {
+  if (!sourceUrl) return undefined;
+  const db = await getDb();
+  const result = await db.execute({
+    sql: "SELECT * FROM properties WHERE source_url = ? AND (user_id = '' OR user_id IS NULL) LIMIT 1",
+    args: [sourceUrl],
+  });
+  return result.rows[0] ? rowAs<Property>(result.rows[0]) : undefined;
+}
+
+/**
+ * Find a recently created property by user with matching key data.
+ * Used to prevent duplicate creation when importing via different methods (URL + text).
+ */
+export async function getRecentDuplicateProperty(
+  userId: string | null,
+  city: string,
+  purchasePrice: number,
+  surface: number
+): Promise<Property | undefined> {
+  if (!city || purchasePrice <= 0 || surface <= 0) return undefined;
+  const db = await getDb();
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const sql = userId
+    ? "SELECT * FROM properties WHERE user_id = ? AND city = ? AND purchase_price = ? AND surface = ? AND created_at > ? LIMIT 1"
+    : "SELECT * FROM properties WHERE (user_id = '' OR user_id IS NULL) AND city = ? AND purchase_price = ? AND surface = ? AND created_at > ? LIMIT 1";
+  const args = userId
+    ? [userId, city, purchasePrice, surface, fiveMinutesAgo]
+    : [city, purchasePrice, surface, fiveMinutesAgo];
+  const result = await db.execute({ sql, args });
+  return result.rows[0] ? rowAs<Property>(result.rows[0]) : undefined;
+}
+
 export async function createProperty(
   property: Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at">
 ): Promise<string> {
