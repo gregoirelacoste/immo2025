@@ -10,7 +10,6 @@ import SortBar, { SortKey } from "./SortBar";
 import PropertyCard from "./PropertyCard";
 import PropertyTable from "./PropertyTable";
 
-
 interface Props {
   properties: Property[];
   currentUserId?: string;
@@ -22,6 +21,7 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
   const [statusFilter, setStatusFilter] = useState<Set<PropertyStatus>>(new Set(PROPERTY_STATUSES));
   const [favoriteFilter, setFavoriteFilter] = useState(false);
   const [onlyMine, setOnlyMine] = useState(false);
+  const [activeTab, setActiveTab] = useState<"all" | "mine" | "fav">("all");
   const router = useRouter();
 
   const allSelected = statusFilter.size === PROPERTY_STATUSES.length;
@@ -30,7 +30,6 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
     setStatusFilter((prev) => {
       const next = new Set(prev);
       if (next.has(status)) {
-        // Don't allow deselecting the last one
         if (next.size <= 1) return prev;
         next.delete(status);
       } else {
@@ -44,6 +43,21 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
     setStatusFilter(new Set(PROPERTY_STATUSES));
     setFavoriteFilter(false);
     setOnlyMine(false);
+    setActiveTab("all");
+  }
+
+  function handleTabChange(tab: "all" | "mine" | "fav") {
+    setActiveTab(tab);
+    if (tab === "all") {
+      setOnlyMine(false);
+      setFavoriteFilter(false);
+    } else if (tab === "mine") {
+      setOnlyMine(true);
+      setFavoriteFilter(false);
+    } else if (tab === "fav") {
+      setFavoriteFilter(true);
+      setOnlyMine(false);
+    }
   }
 
   const ownerFiltered = onlyMine && currentUserId
@@ -137,64 +151,104 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
     statusCounts[s] = (statusCounts[s] || 0) + 1;
   }
 
+  const mineCount = currentUserId ? properties.filter(p => p.user_id === currentUserId).length : 0;
+  const favCount = properties.filter(p => p.is_favorite).length;
+
+  const tabs = [
+    { key: "all" as const, label: "Tous", count: properties.length },
+    ...(currentUserId && properties.some(p => p.user_id !== currentUserId)
+      ? [{ key: "mine" as const, label: "Mes biens", count: mineCount }]
+      : []),
+    { key: "fav" as const, label: "\u2605", count: favCount },
+  ];
+
   return (
     <div className="pb-safe">
+      {/* ═══ Sticky header with tabs + status filters ═══ */}
+      <div className="md:hidden sticky top-12 z-30 bg-white border-b border-tiili-border -mx-4">
+        {/* Tabs */}
+        <div className="flex gap-0 px-4 border-b border-[#f0f0ee]">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => handleTabChange(t.key)}
+              className={`px-3.5 py-2 pb-2.5 text-[13px] font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+                activeTab === t.key
+                  ? "border-[#1a1a2e] text-[#1a1a2e] font-bold"
+                  : "border-transparent text-[#9ca3af]"
+              }`}
+            >
+              {t.label}
+              <span className={`text-[10px] font-semibold ${
+                activeTab === t.key ? "text-gray-500" : "text-[#c4c4c8]"
+              }`}>{t.count}</span>
+            </button>
+          ))}
+        </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Biens immobiliers</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {filteredProperties.length === properties.length
-              ? `${properties.length} bien${properties.length !== 1 ? "s" : ""}`
-              : `${filteredProperties.length} / ${properties.length} bien${properties.length !== 1 ? "s" : ""}`}
-          </p>
+        {/* Status filters */}
+        {currentUserId && (
+          <div className="flex gap-1.5 px-4 py-2 overflow-x-auto scrollbar-hide">
+            {PROPERTY_STATUSES.map((status) => {
+              const config = PROPERTY_STATUS_CONFIG[status];
+              const count = statusCounts[status] || 0;
+              if (count === 0 && allSelected) return null;
+              const active = statusFilter.has(status) && !allSelected;
+              return (
+                <button
+                  key={status}
+                  onClick={() => {
+                    if (allSelected) {
+                      setStatusFilter(new Set([status]));
+                    } else {
+                      toggleStatusFilter(status);
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold whitespace-nowrap transition-colors ${
+                    active
+                      ? "bg-tiili-surface border border-tiili-border text-[#1a1a2e]"
+                      : "bg-tiili-surface border border-tiili-border text-gray-500"
+                  }`}
+                >
+                  <span className={`w-[5px] h-[5px] rounded-full ${PROPERTY_STATUS_CONFIG[status]?.dotColor || "bg-gray-400"}`} />
+                  {config.label}
+                  <span className="text-[#b0b0b8]">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ═══ Desktop header ═══ */}
+      <div className="hidden md:flex items-center justify-between mb-4">
+        <div className="flex items-center gap-6">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => handleTabChange(t.key)}
+              className={`text-sm font-medium pb-1 border-b-2 transition-colors flex items-center gap-1.5 ${
+                activeTab === t.key
+                  ? "border-[#1a1a2e] text-[#1a1a2e] font-bold"
+                  : "border-transparent text-[#9ca3af] hover:text-gray-600"
+              }`}
+            >
+              {t.label}
+              <span className={`text-xs ${activeTab === t.key ? "text-gray-500" : "text-[#c4c4c8]"}`}>{t.count}</span>
+            </button>
+          ))}
         </div>
         <Link
           href="/property/new"
-          className="hidden md:inline-flex px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+          className="inline-flex px-5 py-2.5 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors shadow-[0_2px_8px_rgba(217,119,6,0.2)]"
         >
           + Nouveau bien
         </Link>
       </div>
 
-      {/* Status filter bar — only for logged-in users */}
+      {/* Desktop status filter bar */}
       {properties.length > 0 && currentUserId && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          <button
-            onClick={selectAll}
-            className={`text-xs px-2.5 py-1.5 rounded-full font-medium transition-colors ${
-              allSelected && !favoriteFilter
-                ? "bg-gray-900 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-          >
-            Tous ({properties.length})
-          </button>
-          {properties.some((p) => p.user_id !== currentUserId) && (
-            <button
-              onClick={() => setOnlyMine(!onlyMine)}
-              className={`text-xs px-2.5 py-1.5 rounded-full font-medium transition-colors inline-flex items-center gap-1 ${
-                onlyMine
-                  ? "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-300"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-              }`}
-            >
-              Mes biens
-              {(() => { const c = properties.filter(p => p.user_id === currentUserId).length; return ` (${c})`; })()}
-            </button>
-          )}
-          <button
-            onClick={() => setFavoriteFilter(!favoriteFilter)}
-            className={`text-xs px-2.5 py-1.5 rounded-full font-medium transition-colors inline-flex items-center gap-1 ${
-              favoriteFilter
-                ? "bg-amber-50 text-amber-600 ring-1 ring-amber-300"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-            }`}
-          >
-            <span>{"\u2605"}</span>
-            Favoris
-            {(() => { const c = properties.filter(p => p.is_favorite).length; return c > 0 ? ` (${c})` : ""; })()}
-          </button>
+        <div className="hidden md:flex flex-wrap gap-1.5 mb-4">
           {PROPERTY_STATUSES.map((status) => {
             const config = PROPERTY_STATUS_CONFIG[status];
             const count = statusCounts[status] || 0;
@@ -205,21 +259,20 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
                 key={status}
                 onClick={() => {
                   if (allSelected) {
-                    // Switch from "all" to single filter
                     setStatusFilter(new Set([status]));
                   } else {
                     toggleStatusFilter(status);
                   }
                 }}
-                className={`text-xs px-2.5 py-1.5 rounded-full font-medium transition-colors inline-flex items-center gap-1 ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold whitespace-nowrap transition-colors ${
                   active
-                    ? `${config.bgColor} ${config.color} ring-1 ring-current/20`
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    ? "bg-tiili-surface border border-tiili-border text-[#1a1a2e]"
+                    : "bg-tiili-surface border border-tiili-border text-gray-500 hover:bg-gray-100"
                 }`}
               >
-                <span>{config.icon}</span>
+                <span className={`w-[5px] h-[5px] rounded-full ${PROPERTY_STATUS_CONFIG[status]?.dotColor || "bg-gray-400"}`} />
                 {config.label}
-                {count > 0 && <span className="opacity-70">({count})</span>}
+                <span className="text-[#b0b0b8]">{count}</span>
               </button>
             );
           })}
@@ -227,34 +280,41 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
       )}
 
       {properties.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-          <p className="text-gray-500 text-lg mb-4">
+        <div className="bg-white rounded-xl border border-tiili-border p-12 text-center">
+          <p className="text-[#9ca3af] text-lg mb-4">
             Aucun bien enregistré pour le moment.
           </p>
           <Link
             href="/property/new"
-            className="inline-flex px-5 py-3 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors min-h-[44px] items-center"
+            className="inline-flex px-5 py-3 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors min-h-[44px] items-center shadow-[0_2px_8px_rgba(217,119,6,0.2)]"
           >
             Ajouter mon premier bien
           </Link>
         </div>
       ) : filteredProperties.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-          <p className="text-gray-500">Aucun bien avec ce statut.</p>
+        <div className="bg-white rounded-xl border border-tiili-border p-8 text-center">
+          <p className="text-[#9ca3af]">Aucun bien avec ce statut.</p>
         </div>
       ) : (
         <>
           <SortBar sortKey={sortKey} sortAsc={sortAsc} onSort={toggleSort} />
 
-          <div className="md:hidden space-y-3">
+          {/* Column header — IDE-style (mobile only) */}
+          <div className="md:hidden flex justify-between items-center px-5 pt-2 pb-1">
+            <span className="text-[9px] text-[#b0b0b8] font-semibold tracking-wider uppercase">Bien</span>
+            <div className="flex gap-6">
+              <span className="text-[9px] text-[#b0b0b8] font-semibold tracking-wider uppercase w-14 text-right">Prix</span>
+              <span className="text-[9px] text-[#b0b0b8] font-semibold tracking-wider uppercase w-10 text-right">Renta</span>
+              <span className="text-[9px] text-[#b0b0b8] font-semibold tracking-wider uppercase w-12 text-right">CF</span>
+            </div>
+          </div>
+
+          <div className="md:hidden flex flex-col gap-1.5">
             {sorted.map(({ property, calcs }) => (
               <PropertyCard
                 key={property.id}
                 property={property}
                 calcs={calcs}
-                currentUserId={currentUserId}
-                onDelete={handleDelete}
-                onToggleFavorite={handleToggleFavorite}
               />
             ))}
           </div>

@@ -15,17 +15,17 @@ interface Props {
 }
 
 const inputClass =
-  "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]";
+  "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]";
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
 const autoCalcClass =
-  "w-full px-3 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px] bg-blue-50/50";
+  "w-full px-3 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px] bg-blue-50/50";
 
-const valueClass = "text-base font-medium text-gray-900 py-2";
+const valueClass = "text-base font-medium text-[#1a1a2e] py-2";
 
 export default function LoanSection({ form, onChange, onLoanChange, calcs, monthlyPaymentPreview, prefillHint, loanAutoCalc, readOnly }: Props) {
   return (
-    <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+    <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-4">Prêt immobilier</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
@@ -75,22 +75,22 @@ export default function LoanSection({ form, onChange, onLoanChange, calcs, month
           )}
         </div>
       </div>
-      <div className="mt-4 p-4 bg-indigo-50 rounded-lg">
-        <div className="text-sm text-indigo-700 grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="mt-4 p-4 bg-amber-50 rounded-lg">
+        <div className="text-sm text-amber-700 grid grid-cols-2 md:grid-cols-4 gap-2">
           <div>
-            <span className="text-indigo-500 text-xs">Mensualité</span>
+            <span className="text-amber-500 text-xs">Mensualité</span>
             <p className="font-bold">{formatCurrency(monthlyPaymentPreview)}</p>
           </div>
           <div>
-            <span className="text-indigo-500 text-xs">Assurance / mois</span>
+            <span className="text-amber-500 text-xs">Assurance / mois</span>
             <p className="font-bold">{formatCurrency(calcs.monthly_insurance)}</p>
           </div>
           <div>
-            <span className="text-indigo-500 text-xs">Total mensuel</span>
+            <span className="text-amber-500 text-xs">Total mensuel</span>
             <p className="font-bold">{formatCurrency(monthlyPaymentPreview + calcs.monthly_insurance)}</p>
           </div>
           <div>
-            <span className="text-indigo-500 text-xs">Coût total crédit</span>
+            <span className="text-amber-500 text-xs">Coût total crédit</span>
             <p className="font-bold">{formatCurrency(calcs.total_loan_cost)}</p>
           </div>
         </div>

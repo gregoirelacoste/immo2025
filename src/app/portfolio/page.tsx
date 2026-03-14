@@ -40,10 +40,10 @@ export default async function PortfolioPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f4f3ef]">
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Mon patrimoine</h1>
+        <h1 className="text-2xl font-bold text-[#1a1a2e] mb-6">Mon patrimoine</h1>
         <PortfolioView
           properties={ownedProperties}
           calculations={calculationsMap}

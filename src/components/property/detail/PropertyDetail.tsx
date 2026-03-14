@@ -9,7 +9,9 @@ import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
 import type { SocioEconomicData } from "@/domains/enrich/socioeconomic-types";
+import type { InvestmentScoreBreakdown } from "@/domains/enrich/types";
 import { parseAmenities, AMENITY_LABELS, AMENITY_ICONS } from "@/domains/property/amenities";
+import { getGrade, rentaColor, cashflowColor, getVerdict, verdictColor } from "@/lib/grade";
 import Link from "next/link";
 import PropertyHeader from "./PropertyHeader";
 import InvestmentScorePanel from "./InvestmentScorePanel";
@@ -48,8 +50,7 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
   const activeTab = (searchParams.get("tab") as TabId) || "financier";
 
   const marketData = parseJson<MarketData | null>(property.market_data, null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const scoreBreakdown = parseJson<any>(property.score_breakdown, null);
+  const scoreBreakdown = parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null);
   const socioData = parseJson<SocioEconomicData | null>(property.socioeconomic_data, null);
   const amenities = parseAmenities(property.amenities);
   const images: string[] = parseJson(property.image_urls, []);
@@ -76,69 +77,84 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
     router.refresh();
   }
 
+  const grade = getGrade(property.investment_score);
+
   return (
     <div className="space-y-0 pb-safe">
       <PropertyHeader property={property} isOwner={isOwner} onDelete={handleDelete} />
 
-      {/* Hero KPIs */}
-      <section className="bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200 p-4 md:p-6 mb-4">
-        <div className="flex items-baseline justify-between mb-4">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h2 className="text-xl font-bold text-gray-900">{property.city}</h2>
-              <StatusSelector propertyId={property.id} currentStatus={(property.property_status || "added") as PropertyStatus} />
-            </div>
-            {property.address && (
-              <p className="text-sm text-gray-500">{property.address}</p>
-            )}
-          </div>
-          <div className="text-right shrink-0">
-            <p className="text-xl font-bold text-gray-900">{formatCurrency(property.purchase_price)}</p>
-            <div className="flex items-center justify-end gap-2">
-              <p className="text-sm text-gray-500">{property.surface} m²</p>
-              <BudgetIndicator monthlyPayment={calcs.monthly_payment} monthlyInsurance={calcs.monthly_insurance} userProfile={userProfile} />
-            </div>
-          </div>
-        </div>
+      {/* Hero KPIs — tiili style */}
+      <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6 mb-4">
+              {/* Header: City + Score circle */}
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <h2 className="text-2xl font-extrabold text-[#1a1a2e] tracking-tight">{property.city}</h2>
+                    <StatusSelector propertyId={property.id} currentStatus={(property.property_status || "added") as PropertyStatus} />
+                  </div>
+                  <p className="text-[13px] text-[#9ca3af] font-medium">
+                    {property.property_type === "neuf" ? "Neuf" : "Ancien"} · {property.surface} m²
+                    {pricePerM2 > 0 && <> · {formatCurrency(pricePerM2)}/m²</>}
+                  </p>
+                  {property.address && (
+                    <p className="text-xs text-[#b0b0b8] mt-0.5">{property.address}</p>
+                  )}
+                  <BudgetIndicator monthlyPayment={calcs.monthly_payment} monthlyInsurance={calcs.monthly_insurance} userProfile={userProfile} />
+                </div>
+                {/* Score circle */}
+                <div
+                  className={`w-[52px] h-[52px] rounded-full ${grade.bg} flex flex-col items-center justify-center shrink-0`}
+                  style={{ border: `2.5px solid ${grade.hex}` }}
+                >
+                  <span className={`text-[8px] font-bold ${grade.color} leading-none mb-0.5`}>{grade.letter}</span>
+                  <span className={`text-lg font-extrabold ${grade.color} leading-none`}>
+                    {property.investment_score ?? "?"}
+                  </span>
+                </div>
+              </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-white rounded-lg p-3 border border-slate-100">
-            <p className="text-xs text-gray-500">Renta nette</p>
-            <p className={`text-xl font-bold ${calcs.net_yield >= 6 ? "text-green-600" : calcs.net_yield >= 4 ? "text-blue-600" : calcs.net_yield >= 2 ? "text-amber-600" : "text-red-600"}`}>
-              {formatPercent(calcs.net_yield)}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg p-3 border border-slate-100">
-            <p className="text-xs text-gray-500">Cash-flow / mois</p>
-            <p className={`text-xl font-bold ${calcs.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {formatCurrency(calcs.monthly_cashflow)}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg p-3 border border-slate-100">
-            <p className="text-xs text-gray-500">Net-net (après impôts)</p>
-            <p className={`text-xl font-bold ${calcs.net_net_yield >= 4 ? "text-green-600" : calcs.net_net_yield >= 2 ? "text-blue-600" : "text-red-600"}`}>
-              {formatPercent(calcs.net_net_yield)}
-            </p>
-          </div>
-          <div className={`rounded-lg p-3 border ${
-            property.investment_score == null ? "bg-white border-slate-100" :
-            property.investment_score >= 71 ? "bg-green-50 border-green-200" :
-            property.investment_score >= 51 ? "bg-blue-50 border-blue-200" :
-            property.investment_score >= 31 ? "bg-amber-50 border-amber-200" :
-            "bg-red-50 border-red-200"
-          }`}>
-            <p className="text-xs text-gray-500">Score</p>
-            <p className={`text-xl font-bold ${
-              property.investment_score == null ? "text-gray-400" :
-              property.investment_score >= 71 ? "text-green-600" :
-              property.investment_score >= 51 ? "text-blue-600" :
-              property.investment_score >= 31 ? "text-amber-600" :
-              "text-red-600"
-            }`}>
-              {property.investment_score != null ? `${property.investment_score}/100` : "..."}
-            </p>
-          </div>
-        </div>
+              {/* Metrics grid 2x2 */}
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="p-3 bg-tiili-surface rounded-xl">
+                  <div className="text-xl font-extrabold text-[#1a1a2e] tracking-tight leading-tight mb-0.5">
+                    {formatCurrency(property.purchase_price)}
+                  </div>
+                  <div className="text-[10px] text-[#9ca3af] font-semibold uppercase tracking-wider">Prix</div>
+                </div>
+                <div className="p-3 bg-tiili-surface rounded-xl">
+                  <div className={`text-[22px] font-extrabold font-[family-name:var(--font-mono)] tracking-tighter leading-tight mb-0.5 ${rentaColor(calcs.net_yield)}`}>
+                    {calcs.net_yield.toFixed(2)}%
+                  </div>
+                  <div className="text-[10px] text-[#9ca3af] font-semibold uppercase tracking-wider">Renta nette</div>
+                </div>
+                <div className="p-3 bg-tiili-surface rounded-xl">
+                  <div className={`text-[22px] font-extrabold font-[family-name:var(--font-mono)] tracking-tighter leading-tight mb-0.5 ${cashflowColor(calcs.monthly_cashflow)}`}>
+                    {calcs.monthly_cashflow > 0 ? "+" : ""}{Math.round(calcs.monthly_cashflow)}{"\u202f"}€
+                  </div>
+                  <div className="text-[10px] text-[#9ca3af] font-semibold uppercase tracking-wider">Cashflow /mois</div>
+                </div>
+                <div className="p-3 bg-tiili-surface rounded-xl">
+                  <div className="text-xl font-extrabold text-gray-700 tracking-tight leading-tight mb-0.5">
+                    {pricePerM2 > 0 ? `${Math.round(pricePerM2).toLocaleString("fr-FR")}\u202f€` : "\u2014"}
+                  </div>
+                  <div className="text-[10px] text-[#9ca3af] font-semibold uppercase tracking-wider">Prix /m²</div>
+                </div>
+              </div>
+
+              {/* Quick verdict bar */}
+              <div className="flex gap-1">
+                {getVerdict(property.purchase_price, calcs.net_yield, calcs.monthly_cashflow, property.investment_score).map(({ label, val }) => {
+                  const vc = verdictColor(val);
+                  return (
+                    <div key={label} className={`flex-1 text-center py-1.5 rounded-lg ${vc.bg}`}>
+                      <div className={`text-xs font-bold ${vc.text}`}>
+                        {val === 1 ? "\u2713" : val === 0 ? "~" : "\u2717"}
+                      </div>
+                      <div className="text-[8px] font-semibold text-[#9ca3af] uppercase tracking-wide mt-0.5">{label}</div>
+                    </div>
+                  );
+                })}
+              </div>
       </section>
 
       {/* Sticky header (visible on scroll) */}
@@ -151,7 +167,7 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
       {activeTab === "financier" && (
         <div className="space-y-4 mt-4">
           {/* Infos clés */}
-          <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+          <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Prix au m²</span>
@@ -194,7 +210,7 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
               <div className="mt-4 pt-3 border-t border-gray-100">
                 <div className="flex flex-wrap gap-1.5">
                   {amenities.map((key) => (
-                    <span key={key} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    <span key={key} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-100">
                       <span>{AMENITY_ICONS[key]}</span>
                       <span>{AMENITY_LABELS[key]}</span>
                     </span>
@@ -241,7 +257,7 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
               </div>
               <div>
                 <span className="text-gray-500">Coût total projet</span>
-                <p className="font-semibold text-indigo-600">{formatCurrency(calcs.total_project_cost)}</p>
+                <p className="font-semibold text-amber-600">{formatCurrency(calcs.total_project_cost)}</p>
               </div>
             </div>
           </CollapsibleSection>
@@ -251,19 +267,19 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-white rounded-lg p-3 border border-blue-100">
                 <p className="text-xs text-gray-500">Loyer mensuel</p>
-                <p className="text-lg font-bold text-gray-900">{formatCurrency(property.monthly_rent)}</p>
+                <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(property.monthly_rent)}</p>
               </div>
               <div className="bg-white rounded-lg p-3 border border-blue-100">
                 <p className="text-xs text-gray-500">Revenu annuel net</p>
-                <p className="text-lg font-bold text-gray-900">{formatCurrency(calcs.annual_rent_income)}</p>
+                <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(calcs.annual_rent_income)}</p>
               </div>
               <div className="bg-white rounded-lg p-3 border border-blue-100">
                 <p className="text-xs text-gray-500">Rentabilité brute</p>
-                <p className="text-lg font-bold text-gray-900">{formatPercent(calcs.gross_yield)}</p>
+                <p className="text-lg font-bold text-[#1a1a2e]">{formatPercent(calcs.gross_yield)}</p>
               </div>
               <div className="bg-white rounded-lg p-3 border border-blue-100">
                 <p className="text-xs text-gray-500">Rentabilité nette</p>
-                <p className="text-lg font-bold text-gray-900">{formatPercent(calcs.net_yield)}</p>
+                <p className="text-lg font-bold text-[#1a1a2e]">{formatPercent(calcs.net_yield)}</p>
               </div>
               <div className="bg-white rounded-lg p-3 border border-blue-100">
                 <p className="text-xs text-gray-500">Cash-flow / mois</p>
@@ -273,7 +289,7 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
               </div>
               <div className="bg-white rounded-lg p-3 border border-blue-100">
                 <p className="text-xs text-gray-500">Charges annuelles</p>
-                <p className="text-lg font-bold text-gray-900">{formatCurrency(calcs.annual_charges)}</p>
+                <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(calcs.annual_charges)}</p>
               </div>
             </div>
           </CollapsibleSection>
@@ -284,15 +300,15 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white rounded-lg p-3 border border-purple-100">
                   <p className="text-xs text-gray-500">Prix / nuit</p>
-                  <p className="text-lg font-bold text-gray-900">{formatCurrency(property.airbnb_price_per_night)}</p>
+                  <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(property.airbnb_price_per_night)}</p>
                 </div>
                 <div className="bg-white rounded-lg p-3 border border-purple-100">
                   <p className="text-xs text-gray-500">Revenu annuel</p>
-                  <p className="text-lg font-bold text-gray-900">{formatCurrency(calcs.airbnb_annual_income)}</p>
+                  <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(calcs.airbnb_annual_income)}</p>
                 </div>
                 <div className="bg-white rounded-lg p-3 border border-purple-100">
                   <p className="text-xs text-gray-500">Rentabilité nette</p>
-                  <p className="text-lg font-bold text-gray-900">{formatPercent(calcs.airbnb_net_yield)}</p>
+                  <p className="text-lg font-bold text-[#1a1a2e]">{formatPercent(calcs.airbnb_net_yield)}</p>
                 </div>
                 <div className="bg-white rounded-lg p-3 border border-purple-100">
                   <p className="text-xs text-gray-500">Cash-flow / mois</p>
@@ -341,7 +357,7 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
 
           {/* Description */}
           {property.description && (
-            <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+            <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
               <h3 className="text-lg font-semibold mb-2">Description</h3>
               <p className="text-sm text-gray-600 leading-relaxed">{property.description}</p>
             </section>
@@ -349,7 +365,7 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
 
           {/* Carte */}
           {property.latitude != null && property.longitude != null && (
-            <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <section className="bg-white rounded-xl border border-tiili-border overflow-hidden">
               <PropertyMap
                 latitude={property.latitude}
                 longitude={property.longitude}
@@ -371,7 +387,7 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
       {/* ═══════════════════ ONGLET VISITE ═══════════════════ */}
       {activeTab === "visite" && (
         <div className="space-y-4 mt-4">
-          <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 text-center">
+          <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6 text-center">
             <Link
               href={`/property/${property.id}/visit`}
               className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors min-h-[48px]"

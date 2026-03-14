@@ -18,7 +18,7 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
   return (
     <div className="bg-white rounded-lg p-3 border border-violet-100">
       <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-lg font-bold text-gray-900">{value}</p>
+      <p className="text-lg font-bold text-[#1a1a2e]">{value}</p>
       {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
     </div>
   );
@@ -114,7 +114,7 @@ export default function SocioEconomicPanel({ data }: Props) {
               title={`< 20 ans: ${data.ageDistribution.under20Pct}%`}
             />
             <div
-              className="bg-indigo-500"
+              className="bg-amber-500"
               style={{ width: `${data.ageDistribution.age20to39Pct}%` }}
               title={`20-39 ans: ${data.ageDistribution.age20to39Pct}%`}
             />
@@ -160,7 +160,7 @@ export default function SocioEconomicPanel({ data }: Props) {
                 className={`text-xs px-2 py-0.5 rounded-full border ${
                   risk.level === "Fort" ? "bg-red-50 text-red-700 border-red-200" :
                   risk.level === "Moyen" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                  "bg-gray-50 text-gray-600 border-gray-200"
+                  "bg-gray-50 text-gray-600 border-tiili-border"
                 }`}
               >
                 {risk.type}

@@ -11,14 +11,14 @@ interface Props {
 }
 
 const inputClass =
-  "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]";
+  "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]";
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
-const valueClass = "text-base font-medium text-gray-900 py-2";
+const valueClass = "text-base font-medium text-[#1a1a2e] py-2";
 
 export default function FeesSection({ form, onChange, calcs, effectiveNotary, readOnly }: Props) {
   return (
-    <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+    <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-4">Frais &amp; coût total</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -76,7 +76,7 @@ export default function FeesSection({ form, onChange, calcs, effectiveNotary, re
           </div>
           <div>
             <span className="text-gray-500 text-xs">Coût total du projet</span>
-            <p className="font-bold text-indigo-700">{formatCurrency(calcs.total_project_cost)}</p>
+            <p className="font-bold text-amber-700">{formatCurrency(calcs.total_project_cost)}</p>
           </div>
         </div>
       </div>

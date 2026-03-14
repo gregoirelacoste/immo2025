@@ -82,19 +82,19 @@ export const PROPERTY_STATUSES = [
 
 export type PropertyStatus = typeof PROPERTY_STATUSES[number];
 
-export const PROPERTY_STATUS_CONFIG: Record<PropertyStatus, { label: string; color: string; bgColor: string; icon: string }> = {
-  added:          { label: "Ajouté",          color: "text-gray-600",    bgColor: "bg-gray-100",    icon: "+" },
-  contacted:      { label: "Contacté",        color: "text-blue-600",    bgColor: "bg-blue-50",     icon: "\u2709" },
-  visit_planned:  { label: "Visite prévue",   color: "text-purple-600",  bgColor: "bg-purple-50",   icon: "\uD83D\uDCC5" },
-  visited:        { label: "Visité",          color: "text-indigo-600",  bgColor: "bg-indigo-50",   icon: "\uD83D\uDC41" },
-  validated:      { label: "Validé",          color: "text-green-600",   bgColor: "bg-green-50",    icon: "\u2713" },
-  not_validated:  { label: "Non validé",      color: "text-red-600",     bgColor: "bg-red-50",      icon: "\u2717" },
-  offer_sent:     { label: "Offre envoyée",   color: "text-orange-600",  bgColor: "bg-orange-50",   icon: "\uD83D\uDCE8" },
-  accepted:       { label: "Accepté",         color: "text-emerald-600", bgColor: "bg-emerald-50",  icon: "\uD83C\uDF89" },
-  negotiation:    { label: "En négociation",  color: "text-orange-600",  bgColor: "bg-orange-50",   icon: "\u2696" },
-  under_contract: { label: "Sous compromis",  color: "text-cyan-600",    bgColor: "bg-cyan-50",     icon: "\uD83D\uDCCB" },
-  purchased:      { label: "Acheté",          color: "text-emerald-600", bgColor: "bg-emerald-50",  icon: "\uD83C\uDFE0" },
-  managed:        { label: "En gestion",      color: "text-teal-600",    bgColor: "bg-teal-50",     icon: "\uD83D\uDCCA" },
+export const PROPERTY_STATUS_CONFIG: Record<PropertyStatus, { label: string; color: string; bgColor: string; dotColor: string; icon: string }> = {
+  added:          { label: "Ajouté",          color: "text-gray-600",    bgColor: "bg-gray-100",    dotColor: "bg-blue-500",    icon: "+" },
+  contacted:      { label: "Contacté",        color: "text-blue-600",    bgColor: "bg-blue-50",     dotColor: "bg-blue-500",    icon: "\u2709" },
+  visit_planned:  { label: "Visite prévue",   color: "text-purple-600",  bgColor: "bg-purple-50",   dotColor: "bg-purple-500",  icon: "\uD83D\uDCC5" },
+  visited:        { label: "Visité",          color: "text-amber-600",  bgColor: "bg-amber-50",   dotColor: "bg-violet-500",  icon: "\uD83D\uDC41" },
+  validated:      { label: "Validé",          color: "text-green-600",   bgColor: "bg-green-50",    dotColor: "bg-green-500",   icon: "\u2713" },
+  not_validated:  { label: "Non validé",      color: "text-red-600",     bgColor: "bg-red-50",      dotColor: "bg-red-500",     icon: "\u2717" },
+  offer_sent:     { label: "Offre envoyée",   color: "text-orange-600",  bgColor: "bg-orange-50",   dotColor: "bg-orange-500",  icon: "\uD83D\uDCE8" },
+  accepted:       { label: "Accepté",         color: "text-emerald-600", bgColor: "bg-emerald-50",  dotColor: "bg-emerald-500", icon: "\uD83C\uDF89" },
+  negotiation:    { label: "En négociation",  color: "text-orange-600",  bgColor: "bg-orange-50",   dotColor: "bg-orange-500",  icon: "\u2696" },
+  under_contract: { label: "Sous compromis",  color: "text-cyan-600",    bgColor: "bg-cyan-50",     dotColor: "bg-cyan-500",    icon: "\uD83D\uDCCB" },
+  purchased:      { label: "Acheté",          color: "text-emerald-600", bgColor: "bg-emerald-50",  dotColor: "bg-emerald-500", icon: "\uD83C\uDFE0" },
+  managed:        { label: "En gestion",      color: "text-teal-600",    bgColor: "bg-teal-50",     dotColor: "bg-teal-500",    icon: "\uD83D\uDCCA" },
 };
 
 export interface FiscalImpact {

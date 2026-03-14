@@ -17,7 +17,7 @@ interface ButtonProps {
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500 disabled:opacity-50",
+    "bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-500 disabled:opacity-50 shadow-[0_2px_8px_rgba(217,119,6,0.2)]",
   secondary:
     "border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-gray-400",
   danger:

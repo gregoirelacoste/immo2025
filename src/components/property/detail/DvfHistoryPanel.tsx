@@ -95,7 +95,7 @@ export default function DvfHistoryPanel({ city, postalCode, currentPricePerM2 }:
           <div className="overflow-x-auto -mx-4 md:-mx-6">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-gray-500">
+                <tr className="border-b border-tiili-border text-left text-gray-500">
                   <th className="px-4 md:px-6 py-2 font-medium">Date</th>
                   <th className="px-2 py-2 font-medium text-right">Prix</th>
                   <th className="px-2 py-2 font-medium text-right">Surface</th>

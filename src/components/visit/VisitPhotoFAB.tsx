@@ -39,7 +39,7 @@ export default function VisitPhotoFAB({ photoCount, onCapture }: Props) {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="fixed right-4 z-50 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center hover:bg-indigo-700 transition-all active:scale-90 md:right-8"
+        className="fixed right-4 z-50 w-14 h-14 rounded-full bg-amber-600 text-white shadow-lg shadow-amber-600/30 flex items-center justify-center hover:bg-amber-700 transition-all active:scale-90 md:right-8"
         style={{ bottom: "calc(72px + var(--sab, 0px))" }}
       >
         {/* Camera icon */}

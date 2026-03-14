@@ -1,5 +1,27 @@
 @import "tailwindcss";
 
+/* ─── tiili Design System ─── */
+@theme {
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-mono: "DM Mono", "JetBrains Mono", monospace;
+
+  --color-tiili-bg: #f4f3ef;
+  --color-tiili-text: #1a1a2e;
+  --color-tiili-muted: #9ca3af;
+  --color-tiili-surface: #f8f8f6;
+  --color-tiili-border: #ebebea;
+  --color-tiili-card: #ffffff;
+
+  --color-tiili-primary: #d97706;
+  --color-tiili-primary-light: #f59e0b;
+  --color-tiili-primary-dark: #b45309;
+
+  --color-tiili-grade-a: #16a34a;
+  --color-tiili-grade-b: #2563eb;
+  --color-tiili-grade-c: #d97706;
+  --color-tiili-grade-d: #dc2626;
+}
+
 /* Safe areas for PWA standalone mode */
 :root {
   --sat: env(safe-area-inset-top, 0px);
@@ -30,4 +52,13 @@ nav {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Hide scrollbars but allow scrolling */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

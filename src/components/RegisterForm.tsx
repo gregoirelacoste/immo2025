@@ -9,8 +9,8 @@ export default function RegisterForm() {
 
   return (
     <div className="w-full max-w-sm">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h1 className="text-2xl font-bold text-gray-900 text-center mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-6">
+        <h1 className="text-2xl font-bold text-[#1a1a2e] text-center mb-6">
           Inscription
         </h1>
 
@@ -30,7 +30,7 @@ export default function RegisterForm() {
               type="text"
               required
               autoComplete="name"
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]"
               placeholder="Jean Dupont"
             />
           </div>
@@ -43,7 +43,7 @@ export default function RegisterForm() {
               type="email"
               required
               autoComplete="email"
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]"
               placeholder="vous@exemple.com"
             />
           </div>
@@ -57,7 +57,7 @@ export default function RegisterForm() {
               required
               minLength={8}
               autoComplete="new-password"
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]"
               placeholder="Min. 8 caractères"
             />
           </div>
@@ -71,14 +71,14 @@ export default function RegisterForm() {
               required
               minLength={8}
               autoComplete="new-password"
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]"
               placeholder="••••••••"
             />
           </div>
           <button
             type="submit"
             disabled={pending}
-            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[44px]"
+            className="w-full px-4 py-3 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 min-h-[44px]"
           >
             {pending ? "Inscription..." : "Créer un compte"}
           </button>
@@ -86,7 +86,7 @@ export default function RegisterForm() {
 
         <p className="text-sm text-gray-500 text-center mt-4">
           Déjà un compte ?{" "}
-          <Link href="/login" className="text-indigo-600 hover:underline">
+          <Link href="/login" className="text-amber-600 hover:underline">
             Connectez-vous
           </Link>
         </p>

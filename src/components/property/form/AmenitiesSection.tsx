@@ -21,13 +21,13 @@ export default function AmenitiesSection({ selected, onChange, readOnly }: Props
   if (readOnly) {
     if (selected.length === 0) return null;
     return (
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+      <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
         <h2 className="text-lg font-semibold mb-4">Equipements</h2>
         <div className="flex flex-wrap gap-2">
           {selected.map((key) => (
             <span
               key={key}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 border border-indigo-300"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium bg-amber-100 text-amber-800 border border-amber-300"
             >
               <span>{AMENITY_ICONS[key]}</span>
               <span>{AMENITY_LABELS[key]}</span>
@@ -39,7 +39,7 @@ export default function AmenitiesSection({ selected, onChange, readOnly }: Props
   }
 
   return (
-    <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+    <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-4">Equipements</h2>
       <div className="flex flex-wrap gap-2">
         {AMENITY_KEYS.map((key) => {
@@ -51,8 +51,8 @@ export default function AmenitiesSection({ selected, onChange, readOnly }: Props
               onClick={() => toggle(key)}
               className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
                 active
-                  ? "bg-indigo-100 text-indigo-800 border border-indigo-300"
-                  : "bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200"
+                  ? "bg-amber-100 text-amber-800 border border-amber-300"
+                  : "bg-gray-100 text-gray-600 border border-tiili-border hover:bg-gray-200"
               }`}
             >
               <span>{AMENITY_ICONS[key]}</span>

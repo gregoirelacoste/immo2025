@@ -21,7 +21,7 @@ export default function VisitVerdict({
 }: Props) {
   return (
     <section id="visit-verdict" className="space-y-3">
-      <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Verdict final</h2>
+      <h2 className="text-sm font-bold text-[#1a1a2e] uppercase tracking-wide">Verdict final</h2>
 
       {/* Star rating */}
       <div className="text-center space-y-1">
@@ -34,7 +34,7 @@ export default function VisitVerdict({
         onChange={(e) => onNotesChange(e.target.value)}
         placeholder="Commentaire final (négociation, travaux, potentiel...)"
         rows={3}
-        className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y"
+        className="w-full text-sm px-3 py-2.5 border border-tiili-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-y"
       />
 
       {/* Save button */}
@@ -42,7 +42,7 @@ export default function VisitVerdict({
         type="button"
         onClick={onSave}
         disabled={submitting}
-        className="w-full bg-indigo-600 text-white font-semibold py-3.5 rounded-xl min-h-[48px] hover:bg-indigo-700 transition-colors active:scale-[0.98] disabled:opacity-50"
+        className="w-full bg-amber-600 text-white font-semibold py-3.5 rounded-xl min-h-[48px] hover:bg-amber-700 transition-colors active:scale-[0.98] disabled:opacity-50"
       >
         {submitting ? "Enregistrement..." : "Enregistrer la visite"}
       </button>

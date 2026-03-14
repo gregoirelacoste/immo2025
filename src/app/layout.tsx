@@ -3,14 +3,14 @@ import Providers from "@/components/Providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Immo2025 - Simulateur d'investissement locatif",
+  title: "tiili — Simulateur d'investissement locatif",
   description:
     "Calculez la rentabilité de vos investissements immobiliers : cash-flow, rendement, mensualités de crédit.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Immo2025",
+    title: "tiili",
   },
   icons: {
     icon: "/favicon.png",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+  themeColor: "#d97706",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -33,7 +33,22 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body className="bg-gray-50 text-gray-900 min-h-screen antialiased">
+      <head>
+        <link
+          rel="preconnect"
+          href="https://fonts.googleapis.com"
+        />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="bg-[#f4f3ef] text-[#1a1a2e] min-h-screen antialiased font-[family-name:var(--font-sans)]">
         <Providers>{children}</Providers>
         <script
           dangerouslySetInnerHTML={{

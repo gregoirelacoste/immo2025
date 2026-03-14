@@ -114,25 +114,25 @@ export default function VisitMode({ property }: Props) {
   if (!dataLoaded || !photosLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-[#f4f3ef] pb-24">
       {/* Sticky collapsed header (appears on scroll) */}
       <VisitStickyHeader property={property} calculations={calculations} />
 
       {/* Full header recap */}
-      <header className="bg-white border-b border-gray-200 px-4 py-2.5">
+      <header className="bg-white border-b border-tiili-border px-4 py-2.5">
         <div className="max-w-lg mx-auto space-y-2">
           {/* Back + title */}
           <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={() => router.push(`/property/${property.id}`)}
-              className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1 min-h-[44px]"
+              className="text-sm text-gray-600 hover:text-[#1a1a2e] flex items-center gap-1 min-h-[44px]"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -154,7 +154,7 @@ export default function VisitMode({ property }: Props) {
 
           {/* Property info */}
           <div className="min-w-0">
-            <h1 className="text-sm font-bold text-gray-900 truncate">
+            <h1 className="text-sm font-bold text-[#1a1a2e] truncate">
               {property.city || "Bien"}
               {property.address && (
                 <span className="font-normal text-gray-500 text-xs">
@@ -192,7 +192,7 @@ export default function VisitMode({ property }: Props) {
               {amenities.map((key) => (
                 <span
                   key={key}
-                  className="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-full"
+                  className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-full"
                 >
                   {AMENITY_LABELS[key]}
                 </span>
@@ -236,7 +236,7 @@ export default function VisitMode({ property }: Props) {
         {/* Untagged photos gallery */}
         {photos.length > 0 && (
           <section className="space-y-2">
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+            <h2 className="text-sm font-bold text-[#1a1a2e] uppercase tracking-wide">
               Photos ({photos.length})
             </h2>
             <div className="grid grid-cols-3 gap-1.5">
@@ -324,7 +324,7 @@ function KPI({
       <p className="text-[10px] text-gray-500 uppercase leading-tight">
         {label}
       </p>
-      <p className={`text-xs font-bold truncate ${color || "text-gray-900"}`}>
+      <p className={`text-xs font-bold truncate ${color || "text-[#1a1a2e]"}`}>
         {value}
       </p>
     </div>

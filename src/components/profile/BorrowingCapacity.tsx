@@ -28,23 +28,23 @@ export default function BorrowingCapacity({
   const maxPropertyPrice = Math.round(borrowable / 1.075);
 
   return (
-    <div className="mt-4 p-4 bg-indigo-50 rounded-lg">
-      <h3 className="text-sm font-semibold text-indigo-800 mb-2">Capacité d&apos;emprunt estimée</h3>
+    <div className="mt-4 p-4 bg-amber-50 rounded-lg">
+      <h3 className="text-sm font-semibold text-amber-800 mb-2">Capacité d&apos;emprunt estimée</h3>
       <div className="grid grid-cols-3 gap-3 text-sm">
         <div>
-          <span className="text-indigo-500 text-xs">Mensualité max</span>
-          <p className="font-bold text-indigo-900">{formatCurrency(maxMonthlyPayment)}</p>
+          <span className="text-amber-500 text-xs">Mensualité max</span>
+          <p className="font-bold text-amber-900">{formatCurrency(maxMonthlyPayment)}</p>
         </div>
         <div>
-          <span className="text-indigo-500 text-xs">Empruntable</span>
-          <p className="font-bold text-indigo-900">{formatCurrency(Math.round(borrowable))}</p>
+          <span className="text-amber-500 text-xs">Empruntable</span>
+          <p className="font-bold text-amber-900">{formatCurrency(Math.round(borrowable))}</p>
         </div>
         <div>
-          <span className="text-indigo-500 text-xs">Prix bien max</span>
-          <p className="font-bold text-indigo-900">{formatCurrency(maxPropertyPrice)}</p>
+          <span className="text-amber-500 text-xs">Prix bien max</span>
+          <p className="font-bold text-amber-900">{formatCurrency(maxPropertyPrice)}</p>
         </div>
       </div>
-      <p className="text-xs text-indigo-500 mt-2">
+      <p className="text-xs text-amber-500 mt-2">
         Sur {loanDuration} ans à {interestRate}%, hors assurance
       </p>
     </div>

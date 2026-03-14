@@ -2,7 +2,7 @@ import Navbar from "@/components/Navbar";
 
 export default function DashboardLoading() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f4f3ef]">
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="animate-pulse space-y-4">
@@ -15,7 +15,7 @@ export default function DashboardLoading() {
           </div>
           <div className="md:hidden space-y-3 mt-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+              <div key={i} className="bg-white rounded-xl border border-tiili-border p-4 space-y-3">
                 <div className="h-32 bg-gray-200 rounded-lg" />
                 <div className="h-5 bg-gray-200 rounded w-32" />
                 <div className="grid grid-cols-2 gap-2">
@@ -26,7 +26,7 @@ export default function DashboardLoading() {
             ))}
           </div>
           <div className="hidden md:block mt-4">
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl border border-tiili-border overflow-hidden">
               <div className="h-10 bg-gray-100" />
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="h-14 border-t border-gray-100 flex items-center px-4 gap-4">

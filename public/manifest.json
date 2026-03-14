@@ -1,11 +1,11 @@
 {
-  "name": "Immo2025 - Simulateur d'investissement locatif",
-  "short_name": "Immo2025",
+  "name": "tiili — Simulateur d'investissement locatif",
+  "short_name": "tiili",
   "description": "Calculez la rentabilité de vos investissements immobiliers",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#f9fafb",
-  "theme_color": "#4f46e5",
+  "background_color": "#f4f3ef",
+  "theme_color": "#d97706",
   "orientation": "portrait-primary",
   "icons": [
     {

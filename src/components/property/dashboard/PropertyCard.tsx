@@ -1,184 +1,91 @@
 "use client";
 
 import Link from "next/link";
-import { Property, PropertyCalculations, type PropertyStatus } from "@/domains/property/types";
-import { formatCurrency, formatPercent } from "@/lib/calculations";
-import InvestmentScoreBadge from "@/components/ui/InvestmentScoreBadge";
-import StatusBadge from "@/components/property/StatusBadge";
-import { parseAmenities, AMENITY_ICONS } from "@/domains/property/amenities";
+import { Property, PropertyCalculations, PROPERTY_STATUS_CONFIG, type PropertyStatus } from "@/domains/property/types";
+import { getGrade, rentaColor, cashflowColor, gradeBorderClass } from "@/lib/grade";
 
 interface Props {
   property: Property;
   calcs: PropertyCalculations;
-  currentUserId?: string;
-  onDelete: (e: React.MouseEvent, id: string) => void;
-  onToggleFavorite?: (e: React.MouseEvent, id: string) => void;
 }
 
-/** Barre colorée en haut de la card selon le cashflow */
-function getCashflowAccent(cashflow: number): string {
-  if (cashflow >= 100) return "bg-green-500";
-  if (cashflow >= 0) return "bg-green-300";
-  if (cashflow >= -100) return "bg-amber-400";
-  return "bg-red-400";
+/** Format number with narrow non-breaking spaces */
+function fmt(n: number): string {
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f");
 }
 
-/** Bordure gauche colorée selon le score */
-function getScoreStrip(score: number | null): string {
-  if (score == null) return "border-l-gray-300";
-  if (score >= 71) return "border-l-green-500";
-  if (score >= 51) return "border-l-blue-500";
-  if (score >= 31) return "border-l-amber-500";
-  return "border-l-red-400";
+/** Relative time ago in French */
+function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 60) return `${diffMin}min`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `${diffH}h`;
+  const diffD = Math.floor(diffH / 24);
+  return `${diffD}j`;
 }
 
-/** Fond placeholder quand pas d'image */
-function getScoreBg(score: number | null): string {
-  if (score == null) return "bg-gray-400";
-  if (score >= 71) return "bg-green-500";
-  if (score >= 51) return "bg-blue-500";
-  if (score >= 31) return "bg-amber-500";
-  return "bg-red-400";
-}
-
-export default function PropertyCard({ property: p, calcs: c, currentUserId, onDelete, onToggleFavorite }: Props) {
-  const images: string[] = (() => {
-    try { return JSON.parse(p.image_urls || "[]"); }
-    catch { return []; }
-  })();
-  const amenities = parseAmenities(p.amenities);
-  const hasImage = images.length > 0;
+export default function PropertyCard({ property: p, calcs: c }: Props) {
+  const grade = getGrade(p.investment_score);
+  const status = (p.property_status || "added") as PropertyStatus;
 
   return (
     <Link
       href={`/property/${p.id}`}
-      className={`block bg-white rounded-xl border border-gray-200 border-l-4 ${getScoreStrip(p.investment_score)} overflow-hidden active:bg-gray-50 transition-colors relative`}
+      className={`block bg-white rounded-[10px] border-l-4 ${gradeBorderClass(p.investment_score)} overflow-hidden active:bg-gray-50/50 transition-colors relative`}
+      style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}
     >
-      {/* Accent bar — couleur selon cashflow */}
-      <div className={`h-1 ${getCashflowAccent(c.monthly_cashflow)}`} />
+      {/* Grade watermark */}
+      <div
+        className={`absolute -top-0.5 right-1.5 text-[54px] font-black leading-none pointer-events-none select-none ${grade.color}`}
+        style={{ opacity: 0.06, fontFamily: "var(--font-sans)" }}
+      >
+        {grade.letter}
+      </div>
 
-      {/* Image ou placeholder avec initiale */}
-      {hasImage ? (
-        <div className="relative aspect-[16/9] bg-gray-100">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={images[0]} alt={p.city} className="w-full h-full object-cover" loading="lazy" />
-          {/* Overlay gradient pour lisibilité */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-          {/* Prix overlay sur l'image */}
-          <div className="absolute bottom-2 left-3">
-            <p className="text-white font-bold text-lg drop-shadow-sm">{formatCurrency(p.purchase_price)}</p>
-            <p className="text-white/80 text-xs">{p.surface} m²</p>
+      <div className="px-2.5 py-2.5 pb-[9px]">
+        {/* Row 1: City + Score badge */}
+        <div className="flex justify-between items-center mb-px">
+          <div className="flex items-center gap-1.5">
+            <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${PROPERTY_STATUS_CONFIG[status]?.dotColor || "bg-gray-400"}`} />
+            <span className="text-[15px] font-extrabold text-[#1a1a2e] tracking-tight truncate">
+              {p.city}
+            </span>
           </div>
           {p.investment_score != null && (
-            <div className="absolute top-2 right-2">
-              <InvestmentScoreBadge score={p.investment_score} size="md" />
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className={`relative h-20 ${getScoreBg(p.investment_score)} flex items-center justify-center`}>
-          <span className="text-3xl font-bold text-white/60">{p.city?.charAt(0)?.toUpperCase() || "?"}</span>
-          {p.investment_score != null && (
-            <div className="absolute top-2 right-2">
-              <InvestmentScoreBadge score={p.investment_score} size="md" />
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="p-4">
-        {/* Header : Ville + badge */}
-        <div className="flex items-start justify-between mb-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-gray-900 truncate">{p.city}</h3>
-              <StatusBadge status={(p.property_status || "added") as PropertyStatus} />
-              <span className="text-xs text-gray-400 capitalize shrink-0">{p.property_type}</span>
-              {p.visibility === "private" && (
-                <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded font-medium shrink-0">Prive</span>
-              )}
-            </div>
-            {p.address && (
-              <p className="text-xs text-gray-400 truncate">{p.address}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {currentUserId && p.user_id === currentUserId && onToggleFavorite && (
-              <button
-                onClick={(e) => onToggleFavorite(e, p.id)}
-                className="p-2 -mt-1 text-amber-400 hover:text-amber-500 min-w-[44px] min-h-[44px] flex items-center justify-center"
-              >
-                <span className="text-lg">{p.is_favorite ? "\u2605" : "\u2606"}</span>
-              </button>
-            )}
-            {currentUserId && p.user_id === currentUserId && (
-              <button
-                onClick={(e) => onDelete(e, p.id)}
-                className="p-2 -mr-2 -mt-1 text-gray-400 hover:text-red-500 min-w-[44px] min-h-[44px] flex items-center justify-center"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Prix + Surface (quand pas d'image) */}
-        {!hasImage && (
-          <div className="flex items-baseline gap-3 mb-3">
-            <p className="text-lg font-bold text-gray-900">{formatCurrency(p.purchase_price)}</p>
-            <p className="text-sm text-gray-500">{p.surface} m²</p>
-          </div>
-        )}
-
-        {/* KPIs principaux — 2x2 grid */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-gray-50 rounded-lg px-3 py-2">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Renta nette</p>
-            <p className={`text-sm font-bold ${c.net_yield >= 6 ? "text-green-600" : c.net_yield >= 4 ? "text-blue-600" : c.net_yield >= 2 ? "text-amber-600" : "text-red-600"}`}>
-              {formatPercent(c.net_yield)}
-            </p>
-          </div>
-          <div className="bg-gray-50 rounded-lg px-3 py-2">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Cash-flow</p>
-            <p className={`text-sm font-bold ${c.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {formatCurrency(c.monthly_cashflow)}
-            </p>
-          </div>
-          {p.airbnb_price_per_night > 0 && (
-            <>
-              <div className="bg-purple-50 rounded-lg px-3 py-2">
-                <p className="text-[10px] text-purple-500 uppercase tracking-wide">Airbnb</p>
-                <p className={`text-sm font-bold ${c.airbnb_net_yield >= 6 ? "text-green-600" : c.airbnb_net_yield >= 4 ? "text-blue-600" : "text-amber-600"}`}>
-                  {formatPercent(c.airbnb_net_yield)}
-                </p>
-              </div>
-              <div className="bg-purple-50 rounded-lg px-3 py-2">
-                <p className="text-[10px] text-purple-500 uppercase tracking-wide">CF Airbnb</p>
-                <p className={`text-sm font-bold ${c.airbnb_monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {formatCurrency(c.airbnb_monthly_cashflow)}
-                </p>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Amenities chips (max 4, compact) */}
-        {amenities.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {amenities.slice(0, 4).map((key) => (
-              <span key={key} className="text-[11px] px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded">
-                {AMENITY_ICONS[key]}
+            <div className={`flex items-center gap-1 px-[7px] py-0.5 rounded-md ${grade.bg}`}>
+              <span className={`text-[11px] font-extrabold ${grade.color}`}>{grade.letter}</span>
+              <span className={`text-[12px] font-bold font-[family-name:var(--font-mono)] ${grade.color}`}>
+                {p.investment_score}
               </span>
-            ))}
-            {amenities.length > 4 && (
-              <span className="text-[11px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">
-                +{amenities.length - 4}
-              </span>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
+
+        {/* Row 2: Context — minimal */}
+        <div className="text-[11px] text-[#b0b0b8] font-medium mb-2 pl-[11px]">
+          {p.property_type === "neuf" ? "Neuf" : "Ancien"} · {p.surface}m² · {timeAgo(p.created_at)}
+        </div>
+
+        {/* Row 3: The numbers — IDE-highlighted */}
+        <div className="flex justify-between items-baseline pl-[11px]">
+          {/* Price */}
+          <span className="text-[14px] font-bold text-gray-700 tracking-tight">
+            {fmt(p.purchase_price)}{"\u202f"}€
+          </span>
+
+          {/* Renta */}
+          <span className={`text-[16px] font-extrabold font-[family-name:var(--font-mono)] tracking-tighter ${rentaColor(c.net_yield)}`}>
+            {c.net_yield.toFixed(1)}%
+          </span>
+
+          {/* Cashflow */}
+          <span className={`text-[14px] font-bold font-[family-name:var(--font-mono)] tracking-tight ${cashflowColor(c.monthly_cashflow)}`}>
+            {c.monthly_cashflow > 0 ? "+" : ""}{Math.round(c.monthly_cashflow)}€
+          </span>
+        </div>
       </div>
     </Link>
   );

@@ -5,6 +5,7 @@ import { Property, PropertyCalculations, type PropertyStatus } from "@/domains/p
 import { formatCurrency, formatPercent } from "@/lib/calculations";
 import InvestmentScoreBadge from "@/components/ui/InvestmentScoreBadge";
 import StatusBadge from "@/components/property/StatusBadge";
+import { getGrade, rentaColor, cashflowColor } from "@/lib/grade";
 import { SortKey } from "./SortBar";
 
 interface Props {
@@ -19,15 +20,15 @@ interface Props {
 
 export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, currentUserId, onDelete, onToggleFavorite }: Props) {
   const sortIcon = (key: SortKey) =>
-    sortKey === key ? (sortAsc ? " ↑" : " ↓") : "";
+    sortKey === key ? (sortAsc ? " \u2191" : " \u2193") : "";
 
   const thClass =
-    "px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 whitespace-nowrap";
+    "px-3 py-3 text-left text-[9px] font-semibold text-[#b0b0b8] uppercase tracking-wider cursor-pointer hover:text-gray-600 whitespace-nowrap";
 
   return (
-    <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+    <div className="hidden md:block bg-white rounded-xl border border-tiili-border overflow-x-auto">
+      <table className="min-w-full divide-y divide-tiili-border">
+        <thead className="bg-tiili-surface">
           <tr>
             <th className={`${thClass} w-8`}></th>
             <th className={thClass} onClick={() => onSort("city")}>
@@ -50,89 +51,96 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
             </th>
             <th className={thClass}>CF Airbnb</th>
             <th className={thClass} onClick={() => onSort("investment_score")}>
-              Score{sortIcon("investment_score")}
+              Grade{sortIcon("investment_score")}
             </th>
             <th className={thClass}>Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
-          {sorted.map(({ property: p, calcs: c }) => (
-            <tr key={p.id} className="hover:bg-gray-50">
-              <td className="px-1 py-4 text-center">
-                {currentUserId && p.user_id === currentUserId && onToggleFavorite ? (
-                  <button
-                    onClick={(e) => onToggleFavorite(e, p.id)}
-                    className="text-amber-400 hover:text-amber-500 text-lg"
-                  >
-                    {p.is_favorite ? "\u2605" : "\u2606"}
-                  </button>
-                ) : (
-                  <span className="text-gray-300 text-lg">{p.is_favorite ? "\u2605" : ""}</span>
-                )}
-              </td>
-              <td className="px-3 py-4 text-sm font-medium text-gray-900">
-                <div className="flex items-center gap-3">
-                  {(() => {
-                    try {
-                      const imgs: string[] = JSON.parse(p.image_urls || "[]");
-                      if (imgs.length === 0) return null;
-                      return (
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={imgs[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
-                        </div>
-                      );
-                    } catch { return null; }
-                  })()}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Link href={`/property/${p.id}`} className="hover:text-indigo-600">
-                        {p.city}
-                      </Link>
-                      {p.visibility === "private" && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded font-medium">Privé</span>
+        <tbody className="divide-y divide-tiili-border">
+          {sorted.map(({ property: p, calcs: c }) => {
+            const grade = getGrade(p.investment_score);
+            return (
+              <tr key={p.id} className="hover:bg-tiili-surface/50">
+                <td className="px-1 py-4 text-center">
+                  {currentUserId && p.user_id === currentUserId && onToggleFavorite ? (
+                    <button
+                      onClick={(e) => onToggleFavorite(e, p.id)}
+                      className="text-amber-400 hover:text-amber-500 text-lg"
+                    >
+                      {p.is_favorite ? "\u2605" : "\u2606"}
+                    </button>
+                  ) : (
+                    <span className="text-gray-300 text-lg">{p.is_favorite ? "\u2605" : ""}</span>
+                  )}
+                </td>
+                <td className="px-3 py-4 text-sm font-semibold text-[#1a1a2e]">
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      try {
+                        const imgs: string[] = JSON.parse(p.image_urls || "[]");
+                        if (imgs.length === 0) return null;
+                        return (
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={imgs[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          </div>
+                        );
+                      } catch { return null; }
+                    })()}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Link href={`/property/${p.id}`} className="hover:text-amber-600">
+                          {p.city}
+                        </Link>
+                        {p.visibility === "private" && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded font-medium">Prive</span>
+                        )}
+                      </div>
+                      {p.address && (
+                        <div className="text-xs text-[#b0b0b8]">{p.address}</div>
                       )}
                     </div>
-                    {p.address && (
-                      <div className="text-xs text-gray-400">{p.address}</div>
-                    )}
                   </div>
-                </div>
-              </td>
-              <td className="px-3 py-4 text-sm">
-                <StatusBadge status={(p.property_status || "added") as PropertyStatus} />
-              </td>
-              <td className="px-3 py-4 text-sm text-gray-700">{formatCurrency(p.purchase_price)}</td>
-              <td className="px-3 py-4 text-sm text-gray-700">{p.surface} m²</td>
-              <td className="px-3 py-4 text-sm text-gray-700">
-                {p.surface > 0 ? formatCurrency(p.purchase_price / p.surface) : "—"}
-              </td>
-              <td className="px-3 py-4 text-sm text-gray-700">{formatPercent(c.net_yield)}</td>
-              <td className={`px-3 py-4 text-sm font-semibold ${c.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"}`}>
-                {formatCurrency(c.monthly_cashflow)}
-              </td>
-              <td className="px-3 py-4 text-sm text-gray-700">{formatPercent(c.airbnb_net_yield)}</td>
-              <td className={`px-3 py-4 text-sm font-semibold ${c.airbnb_monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"}`}>
-                {formatCurrency(c.airbnb_monthly_cashflow)}
-              </td>
-              <td className="px-3 py-4 text-sm">
-                <InvestmentScoreBadge score={p.investment_score} size="sm" />
-              </td>
-              <td className="px-3 py-4 text-sm space-x-2 whitespace-nowrap">
-                <Link href={`/property/${p.id}`} className="text-indigo-600 hover:underline">
-                  Voir
-                </Link>
-                {currentUserId && p.user_id === currentUserId && (
-                  <button
-                    onClick={(e) => onDelete(e, p.id)}
-                    className="text-red-500 hover:underline"
-                  >
-                    Suppr.
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className="px-3 py-4 text-sm">
+                  <StatusBadge status={(p.property_status || "added") as PropertyStatus} />
+                </td>
+                <td className="px-3 py-4 text-sm text-gray-700 font-[family-name:var(--font-mono)]">{formatCurrency(p.purchase_price)}</td>
+                <td className="px-3 py-4 text-sm text-gray-700">{p.surface} m²</td>
+                <td className="px-3 py-4 text-sm text-gray-700 font-[family-name:var(--font-mono)]">
+                  {p.surface > 0 ? formatCurrency(p.purchase_price / p.surface) : "\u2014"}
+                </td>
+                <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${rentaColor(c.net_yield)}`}>
+                  {formatPercent(c.net_yield)}
+                </td>
+                <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${cashflowColor(c.monthly_cashflow)}`}>
+                  {formatCurrency(c.monthly_cashflow)}
+                </td>
+                <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${rentaColor(c.airbnb_net_yield)}`}>
+                  {formatPercent(c.airbnb_net_yield)}
+                </td>
+                <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${cashflowColor(c.airbnb_monthly_cashflow)}`}>
+                  {formatCurrency(c.airbnb_monthly_cashflow)}
+                </td>
+                <td className="px-3 py-4 text-sm">
+                  <InvestmentScoreBadge score={p.investment_score} size="sm" />
+                </td>
+                <td className="px-3 py-4 text-sm space-x-2 whitespace-nowrap">
+                  <Link href={`/property/${p.id}`} className="text-amber-600 hover:underline">
+                    Voir
+                  </Link>
+                  {currentUserId && p.user_id === currentUserId && (
+                    <button
+                      onClick={(e) => onDelete(e, p.id)}
+                      className="text-red-500 hover:underline"
+                    >
+                      Suppr.
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

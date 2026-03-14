@@ -130,7 +130,7 @@ export default function CompareView({ properties }: CompareViewProps) {
     return (
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Comparer des biens</h1>
+          <h1 className="text-2xl font-bold text-[#1a1a2e]">Comparer des biens</h1>
           <span className="text-sm text-gray-500">
             {selected.length}/{MAX_SELECTED} selectionnes
           </span>
@@ -152,7 +152,7 @@ export default function CompareView({ properties }: CompareViewProps) {
               <button
                 disabled={selected.length < 2}
                 onClick={() => setComparing(true)}
-                className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
+                className="px-6 py-3 bg-amber-600 text-white font-semibold rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-700 transition-colors"
               >
                 Comparer ({selected.length})
               </button>
@@ -167,10 +167,10 @@ export default function CompareView({ properties }: CompareViewProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Comparaison</h1>
+        <h1 className="text-2xl font-bold text-[#1a1a2e]">Comparaison</h1>
         <button
           onClick={() => setComparing(false)}
-          className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+          className="text-sm text-amber-600 hover:text-amber-800 font-medium"
         >
           Modifier la selection
         </button>
@@ -193,7 +193,7 @@ export default function CompareView({ properties }: CompareViewProps) {
                         <img src={thumb} alt="" className="w-full h-full object-cover" />
                       </div>
                     )}
-                    <p className="font-semibold text-sm text-gray-900 truncate">
+                    <p className="font-semibold text-sm text-[#1a1a2e] truncate">
                       {p.city || "Ville inconnue"}
                     </p>
                     {p.address && (
@@ -212,7 +212,7 @@ export default function CompareView({ properties }: CompareViewProps) {
                 <tr key={`section-${section.title}`}>
                   <td
                     colSpan={selectedProperties.length + 1}
-                    className="pt-5 pb-2 px-3 text-xs font-bold text-indigo-600 uppercase tracking-wider border-b border-indigo-100"
+                    className="pt-5 pb-2 px-3 text-xs font-bold text-amber-600 uppercase tracking-wider border-b border-amber-100"
                   >
                     {section.title}
                   </td>
@@ -232,7 +232,7 @@ export default function CompareView({ properties }: CompareViewProps) {
                           className={`px-3 py-2.5 text-sm text-center font-medium whitespace-nowrap ${
                             bestIdx === i
                               ? "bg-green-50 text-green-700"
-                              : "text-gray-900"
+                              : "text-[#1a1a2e]"
                           }`}
                         >
                           {val}

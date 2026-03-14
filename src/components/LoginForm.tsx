@@ -12,8 +12,8 @@ export default function LoginForm() {
 
   return (
     <div className="w-full max-w-sm">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h1 className="text-2xl font-bold text-gray-900 text-center mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-6">
+        <h1 className="text-2xl font-bold text-[#1a1a2e] text-center mb-6">
           Connexion
         </h1>
 
@@ -34,7 +34,7 @@ export default function LoginForm() {
               type="email"
               required
               autoComplete="email"
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]"
               placeholder="vous@exemple.com"
             />
           </div>
@@ -47,14 +47,14 @@ export default function LoginForm() {
               type="password"
               required
               autoComplete="current-password"
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]"
               placeholder="••••••••"
             />
           </div>
           <button
             type="submit"
             disabled={pending}
-            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 min-h-[44px]"
+            className="w-full px-4 py-3 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 min-h-[44px]"
           >
             {pending ? "Connexion..." : "Se connecter"}
           </button>
@@ -64,7 +64,7 @@ export default function LoginForm() {
           <>
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
+                <div className="w-full border-t border-tiili-border" />
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">ou</span>
@@ -83,7 +83,7 @@ export default function LoginForm() {
 
         <p className="text-sm text-gray-500 text-center mt-4">
           Pas encore de compte ?{" "}
-          <Link href="/register" className="text-indigo-600 hover:underline">
+          <Link href="/register" className="text-amber-600 hover:underline">
             Inscrivez-vous
           </Link>
         </p>

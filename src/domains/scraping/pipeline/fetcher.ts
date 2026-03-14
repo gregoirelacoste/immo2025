@@ -99,14 +99,15 @@ export function extractImages(
     }
   }
 
-  // 1. og:image meta tags
-  const ogRegex =
-    /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*\/?>/gi;
-  const ogRegex2 =
-    /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["'][^>]*\/?>/gi;
-  let m;
-  while ((m = ogRegex.exec(html)) !== null) addImage(m[1]);
-  while ((m = ogRegex2.exec(html)) !== null) addImage(m[1]);
+  // 1. Meta image tags (og:image, og:image:secure_url, twitter:image)
+  const metaImageProps = ["og:image", "og:image:secure_url", "twitter:image"];
+  for (const prop of metaImageProps) {
+    const re1 = new RegExp(`<meta[^>]*property=["']${prop}["'][^>]*content=["']([^"']+)["'][^>]*\\/?>`, "gi");
+    const re2 = new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*property=["']${prop}["'][^>]*\\/?>`, "gi");
+    let m;
+    while ((m = re1.exec(html)) !== null) addImage(m[1]);
+    while ((m = re2.exec(html)) !== null) addImage(m[1]);
+  }
 
   // 2. JSON-LD image fields
   for (const block of jsonLdBlocks) {

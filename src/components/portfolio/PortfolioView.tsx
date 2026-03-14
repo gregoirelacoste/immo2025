@@ -40,19 +40,19 @@ export default function PortfolioView({ properties, calculations, rentalData }: 
     <div className="space-y-6">
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-4">
           <p className="text-xs text-gray-500 mb-1">Patrimoine investi</p>
-          <p className="text-xl font-bold text-gray-900">{formatCurrency(totalInvested)}</p>
+          <p className="text-xl font-bold text-[#1a1a2e]">{formatCurrency(totalInvested)}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-4">
           <p className="text-xs text-gray-500 mb-1">Revenus mensuels</p>
           <p className="text-xl font-bold text-green-600">{formatCurrency(totalMonthlyRent)}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-4">
           <p className="text-xs text-gray-500 mb-1">Charges mensuelles</p>
-          <p className="text-xl font-bold text-gray-900">{formatCurrency(totalMonthlyCharges)}</p>
+          <p className="text-xl font-bold text-[#1a1a2e]">{formatCurrency(totalMonthlyCharges)}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-xl shadow-sm border border-tiili-border p-4">
           <p className="text-xs text-gray-500 mb-1">Rendement global</p>
           <p className={`text-xl font-bold ${portfolioYield >= 0 ? "text-green-600" : "text-red-600"}`}>
             {portfolioYield.toFixed(2)} %
@@ -61,8 +61,8 @@ export default function PortfolioView({ properties, calculations, rentalData }: 
       </div>
 
       {/* Properties list */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
+      <div className="bg-white rounded-xl shadow-sm border border-tiili-border overflow-hidden">
+        <div className="p-4 border-b border-tiili-border">
           <h2 className="text-lg font-semibold">{properties.length} bien{properties.length > 1 ? "s" : ""} en portefeuille</h2>
         </div>
 
@@ -87,7 +87,7 @@ export default function PortfolioView({ properties, calculations, rentalData }: 
                   className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">
+                    <p className="font-medium text-[#1a1a2e] truncate">
                       {property.address || property.city}
                     </p>
                     <p className="text-sm text-gray-500">
