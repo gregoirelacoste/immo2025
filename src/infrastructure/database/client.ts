@@ -190,6 +190,11 @@ export async function getDb(): Promise<Client> {
       CREATE INDEX IF NOT EXISTS idx_locality_data_valid ON locality_data(valid_from, valid_to);
     `);
 
+    // Ensure admin role is set (runs every init, not just on migration)
+    await client.execute(
+      "UPDATE users SET role = 'admin' WHERE LOWER(email) = 'gregoire.lacoste@gmail.com'"
+    );
+
     _initialized = true;
   }
   return client;
