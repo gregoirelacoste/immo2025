@@ -6,6 +6,8 @@ import {
   updateProperty,
   updateOrphanProperty,
   getPropertyBySourceUrl,
+  getOrphanPropertyBySourceUrl,
+  getRecentDuplicateProperty,
   stripMeta,
   getOwnerOrAllowOrphan,
   updateCollectFields,
@@ -31,8 +33,14 @@ export async function scrapeAndSaveProperty(
 ): Promise<{ propertyId?: string; error?: string; warning?: string }> {
   const userId = await getOptionalUserId();
 
+  // Dedup: check if a property with this URL already exists
   if (userId) {
     const existing = await getPropertyBySourceUrl(url, userId);
+    if (existing) {
+      return { propertyId: existing.id };
+    }
+  } else {
+    const existing = await getOrphanPropertyBySourceUrl(url);
     if (existing) {
       return { propertyId: existing.id };
     }
@@ -194,6 +202,18 @@ export async function createPropertyFromText(
     const surface = d.surface || 0;
     const city = d.city || "";
     const notary = calculateNotaryFees(price, propertyType);
+
+    // Dedup: check if a property with same key data was recently created
+    if (city && price > 0 && surface > 0) {
+      const existing = await getRecentDuplicateProperty(userId, city, price, surface);
+      if (existing) {
+        // Update existing property with text data instead of creating duplicate
+        const texts = (() => { try { return JSON.parse(existing.collect_texts || "[]"); } catch { return []; } })();
+        texts.push(rawText);
+        await updateCollectFields(existing.id, { collect_texts: JSON.stringify(texts) });
+        return { propertyId: existing.id };
+      }
+    }
 
     let prefill: Record<string, { source: string; value: number | string }> = {};
     if (price > 0) prefill.purchase_price = { source: "Collage texte (IA)", value: price };

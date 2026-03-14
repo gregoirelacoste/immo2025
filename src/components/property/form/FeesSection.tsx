@@ -7,13 +7,16 @@ interface Props {
   onChange: (field: keyof PropertyFormData, value: string | number) => void;
   calcs: PropertyCalculations;
   effectiveNotary: number;
+  readOnly?: boolean;
 }
 
 const inputClass =
   "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base min-h-[44px]";
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
-export default function FeesSection({ form, onChange, calcs, effectiveNotary }: Props) {
+const valueClass = "text-base font-medium text-gray-900 py-2";
+
+export default function FeesSection({ form, onChange, calcs, effectiveNotary, readOnly }: Props) {
   return (
     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-4">Frais &amp; coût total</h2>
@@ -21,30 +24,40 @@ export default function FeesSection({ form, onChange, calcs, effectiveNotary }: 
         <div>
           <label className={labelClass}>
             Frais de notaire ({form.property_type === "ancien" ? "7.5%" : "2.5%"})
-            <FieldTooltip text="Frais d'acquisition obligatoires. ~7.5% dans l'ancien, ~2.5% dans le neuf. Laissez vide pour le calcul automatique." />
+            {!readOnly && <FieldTooltip text="Frais d'acquisition obligatoires. ~7.5% dans l'ancien, ~2.5% dans le neuf. Laissez vide pour le calcul automatique." />}
           </label>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={form.notary_fees || ""}
-            onChange={(e) => onChange("notary_fees", parseFloat(e.target.value) || 0)}
-            className={inputClass}
-            placeholder={`Auto : ${effectiveNotary} €`}
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            Vide = calcul auto. Estimé : {formatCurrency(effectiveNotary)}
-          </p>
+          {readOnly ? (
+            <p className={valueClass}>{formatCurrency(effectiveNotary)}</p>
+          ) : (
+            <>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={form.notary_fees || ""}
+                onChange={(e) => onChange("notary_fees", parseFloat(e.target.value) || 0)}
+                className={inputClass}
+                placeholder={`Auto : ${effectiveNotary} €`}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Vide = calcul auto. Estimé : {formatCurrency(effectiveNotary)}
+              </p>
+            </>
+          )}
         </div>
         <div>
-          <label className={labelClass}>Frais de dossier bancaire<FieldTooltip text="Frais facturés par la banque pour monter le dossier de prêt. Souvent négociables (500-1500€)." /></label>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={form.loan_fees || ""}
-            onChange={(e) => onChange("loan_fees", parseFloat(e.target.value) || 0)}
-            className={inputClass}
-            placeholder="1000"
-          />
+          <label className={labelClass}>Frais de dossier bancaire{!readOnly && <FieldTooltip text="Frais facturés par la banque pour monter le dossier de prêt. Souvent négociables (500-1500€)." />}</label>
+          {readOnly ? (
+            <p className={valueClass}>{formatCurrency(form.loan_fees)}</p>
+          ) : (
+            <input
+              type="number"
+              inputMode="numeric"
+              value={form.loan_fees || ""}
+              onChange={(e) => onChange("loan_fees", parseFloat(e.target.value) || 0)}
+              className={inputClass}
+              placeholder="1000"
+            />
+          )}
         </div>
       </div>
       <div className="mt-4 p-4 bg-gray-50 rounded-lg">

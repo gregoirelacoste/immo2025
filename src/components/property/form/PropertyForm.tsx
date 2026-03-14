@@ -2,13 +2,18 @@
 
 import { useState, useEffect, useRef, useCallback, ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Property, PropertyFormData } from "@/domains/property/types";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { Property, PropertyFormData, type PropertyStatus } from "@/domains/property/types";
 import {
   calculateNotaryFees,
   calculateMonthlyPayment,
   calculateAll,
+  formatCurrency,
+  formatPercent,
 } from "@/lib/calculations";
-import { saveProperty } from "@/domains/property/actions";
+import { saveProperty, removeProperty } from "@/domains/property/actions";
+import { refreshEnrichment } from "@/domains/enrich/actions";
 import { scrapeAndSaveProperty } from "@/domains/scraping/actions";
 import { useLoanAutoCalc } from "./useLoanAutoCalc";
 
@@ -25,10 +30,23 @@ import { parseAmenities, type AmenityKey } from "@/domains/property/amenities";
 import ResultsSummarySection from "./ResultsSummarySection";
 import InvestmentScorePreview from "./InvestmentScorePreview";
 import InvestmentScorePanel from "@/components/property/detail/InvestmentScorePanel";
+import MarketDataPanel from "@/components/property/detail/MarketDataPanel";
+import SocioEconomicPanel from "@/components/property/detail/SocioEconomicPanel";
+import PhotoGallery from "@/components/property/detail/PhotoGallery";
+import PropertyHeader from "@/components/property/detail/PropertyHeader";
+import StatusSelector from "@/components/property/StatusSelector";
+import BudgetIndicator from "@/components/property/BudgetIndicator";
+import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import Alert from "@/components/ui/Alert";
 import { PhotoMetadata } from "@/domains/collect/types";
 import { reverseGeocode } from "@/domains/collect/geocoding";
 import type { DefaultInputs } from "@/domains/auth/defaults";
+import type { MarketData } from "@/domains/market/types";
+import type { SocioEconomicData } from "@/domains/enrich/socioeconomic-types";
+import type { UserProfile } from "@/domains/auth/types";
+import type { Photo } from "@/domains/photo/types";
+
+const PropertyMap = dynamic(() => import("@/components/property/detail/PropertyMap"), { ssr: false });
 
 function buildDefaultFormData(defaults?: DefaultInputs): PropertyFormData {
   return {
@@ -82,12 +100,21 @@ function stripToFormData(p: Property): PropertyFormData {
   return rest;
 }
 
+function parseJson<T>(json: string, fallback: T): T {
+  try { return json ? JSON.parse(json) : fallback; }
+  catch { return fallback; }
+}
+
 interface Props {
   existingProperty?: Property;
   defaultInputs?: DefaultInputs;
+  readOnly?: boolean;
+  isOwner?: boolean;
+  userProfile?: UserProfile | null;
+  photos?: Photo[];
 }
 
-export default function PropertyForm({ existingProperty, defaultInputs }: Props) {
+export default function PropertyForm({ existingProperty, defaultInputs, readOnly, isOwner, userProfile, photos = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [saving, setSaving] = useState(false);
@@ -98,6 +125,7 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
   // so subsequent actions (text paste, photos) update the same property
   const [createdPropertyId, setCreatedPropertyId] = useState<string | null>(null);
   const [autoScraping, setAutoScraping] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [form, setForm] = useState<PropertyFormData>(() =>
     existingProperty ? stripToFormData(existingProperty) : buildDefaultFormData(defaultInputs)
@@ -164,6 +192,7 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
 
   // Auto-scrape quand une URL est passée en query param (partage PWA)
   useEffect(() => {
+    if (readOnly) return;
     const urlParam = searchParams.get("url");
     const sharedTextParam = searchParams.get("sharedText") || undefined;
     if (urlParam && !existingProperty && !autoScrapeTriggered.current) {
@@ -237,6 +266,32 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
     }
   }
 
+  async function handleDelete() {
+    if (!existingProperty) return;
+    if (!confirm("Supprimer ce bien ?")) return;
+    const result = await removeProperty(existingProperty.id);
+    if (!result.success) {
+      alert(result.error ?? "Erreur lors de la suppression.");
+      return;
+    }
+    router.push("/dashboard");
+  }
+
+  async function handleRefreshEnrichment() {
+    if (!existingProperty) return;
+    setRefreshing(true);
+    await refreshEnrichment(existingProperty.id);
+    setRefreshing(false);
+    router.refresh();
+  }
+
+  // View-only data parsed from existingProperty
+  const marketData = existingProperty ? parseJson<MarketData | null>(existingProperty.market_data, null) : null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scoreBreakdown = existingProperty ? parseJson<any>(existingProperty.score_breakdown, null) : null;
+  const socioData = existingProperty ? parseJson<SocioEconomicData | null>(existingProperty.socioeconomic_data, null) : null;
+  const scrapedImages: string[] = existingProperty ? parseJson(existingProperty.image_urls, []) : [];
+
   // When auto-scraping from URL share, block the entire form — only show loading
   if (autoScraping) {
     return (
@@ -248,6 +303,161 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
     );
   }
 
+  // ─── Read-only mode (view page) ───
+  if (readOnly && existingProperty) {
+    return (
+      <div className="space-y-6 pb-safe">
+        {/* Header with share/edit/delete */}
+        <PropertyHeader property={existingProperty} isOwner={!!isOwner} onDelete={handleDelete} />
+
+        {/* Hero KPIs */}
+        <section className="bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200 p-4 md:p-6">
+          <div className="flex items-baseline justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h2 className="text-xl font-bold text-gray-900">{existingProperty.city}</h2>
+                <StatusSelector propertyId={existingProperty.id} currentStatus={(existingProperty.property_status || "added") as PropertyStatus} />
+              </div>
+              {existingProperty.address && (
+                <p className="text-sm text-gray-500">{existingProperty.address}</p>
+              )}
+            </div>
+            <div className="text-right shrink-0">
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(existingProperty.purchase_price)}</p>
+              <div className="flex items-center justify-end gap-2">
+                <p className="text-sm text-gray-500">{existingProperty.surface} m²</p>
+                <BudgetIndicator monthlyPayment={calcs.monthly_payment} monthlyInsurance={calcs.monthly_insurance} userProfile={userProfile} />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-white rounded-lg p-3 border border-slate-100">
+              <p className="text-xs text-gray-500">Renta nette</p>
+              <p className={`text-xl font-bold ${calcs.net_yield >= 6 ? "text-green-600" : calcs.net_yield >= 4 ? "text-blue-600" : calcs.net_yield >= 2 ? "text-amber-600" : "text-red-600"}`}>
+                {formatPercent(calcs.net_yield)}
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-slate-100">
+              <p className="text-xs text-gray-500">Cash-flow / mois</p>
+              <p className={`text-xl font-bold ${calcs.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {formatCurrency(calcs.monthly_cashflow)}
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-slate-100">
+              <p className="text-xs text-gray-500">Net-net (après impôts)</p>
+              <p className={`text-xl font-bold ${calcs.net_net_yield >= 4 ? "text-green-600" : calcs.net_net_yield >= 2 ? "text-blue-600" : "text-red-600"}`}>
+                {formatPercent(calcs.net_net_yield)}
+              </p>
+            </div>
+            <div className={`rounded-lg p-3 border ${
+              existingProperty.investment_score == null ? "bg-white border-slate-100" :
+              existingProperty.investment_score >= 71 ? "bg-green-50 border-green-200" :
+              existingProperty.investment_score >= 51 ? "bg-blue-50 border-blue-200" :
+              existingProperty.investment_score >= 31 ? "bg-amber-50 border-amber-200" :
+              "bg-red-50 border-red-200"
+            }`}>
+              <p className="text-xs text-gray-500">Score</p>
+              <p className={`text-xl font-bold ${
+                existingProperty.investment_score == null ? "text-gray-400" :
+                existingProperty.investment_score >= 71 ? "text-green-600" :
+                existingProperty.investment_score >= 51 ? "text-blue-600" :
+                existingProperty.investment_score >= 31 ? "text-amber-600" :
+                "text-red-600"
+              }`}>
+                {existingProperty.investment_score != null ? `${existingProperty.investment_score}/100` : "..."}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Sections in same order as edit form, but readOnly */}
+        <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} readOnly />
+        <AmenitiesSection
+          selected={parseAmenities(form.amenities)}
+          onChange={(keys: AmenityKey[]) => updateField("amenities", JSON.stringify(keys))}
+          readOnly
+        />
+        <LoanSection form={form} onChange={updateField} onLoanChange={handleLoanChange} calcs={calcs} monthlyPaymentPreview={monthlyPaymentPreview} prefillHint={prefillHint} loanAutoCalc={!loanManuallySet} readOnly />
+        <FeesSection form={form} onChange={updateField} calcs={calcs} effectiveNotary={effectiveNotary} readOnly />
+        <ClassicRentalSection form={form} onChange={handleRentChange} calcs={calcs} prefillHint={prefillHint} readOnly />
+
+        {/* Airbnb (only if data exists) */}
+        {form.airbnb_price_per_night > 0 && (
+          <AirbnbSection form={form} onChange={updateField} calcs={calcs} readOnly />
+        )}
+
+        <RenovationSection form={form} onChange={updateField} prefillHint={prefillHint} readOnly />
+        <FiscalSection calcs={calcs} fiscalRegime={form.fiscal_regime || "micro_bic"} />
+        <ResultsSummarySection calcs={calcs} showAirbnb={form.airbnb_price_per_night > 0} />
+
+        {/* Investment Score */}
+        <InvestmentScorePanel
+          score={existingProperty.investment_score}
+          breakdown={scoreBreakdown}
+          status={existingProperty.enrichment_status}
+          error={existingProperty.enrichment_error}
+          onRefresh={handleRefreshEnrichment}
+          refreshing={refreshing}
+        />
+
+        {/* Market Data */}
+        {marketData && (
+          <CollapsibleSection title="Données du marché" variant="emerald" defaultOpen>
+            <MarketDataPanel property={existingProperty} marketData={marketData} loading={existingProperty.enrichment_status === "running"} />
+          </CollapsibleSection>
+        )}
+
+        {/* Photos */}
+        {(photos.length > 0 || scrapedImages.length > 0) && (
+          <PhotoGallery
+            photos={photos}
+            scrapedImages={scrapedImages}
+            isOwner={!!isOwner}
+            propertyId={existingProperty.id}
+          />
+        )}
+
+        {/* Map */}
+        {existingProperty.latitude != null && existingProperty.longitude != null && (
+          <section className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <PropertyMap
+              latitude={existingProperty.latitude}
+              longitude={existingProperty.longitude}
+              address={existingProperty.address}
+              city={existingProperty.city}
+            />
+          </section>
+        )}
+
+        {/* Socio-economic data */}
+        {socioData && (
+          <CollapsibleSection title="Données socio-économiques" variant="violet" defaultOpen>
+            <SocioEconomicPanel data={socioData} />
+          </CollapsibleSection>
+        )}
+
+        {/* Visit mode link */}
+        <section className="bg-white rounded-xl border border-gray-200 p-4 md:p-6 text-center">
+          <Link
+            href={`/property/${existingProperty.id}/visit`}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors min-h-[48px]"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+            </svg>
+            Démarrer le mode visite
+          </Link>
+          <p className="text-sm text-gray-500 mt-3">
+            Le mode visite vous guide pour photographier chaque pièce et noter vos observations.
+          </p>
+        </section>
+      </div>
+    );
+  }
+
+  // ─── Edit mode (form) ───
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-safe">
       {error && <Alert variant="error">{error}</Alert>}
