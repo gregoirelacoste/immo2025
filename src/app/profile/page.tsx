@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getUserProfile } from "@/domains/auth/repository";
+import { getUserProfile, getUserById } from "@/domains/auth/repository";
 import Navbar from "@/components/Navbar";
 import ProfileForm from "@/components/profile/ProfileForm";
+import AccountCard from "@/components/profile/AccountCard";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,12 @@ export default async function ProfilePage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const profile = await getUserProfile(session.user.id);
+  const [user, profile] = await Promise.all([
+    getUserById(session.user.id),
+    getUserProfile(session.user.id),
+  ]);
+
+  if (!user) redirect("/login");
 
   return (
     <div className="min-h-screen bg-[#f4f3ef]">
@@ -19,6 +25,7 @@ export default async function ProfilePage() {
         <h1 className="text-2xl font-bold text-[#1a1a2e] mb-6">
           Mon profil
         </h1>
+        <AccountCard user={{ name: user.name, email: user.email, image: user.image, role: user.role, plan: user.plan, created_at: user.created_at }} />
         <ProfileForm profile={profile} />
       </main>
     </div>
