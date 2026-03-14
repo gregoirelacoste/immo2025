@@ -51,6 +51,29 @@ export function cashflowColor(cf: number): string {
   return "text-red-600";
 }
 
+export interface VerdictItem {
+  label: string;
+  /** 1 = good, 0 = neutral, -1 = bad */
+  val: 1 | 0 | -1;
+}
+
+/** Quick verdict for property detail hero */
+export function getVerdict(price: number, netYield: number, cashflow: number, score: number | null): VerdictItem[] {
+  return [
+    { label: "Prix", val: price < 150000 ? 1 : price < 200000 ? 0 : -1 },
+    { label: "Renta", val: netYield >= 7 ? 1 : netYield >= 5 ? 0 : -1 },
+    { label: "Cashflow", val: cashflow > 50 ? 1 : cashflow >= 0 ? 0 : -1 },
+    { label: "Risque", val: (score ?? 0) > 65 ? 1 : (score ?? 0) > 45 ? 0 : -1 },
+  ];
+}
+
+/** Verdict item color classes */
+export function verdictColor(val: 1 | 0 | -1): { text: string; bg: string } {
+  if (val === 1) return { text: "text-green-600", bg: "bg-green-50" };
+  if (val === 0) return { text: "text-amber-600", bg: "bg-amber-50" };
+  return { text: "text-red-600", bg: "bg-red-50" };
+}
+
 /** Border-left class based on grade */
 export function gradeBorderClass(score: number | null): string {
   const g = getGrade(score);

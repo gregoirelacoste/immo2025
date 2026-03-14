@@ -10,19 +10,10 @@ import SortBar, { SortKey } from "./SortBar";
 import PropertyCard from "./PropertyCard";
 import PropertyTable from "./PropertyTable";
 
-
 interface Props {
   properties: Property[];
   currentUserId?: string;
 }
-
-const STATUS_DOT_COLORS: Record<string, string> = {
-  added: "bg-blue-500",
-  visited: "bg-violet-500",
-  offer_made: "bg-amber-500",
-  won: "bg-green-500",
-  invalid: "bg-red-500",
-};
 
 export default function DashboardClient({ properties, currentUserId }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
@@ -219,7 +210,7 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
                       : "bg-tiili-surface border border-tiili-border text-gray-500"
                   }`}
                 >
-                  <span className={`w-[5px] h-[5px] rounded-full ${STATUS_DOT_COLORS[status] || "bg-gray-400"}`} />
+                  <span className={`w-[5px] h-[5px] rounded-full ${PROPERTY_STATUS_CONFIG[status]?.dotColor || "bg-gray-400"}`} />
                   {config.label}
                   <span className="text-[#b0b0b8]">{count}</span>
                 </button>
@@ -279,7 +270,7 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
                     : "bg-tiili-surface border border-tiili-border text-gray-500 hover:bg-gray-100"
                 }`}
               >
-                <span className={`w-[5px] h-[5px] rounded-full ${STATUS_DOT_COLORS[status] || "bg-gray-400"}`} />
+                <span className={`w-[5px] h-[5px] rounded-full ${PROPERTY_STATUS_CONFIG[status]?.dotColor || "bg-gray-400"}`} />
                 {config.label}
                 <span className="text-[#b0b0b8]">{count}</span>
               </button>

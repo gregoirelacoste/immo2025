@@ -185,9 +185,13 @@ export default function Navbar() {
             <span className="text-[11px] text-[#c4b5a0] font-medium">.io</span>
           </Link>
           {session?.user ? (
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-600 to-amber-400 flex items-center justify-center text-white text-sm font-bold">
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-600 to-amber-400 flex items-center justify-center text-white text-sm font-bold"
+              aria-label="Menu"
+            >
               {session.user.name?.charAt(0)?.toUpperCase() || "?"}
-            </div>
+            </button>
           ) : (
             burgerIcon
           )}
