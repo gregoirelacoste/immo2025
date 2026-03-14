@@ -4,14 +4,18 @@ import { revalidatePath } from "next/cache";
 import {
   createProperty,
   updateProperty,
+  updatePropertyAsAdmin,
   updateOrphanProperty,
   deleteProperty,
   deletePropertyAsAdmin,
   getOrphanPropertyById,
+  getPropertyByIdPublic,
   stripMeta,
   getOwnerOrAllowOrphan,
   updatePropertyStatus,
+  updatePropertyStatusAsAdmin,
   togglePropertyFavorite,
+  togglePropertyFavoriteAsAdmin,
 } from "@/domains/property/repository";
 import { requireUserId, getOptionalUserId, isAdmin } from "@/lib/auth-actions";
 import { calculateNotaryFees } from "@/lib/calculations";
@@ -45,7 +49,12 @@ export async function saveProperty(
         await updateOrphanProperty(existingId, payload);
       } else {
         const userId = await requireUserId();
-        await updateProperty(existingId, userId, payload);
+        const admin = await isAdmin();
+        if (admin) {
+          await updatePropertyAsAdmin(existingId, payload);
+        } else {
+          await updateProperty(existingId, userId, payload);
+        }
       }
     } else {
       const userId = await getOptionalUserId();
@@ -96,12 +105,14 @@ export async function savePropertyPhotos(
       return { success: false, error: "Format d'images invalide." };
     }
 
-    const { property, userId } = await getOwnerOrAllowOrphan(propertyId);
+    const { property, userId, adminAccess } = await getOwnerOrAllowOrphan(propertyId);
     const baseData = stripMeta(property);
     const payload = { ...baseData, image_urls: JSON.stringify(images) };
 
     if (userId === null) {
       await updateOrphanProperty(propertyId, payload);
+    } else if (adminAccess) {
+      await updatePropertyAsAdmin(propertyId, payload);
     } else {
       await updateProperty(propertyId, userId, payload);
     }
@@ -119,8 +130,9 @@ export async function rescrapeProperty(
 ): Promise<{ success: boolean; error?: string }> {
   let property: Property;
   let userId: string | null;
+  let adminAccess: boolean | undefined;
   try {
-    ({ property, userId } = await getOwnerOrAllowOrphan(id));
+    ({ property, userId, adminAccess } = await getOwnerOrAllowOrphan(id));
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }
@@ -170,6 +182,8 @@ export async function rescrapeProperty(
 
   if (userId === null) {
     await updateOrphanProperty(id, updatePayload);
+  } else if (adminAccess) {
+    await updatePropertyAsAdmin(id, updatePayload);
   } else {
     await updateProperty(id, userId, updatePayload);
   }
@@ -188,7 +202,12 @@ export async function toggleFavorite(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const userId = await requireUserId();
-    await togglePropertyFavorite(propertyId, userId);
+    const admin = await isAdmin();
+    if (admin) {
+      await togglePropertyFavoriteAsAdmin(propertyId);
+    } else {
+      await togglePropertyFavorite(propertyId, userId);
+    }
     revalidatePath(`/property/${propertyId}`);
     revalidatePath("/dashboard");
     return { success: true };
@@ -206,7 +225,12 @@ export async function changePropertyStatus(
     if (!PROPERTY_STATUSES.includes(status)) {
       return { success: false, error: "Statut invalide." };
     }
-    await updatePropertyStatus(propertyId, status, userId);
+    const admin = await isAdmin();
+    if (admin) {
+      await updatePropertyStatusAsAdmin(propertyId, status);
+    } else {
+      await updatePropertyStatus(propertyId, status, userId);
+    }
     revalidatePath(`/property/${propertyId}`);
     revalidatePath("/dashboard");
     return { success: true };

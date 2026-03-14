@@ -1,6 +1,6 @@
 import { getDb } from "@/infrastructure/database/client";
 import { rowAs } from "@/infrastructure/database/row-mapper";
-import { requireUserId } from "@/lib/auth-actions";
+import { requireUserId, isAdmin } from "@/lib/auth-actions";
 import { Property } from "./types";
 
 /** Strip metadata fields from a Property, returning only the mutable data fields. */
@@ -21,24 +21,36 @@ export function stripMeta(p: Property) {
 /**
  * Returns the property and the effective userId for mutation.
  * - Orphaned property (user_id empty/null): allowed without auth.
+ * - Admin: allowed on any property (returns userId = "admin").
  * - Owned property: requires auth + ownership, throws otherwise.
  */
 export async function getOwnerOrAllowOrphan(
   propertyId: string
-): Promise<{ property: Property; userId: string | null }> {
+): Promise<{ property: Property; userId: string | null; adminAccess?: boolean }> {
   const orphan = await getOrphanPropertyById(propertyId);
   if (orphan) {
     return { property: orphan, userId: null };
   }
   const userId = await requireUserId();
+  // Admin can access any property
+  const admin = await isAdmin();
+  if (admin) {
+    const property = await getPropertyByIdPublic(propertyId);
+    if (!property) throw new Error("Bien introuvable.");
+    return { property, userId, adminAccess: true };
+  }
   const property = await getOwnPropertyById(propertyId, userId);
   if (!property) throw new Error("Bien introuvable ou accès refusé.");
   return { property, userId };
 }
 
-/** All visible properties: public + user's own private (if logged in) */
-export async function getVisibleProperties(userId?: string): Promise<Property[]> {
+/** All visible properties: admin sees ALL, others see public + own private */
+export async function getVisibleProperties(userId?: string, admin = false): Promise<Property[]> {
   const db = await getDb();
+  if (admin) {
+    const result = await db.execute("SELECT * FROM properties ORDER BY created_at DESC");
+    return result.rows.map((r) => rowAs<Property>(r));
+  }
   if (userId) {
     const result = await db.execute({
       sql: "SELECT * FROM properties WHERE visibility = 'public' OR user_id = ? ORDER BY created_at DESC",
@@ -52,12 +64,17 @@ export async function getVisibleProperties(userId?: string): Promise<Property[]>
   return result.rows.map((r) => rowAs<Property>(r));
 }
 
-/** Get a property if it's public or owned by the user */
+/** Get a property if it's public or owned by the user (admin sees any) */
 export async function getPropertyById(
   id: string,
-  userId?: string
+  userId?: string,
+  admin = false
 ): Promise<Property | undefined> {
   const db = await getDb();
+  if (admin) {
+    const result = await db.execute({ sql: "SELECT * FROM properties WHERE id = ?", args: [id] });
+    return result.rows[0] ? rowAs<Property>(result.rows[0]) : undefined;
+  }
   if (userId) {
     const result = await db.execute({
       sql: "SELECT * FROM properties WHERE id = ? AND (visibility = 'public' OR user_id = ?)",
@@ -445,6 +462,85 @@ export async function deleteProperty(id: string, userId: string): Promise<void> 
   await db.execute({
     sql: "DELETE FROM properties WHERE id = ? AND user_id = ?",
     args: [id, userId],
+  });
+}
+
+/** Admin: update any property regardless of ownership */
+export async function updatePropertyAsAdmin(
+  id: string,
+  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at">
+): Promise<void> {
+  const db = await getDb();
+  const now = new Date().toISOString();
+
+  await db.execute({
+    sql: `
+      UPDATE properties SET
+        visibility = $visibility, address = $address, city = $city, postal_code = $postal_code,
+        purchase_price = $purchase_price, surface = $surface,
+        property_type = $property_type, description = $description,
+        loan_amount = $loan_amount, interest_rate = $interest_rate,
+        loan_duration = $loan_duration, personal_contribution = $personal_contribution,
+        insurance_rate = $insurance_rate, loan_fees = $loan_fees,
+        notary_fees = $notary_fees, rent_per_m2 = $rent_per_m2, monthly_rent = $monthly_rent,
+        condo_charges = $condo_charges, property_tax = $property_tax,
+        vacancy_rate = $vacancy_rate, airbnb_price_per_night = $airbnb_price_per_night,
+        airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
+        renovation_cost = $renovation_cost, dpe_rating = $dpe_rating, fiscal_regime = $fiscal_regime,
+        amenities = $amenities, source_url = $source_url, image_urls = $image_urls,
+        prefill_sources = $prefill_sources, updated_at = $updated_at
+      WHERE id = $id
+    `,
+    args: {
+      id,
+      visibility: property.visibility,
+      address: property.address,
+      city: property.city,
+      postal_code: property.postal_code,
+      purchase_price: property.purchase_price,
+      surface: property.surface,
+      property_type: property.property_type,
+      description: property.description,
+      loan_amount: property.loan_amount,
+      interest_rate: property.interest_rate,
+      loan_duration: property.loan_duration,
+      personal_contribution: property.personal_contribution,
+      insurance_rate: property.insurance_rate,
+      loan_fees: property.loan_fees,
+      notary_fees: property.notary_fees,
+      rent_per_m2: property.rent_per_m2,
+      monthly_rent: property.monthly_rent,
+      condo_charges: property.condo_charges,
+      property_tax: property.property_tax,
+      vacancy_rate: property.vacancy_rate,
+      airbnb_price_per_night: property.airbnb_price_per_night,
+      airbnb_occupancy_rate: property.airbnb_occupancy_rate,
+      airbnb_charges: property.airbnb_charges,
+      renovation_cost: property.renovation_cost,
+      dpe_rating: property.dpe_rating,
+      fiscal_regime: property.fiscal_regime,
+      amenities: property.amenities,
+      source_url: property.source_url,
+      image_urls: property.image_urls,
+      prefill_sources: property.prefill_sources,
+      updated_at: now,
+    },
+  });
+}
+
+export async function updatePropertyStatusAsAdmin(id: string, status: string): Promise<void> {
+  const db = await getDb();
+  await db.execute({
+    sql: "UPDATE properties SET property_status = ?, status_changed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?",
+    args: [status, id],
+  });
+}
+
+export async function togglePropertyFavoriteAsAdmin(id: string): Promise<void> {
+  const db = await getDb();
+  await db.execute({
+    sql: "UPDATE properties SET is_favorite = CASE WHEN is_favorite = 1 THEN 0 ELSE 1 END, updated_at = datetime('now') WHERE id = ?",
+    args: [id],
   });
 }
 

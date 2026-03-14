@@ -13,9 +13,10 @@ import PropertyTable from "./PropertyTable";
 interface Props {
   properties: Property[];
   currentUserId?: string;
+  isAdmin?: boolean;
 }
 
-export default function DashboardClient({ properties, currentUserId }: Props) {
+export default function DashboardClient({ properties, currentUserId, isAdmin }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortAsc, setSortAsc] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Set<PropertyStatus>>(new Set(PROPERTY_STATUSES));
@@ -325,6 +326,7 @@ export default function DashboardClient({ properties, currentUserId }: Props) {
             sortAsc={sortAsc}
             onSort={toggleSort}
             currentUserId={currentUserId}
+            isAdmin={isAdmin}
             onDelete={handleDelete}
             onToggleFavorite={handleToggleFavorite}
           />

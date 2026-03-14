@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getPropertyById } from "@/domains/property/repository";
+import { isAdmin as checkIsAdmin } from "@/lib/auth-actions";
 import { getUserProfile } from "@/domains/auth/repository";
 import { getPhotosForProperty } from "@/domains/photo/repository";
 import Navbar from "@/components/Navbar";
@@ -16,15 +17,16 @@ export default async function PropertyPage({
 }) {
   const session = await auth();
   const userId = session?.user?.id;
+  const admin = userId ? await checkIsAdmin() : false;
 
   const { id } = await params;
-  const property = await getPropertyById(id, userId);
+  const property = await getPropertyById(id, userId, admin);
 
   if (!property) {
     notFound();
   }
 
-  const isOwner = !!userId && property.user_id === userId;
+  const isOwner = admin || (!!userId && property.user_id === userId);
   const [userProfile, photos] = await Promise.all([
     userId ? getUserProfile(userId) : null,
     getPhotosForProperty(id),
