@@ -19,7 +19,7 @@ export default function TabNavigation({ activeTab }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const current = activeTab || (searchParams.get("tab") as TabId) || "financier";
+  const current = activeTab || (searchParams.get("tab") as TabId) || "bien";
 
   function setTab(tab: TabId) {
     const params = new URLSearchParams(searchParams.toString());
@@ -28,21 +28,18 @@ export default function TabNavigation({ activeTab }: Props) {
   }
 
   return (
-    <div className="flex border-b border-tiili-border bg-white rounded-t-xl overflow-hidden">
+    <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
       {TABS.map(({ id, label }) => (
         <button
           key={id}
           onClick={() => setTab(id)}
-          className={`flex-1 py-3 px-2 text-sm font-medium text-center transition-colors relative ${
+          className={`flex-1 py-2.5 px-3 text-sm font-medium text-center rounded-lg transition-colors ${
             current === id
-              ? "text-amber-600"
+              ? "bg-white text-amber-600 shadow-sm"
               : "text-gray-500 hover:text-gray-700"
           }`}
         >
           {label}
-          {current === id && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-600" />
-          )}
         </button>
       ))}
     </div>

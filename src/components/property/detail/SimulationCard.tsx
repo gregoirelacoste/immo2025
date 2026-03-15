@@ -1,8 +1,8 @@
 "use client";
 
-import { Property, PropertyCalculations } from "@/domains/property/types";
+import { Property } from "@/domains/property/types";
 import { Simulation } from "@/domains/simulation/types";
-import { calculateSimulation, formatCurrency, formatPercent } from "@/lib/calculations";
+import { calculateSimulation, formatCurrency } from "@/lib/calculations";
 
 interface Props {
   property: Property;

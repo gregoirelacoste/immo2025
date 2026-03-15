@@ -4,7 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
-import { calculateAll, formatCurrency } from "@/lib/calculations";
+import { calculateAll, calculateSimulation, formatCurrency } from "@/lib/calculations";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
@@ -46,7 +46,9 @@ function parseJson<T>(json: string, fallback: T): T {
 export default function PropertyDetail({ property, isOwner = false, userProfile, photos = [], simulations = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const calcs = calculateAll(property);
+  // Use first simulation's data for KPIs if available, otherwise fall back to property data
+  const firstSim = simulations.length > 0 ? simulations[0] : null;
+  const calcs = firstSim ? calculateSimulation(property, firstSim) : calculateAll(property);
   const [refreshing, setRefreshing] = useState(false);
 
   const activeTab = (searchParams.get("tab") as TabId) || "bien";
