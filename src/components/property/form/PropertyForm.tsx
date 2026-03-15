@@ -281,8 +281,8 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
         onChange={(keys: AmenityKey[]) => updateField("amenities", JSON.stringify(keys))}
       />
 
-      {/* Financial sections: only shown when creating a new property */}
-      {!isEditing && (
+      {/* Financial sections: full set when creating, key property data when editing */}
+      {!isEditing ? (
         <>
           <LoanSection form={form} onChange={updateField} onLoanChange={handleLoanChange} calcs={calcs} monthlyPaymentPreview={monthlyPaymentPreview} prefillHint={prefillHint} loanAutoCalc={!loanManuallySet} />
           <FeesSection form={form} onChange={updateField} calcs={calcs} effectiveNotary={effectiveNotary} />
@@ -305,6 +305,9 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
           <ResultsSummarySection calcs={calcs} showAirbnb={showAirbnb} />
           <InvestmentScorePreview calcs={calcs} />
         </>
+      ) : (
+        /* Edit mode: only show factual property data (rent, charges, tax) */
+        <ClassicRentalSection form={form} onChange={handleRentChange} calcs={calcs} prefillHint={prefillHint} />
       )}
 
       <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
