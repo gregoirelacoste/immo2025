@@ -92,9 +92,9 @@ export async function saveProperty(
           insurance_rate: payload.insurance_rate,
           loan_fees: payload.loan_fees,
           notary_fees: payload.notary_fees > 0 ? payload.notary_fees : 0,
-          monthly_rent: payload.monthly_rent,
-          condo_charges: payload.condo_charges,
-          property_tax: payload.property_tax,
+          monthly_rent: 0, // 0 = fallback to property value
+          condo_charges: payload.condo_charges, // ignored by calculateSimulation
+          property_tax: payload.property_tax, // ignored by calculateSimulation
           vacancy_rate: payload.vacancy_rate,
           airbnb_price_per_night: payload.airbnb_price_per_night,
           airbnb_occupancy_rate: payload.airbnb_occupancy_rate,

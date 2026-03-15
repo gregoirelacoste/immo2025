@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Property } from "@/domains/property/types";
 import { Simulation, SimulationFormData } from "@/domains/simulation/types";
-import { calculateSimulation, formatCurrency, formatPercent, calculateNotaryFees } from "@/lib/calculations";
+import { calculateSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent } from "@/lib/calculations";
 import { updateSimulationAction } from "@/domains/simulation/actions";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import FiscalSection from "@/components/property/form/FiscalSection";
@@ -163,11 +163,9 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
 
   // Compute calcs from current form state
   const currentLoan = computeLoanAmount(property, form);
-  const calcs = calculateSimulation(property, {
-    ...simulation,
-    ...form,
-    loan_amount: currentLoan,
-  } as Simulation);
+  const mergedSim = { ...simulation, ...form, loan_amount: currentLoan } as Simulation;
+  const calcs = calculateSimulation(property, mergedSim);
+  const effectiveRent = getEffectiveRent(property, mergedSim);
 
   // Save helper — always includes computed loan_amount
   const saveChanges = useCallback(async (data: Partial<SimulationFormData>) => {
@@ -276,36 +274,47 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
           </span>
         </div>
 
-        {EDITABLE_FIELDS.map((config) => (
-          <StepperField
-            key={config.field}
-            config={config}
-            value={form[config.field] as number}
-            onChange={handleChange}
-            onCommit={handleCommit}
-          />
-        ))}
+        {EDITABLE_FIELDS.map((config) => {
+          // For monthly_rent: show effective value (property fallback when 0)
+          const displayValue = config.field === "monthly_rent" && (form.monthly_rent === 0 || form.monthly_rent == null)
+            ? property.monthly_rent
+            : form[config.field] as number;
+          const isRentFallback = config.field === "monthly_rent" && (form.monthly_rent === 0 || form.monthly_rent == null);
+          return (
+            <div key={config.field}>
+              <StepperField
+                config={config}
+                value={displayValue}
+                onChange={handleChange}
+                onCommit={handleCommit}
+              />
+              {isRentFallback && (
+                <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">Valeur du bien · modifiable</p>
+              )}
+            </div>
+          );
+        })}
       </section>
 
       {/* Fixed property data (read-only in simulator) */}
-      {(form.condo_charges > 0 || form.property_tax > 0) && (
+      {(property.condo_charges > 0 || property.property_tax > 0) && (
         <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Données du bien (non modifiables)</h3>
           <p className="text-xs text-gray-400 mb-3">Ces valeurs proviennent de la fiche du bien et sont prises en compte dans le calcul.</p>
           <div className="space-y-0">
-            {form.condo_charges > 0 && (
+            {property.condo_charges > 0 && (
               <div className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-b-0">
                 <span className="text-sm text-gray-500">Charges de copro</span>
                 <span className="text-sm font-medium text-gray-700 font-[family-name:var(--font-mono)]">
-                  {formatCurrency(form.condo_charges)}/mois
+                  {formatCurrency(property.condo_charges)}/mois
                 </span>
               </div>
             )}
-            {form.property_tax > 0 && (
+            {property.property_tax > 0 && (
               <div className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-b-0">
                 <span className="text-sm text-gray-500">Taxe foncière</span>
                 <span className="text-sm font-medium text-gray-700 font-[family-name:var(--font-mono)]">
-                  {formatCurrency(form.property_tax)}/an
+                  {formatCurrency(property.property_tax)}/an
                 </span>
               </div>
             )}
