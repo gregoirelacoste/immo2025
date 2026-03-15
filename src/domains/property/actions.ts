@@ -212,6 +212,7 @@ export async function rescrapeProperty(
     ...(d.postal_code != null && { postal_code: d.postal_code }),
     ...(d.address != null && { address: d.address }),
     ...(d.description != null && { description: d.description }),
+    ...(d.neighborhood != null && { neighborhood: d.neighborhood }),
     ...(d.property_type != null && { property_type: d.property_type }),
     ...(d.amenities && d.amenities.length > 0 && {
       amenities: JSON.stringify([...new Set([

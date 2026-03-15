@@ -183,6 +183,7 @@ export async function scrapeAndSaveProperty(
     surface,
     property_type: propertyType,
     description: d.description || "",
+    neighborhood: d.neighborhood || "",
     loan_amount: loanAmount,
     interest_rate: 3.5,
     loan_duration: 20,
@@ -282,6 +283,7 @@ export async function createPropertyFromText(
     if (price > 0) prefill.purchase_price = { source: "Collage texte (IA)", value: price };
     if (surface > 0) prefill.surface = { source: "Collage texte (IA)", value: surface };
     if (d.city) prefill.city = { source: "Collage texte (IA)", value: d.city };
+    if (d.neighborhood) prefill.neighborhood = { source: "Collage texte (IA)", value: d.neighborhood };
     if (d.address) prefill.address = { source: "Collage texte (IA)", value: d.address };
     if (d.postal_code) prefill.postal_code = { source: "Collage texte (IA)", value: d.postal_code };
     // Scraped rental fields (priority over calculated)
@@ -350,6 +352,7 @@ export async function createPropertyFromText(
       surface,
       property_type: propertyType,
       description: d.description || "",
+      neighborhood: d.neighborhood || "",
       loan_amount: loanAmount,
       interest_rate: 3.5,
       loan_duration: 20,
@@ -461,6 +464,7 @@ export async function extractAndUpdateFromText(
       ...(d.postal_code && { postal_code: d.postal_code }),
       ...(d.address && { address: d.address }),
       ...(d.description && { description: d.description }),
+      ...(d.neighborhood && { neighborhood: d.neighborhood }),
       ...(d.property_type && { property_type: d.property_type }),
       ...(d.amenities && d.amenities.length > 0 && {
         amenities: JSON.stringify([...new Set([

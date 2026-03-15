@@ -8,6 +8,7 @@ export interface Property {
   surface: number;
   property_type: "ancien" | "neuf";
   description: string;
+  neighborhood: string; // quartier
   // Prêt
   loan_amount: number;
   interest_rate: number;

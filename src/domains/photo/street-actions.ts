@@ -76,6 +76,7 @@ export async function createPropertyFromPhoto(
       surface: 0,
       property_type: "ancien",
       description: "",
+      neighborhood: "",
       loan_amount: 0,
       interest_rate: 3.5,
       loan_duration: 20,

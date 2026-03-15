@@ -13,6 +13,7 @@ Extrais ces champs :
 - postal_code : le code postal (5 chiffres)
 - address : l'adresse complète si disponible
 - description : résumé de l'annonce (max 500 caractères)
+- neighborhood : le quartier du bien (ex: "Centre historique", "Saint-Cyprien"). Omets si non trouvé.
 - property_type : "ancien" ou "neuf"
 - monthly_rent : le loyer mensuel en euros si mentionné (loyer, loyer estimé, revenus locatifs, loyer HC). Nombre entier. Omets si non trouvé.
 - condo_charges : les charges de copropriété mensuelles en euros (charges, charges de copropriété, provisions sur charges). Nombre entier. Omets si non trouvé.
@@ -58,6 +59,7 @@ export async function extractFromText(
   }
   if (parsed.address) data.address = String(parsed.address).trim();
   if (parsed.description) data.description = String(parsed.description).trim().slice(0, 1000);
+  if (parsed.neighborhood) data.neighborhood = String(parsed.neighborhood).trim();
   if (parsed.property_type === "neuf") data.property_type = "neuf";
   else if (parsed.property_type === "ancien") data.property_type = "ancien";
   if (Array.isArray(parsed.amenities)) {

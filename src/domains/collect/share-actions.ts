@@ -163,6 +163,7 @@ export async function processShareAndCreate(
       surface,
       property_type: propertyType,
       description: extracted.description || "",
+      neighborhood: "",
       loan_amount: loanAmount,
       interest_rate: 3.5,
       loan_duration: 20,

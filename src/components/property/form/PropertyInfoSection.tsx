@@ -47,6 +47,17 @@ export default function PropertyInfoSection({ form, onChange, prefillHint }: Pro
           {prefillHint("city")}
         </div>
         <div>
+          <label className={labelClass}>Quartier</label>
+          <input
+            type="text"
+            value={form.neighborhood}
+            onChange={(e) => onChange("neighborhood", e.target.value)}
+            className={inputClass}
+            placeholder="Centre historique"
+          />
+          {prefillHint("neighborhood")}
+        </div>
+        <div>
           <label className={labelClass}>Prix d&apos;achat</label>
           <input
             type="number"

@@ -25,6 +25,7 @@ Champs à extraire :
 - postal_code : le code postal (5 chiffres) si trouvé dans l'adresse, le breadcrumb ou les meta
 - address : l'adresse complète si disponible (numéro, rue, code postal, ville)
 - description : le texte de description de l'annonce (max 500 caractères)
+- neighborhood : le quartier du bien (ex: "Centre historique", "Saint-Cyprien", "Capitole", "La Madeleine"). Cherche dans le titre, le fil d'ariane, la section localisation, l'adresse, la description. Retourne UNIQUEMENT le nom du quartier, pas la ville ni le code postal. Omets si non trouvé.
 - property_type : "ancien" ou "neuf" si identifiable
 - monthly_rent : le loyer mensuel en euros si mentionné (ex: "loyer estimé", "loyer", "revenus locatifs", "loyer HC", "loyer charges comprises"). Nombre entier. Omets si non trouvé.
 - condo_charges : les charges de copropriété mensuelles en euros (ex: "charges", "charges de copropriété", "charges mensuelles", "provisions sur charges"). Nombre entier. Omets si non trouvé.
@@ -133,6 +134,7 @@ export async function generateWithAi(
   if (extractedValues.description) {
     data.description = String(extractedValues.description).trim().slice(0, 1000);
   }
+  if (extractedValues.neighborhood) data.neighborhood = String(extractedValues.neighborhood).trim();
   if (extractedValues.property_type === "neuf") {
     data.property_type = "neuf";
   } else if (extractedValues.property_type === "ancien") {
