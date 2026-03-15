@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getVisibleProperties } from "@/domains/property/repository";
+import { getFirstSimulationsForProperties } from "@/domains/simulation/repository";
 import { getRentalSummary } from "@/domains/rental/repository";
-import { calculateAll } from "@/lib/calculations";
+import { calculateAll, calculateSimulation } from "@/lib/calculations";
 import { PropertyCalculations } from "@/domains/property/types";
 import { RentalSummary } from "@/domains/rental/types";
 import Navbar from "@/components/Navbar";
@@ -23,13 +24,17 @@ export default async function PortfolioPage() {
       (p.property_status === "purchased" || p.property_status === "managed")
   );
 
+  // Load first simulations for owned properties
+  const simMap = await getFirstSimulationsForProperties(ownedProperties.map((p) => p.id));
+
   // Calculate everything in parallel
   const calculationsMap = new Map<string, PropertyCalculations>();
   const rentalDataMap = new Map<string, RentalSummary>();
 
   await Promise.all(
     ownedProperties.map(async (property) => {
-      const calcs = calculateAll(property);
+      const sim = simMap.get(property.id);
+      const calcs = sim ? calculateSimulation(property, sim) : calculateAll(property);
       calculationsMap.set(property.id, calcs);
 
       const summary = await getRentalSummary(property.id, property);

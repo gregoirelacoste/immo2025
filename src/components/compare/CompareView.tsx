@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { Property } from "@/domains/property/types";
-import { calculateAll, formatCurrency, formatPercent } from "@/lib/calculations";
+import type { Simulation } from "@/domains/simulation/types";
+import { calculateAll, calculateSimulation, formatCurrency, formatPercent } from "@/lib/calculations";
 import CompareSelector from "./CompareSelector";
 
 const MAX_SELECTED = 4;
@@ -19,8 +20,11 @@ type SectionDef = {
   rows: MetricRow[];
 };
 
-function buildSections(properties: Property[]): SectionDef[] {
-  const calcs = properties.map((p) => calculateAll(p));
+function buildSections(properties: Property[], simulationsMap: Record<string, Simulation>): SectionDef[] {
+  const calcs = properties.map((p) => {
+    const sim = simulationsMap[p.id];
+    return sim ? calculateSimulation(p, sim) : calculateAll(p);
+  });
 
   const row = (
     label: string,
@@ -104,9 +108,10 @@ function getBestIndex(raw: number[], best: "max" | "min" | "none"): number | nul
 
 interface CompareViewProps {
   properties: Property[];
+  simulationsMap: Record<string, Simulation>;
 }
 
-export default function CompareView({ properties }: CompareViewProps) {
+export default function CompareView({ properties, simulationsMap }: CompareViewProps) {
   const [selected, setSelected] = useState<string[]>([]);
   const [comparing, setComparing] = useState(false);
 
@@ -122,7 +127,7 @@ export default function CompareView({ properties }: CompareViewProps) {
   );
 
   const sections = useMemo(
-    () => (comparing ? buildSections(selectedProperties) : []),
+    () => (comparing ? buildSections(selectedProperties, simulationsMap) : []),
     [comparing, selectedProperties]
   );
 
