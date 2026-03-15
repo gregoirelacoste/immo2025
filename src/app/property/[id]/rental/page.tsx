@@ -3,7 +3,8 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getOwnPropertyById } from "@/domains/property/repository";
 import { getRentalEntries, getRentalSummary } from "@/domains/rental/repository";
-import { calculateAll } from "@/lib/calculations";
+import { calculateAll, calculateSimulation } from "@/lib/calculations";
+import { getFirstSimulationForProperty } from "@/domains/simulation/repository";
 import Navbar from "@/components/Navbar";
 import RentalTracker from "@/components/property/rental/RentalTracker";
 
@@ -27,12 +28,14 @@ export default async function RentalPage({
     redirect(`/property/${id}`);
   }
 
+  const firstSim = await getFirstSimulationForProperty(id);
+
   const [entries, summary] = await Promise.all([
     getRentalEntries(id),
-    getRentalSummary(id, property),
+    getRentalSummary(id, property, firstSim),
   ]);
 
-  const calcs = calculateAll(property);
+  const calcs = firstSim ? calculateSimulation(property, firstSim) : calculateAll(property);
 
   return (
     <div className="min-h-screen bg-[#f4f3ef]">

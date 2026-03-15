@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Property } from "@/domains/property/types";
 import { Simulation } from "@/domains/simulation/types";
 import { calculateSimulation as calcSim, formatCurrency, formatPercent } from "@/lib/calculations";
-import { duplicateSimulation, removeSimulation, saveSimulation } from "@/domains/simulation/actions";
+import { duplicateSimulation, removeSimulation, createDefaultSimulationAction } from "@/domains/simulation/actions";
 import SimulationCard from "./SimulationCard";
 import SimulationEditor from "./SimulationEditor";
 
@@ -49,26 +49,7 @@ export default function SimulationTab({ property, simulations, isOwner }: Props)
 
   async function handleCreateFirst() {
     setLoading(true);
-    const data = {
-      name: "Simulation 1",
-      loan_amount: property.loan_amount,
-      interest_rate: property.interest_rate,
-      loan_duration: property.loan_duration,
-      personal_contribution: property.personal_contribution,
-      insurance_rate: property.insurance_rate,
-      loan_fees: property.loan_fees,
-      notary_fees: property.notary_fees,
-      monthly_rent: property.monthly_rent,
-      condo_charges: property.condo_charges,
-      property_tax: property.property_tax,
-      vacancy_rate: property.vacancy_rate,
-      airbnb_price_per_night: property.airbnb_price_per_night,
-      airbnb_occupancy_rate: property.airbnb_occupancy_rate,
-      airbnb_charges: property.airbnb_charges,
-      renovation_cost: property.renovation_cost,
-      fiscal_regime: property.fiscal_regime || "micro_bic",
-    };
-    const result = await saveSimulation(property.id, data);
+    const result = await createDefaultSimulationAction(property.id);
     if (result.success && result.simulationId) {
       setActiveSimId(result.simulationId);
     }

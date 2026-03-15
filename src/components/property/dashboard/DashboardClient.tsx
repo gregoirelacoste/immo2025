@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Property, PROPERTY_STATUSES, PROPERTY_STATUS_CONFIG, type PropertyStatus } from "@/domains/property/types";
-import { calculateAll } from "@/lib/calculations";
+import { calculateAll, calculateSimulation } from "@/lib/calculations";
+import type { Simulation } from "@/domains/simulation/types";
 import { removeProperty, toggleFavorite } from "@/domains/property/actions";
 import SortBar, { SortKey } from "./SortBar";
 import PropertyCard from "./PropertyCard";
@@ -14,9 +15,10 @@ interface Props {
   properties: Property[];
   currentUserId?: string;
   isAdmin?: boolean;
+  simulationsMap?: Record<string, Simulation>;
 }
 
-export default function DashboardClient({ properties, currentUserId, isAdmin }: Props) {
+export default function DashboardClient({ properties, currentUserId, isAdmin, simulationsMap = {} }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortAsc, setSortAsc] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Set<PropertyStatus>>(new Set(PROPERTY_STATUSES));
@@ -73,10 +75,13 @@ export default function DashboardClient({ properties, currentUserId, isAdmin }: 
     ? statusFiltered.filter((p) => p.is_favorite)
     : statusFiltered;
 
-  const propertiesWithCalcs = filteredProperties.map((p) => ({
-    property: p,
-    calcs: calculateAll(p),
-  }));
+  const propertiesWithCalcs = filteredProperties.map((p) => {
+    const sim = simulationsMap[p.id];
+    return {
+      property: p,
+      calcs: sim ? calculateSimulation(p, sim) : calculateAll(p),
+    };
+  });
 
   const sorted = [...propertiesWithCalcs].sort((a, b) => {
     let aVal: number | string;

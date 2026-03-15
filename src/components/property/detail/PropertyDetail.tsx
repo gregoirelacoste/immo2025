@@ -4,7 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
-import { calculateAll, calculateSimulation, formatCurrency } from "@/lib/calculations";
+import { calculateSimulation, calculateAll, formatCurrency } from "@/lib/calculations";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
@@ -190,10 +190,10 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
                   {marketDiff != null ? `${marketDiff > 0 ? "+" : ""}${marketDiff.toFixed(1)}%` : "—"}
                 </p>
               </div>
-              {property.renovation_cost > 0 && (
+              {(firstSim?.renovation_cost ?? property.renovation_cost) > 0 && (
                 <div>
                   <span className="text-gray-500">Travaux</span>
-                  <p className="font-semibold text-orange-600">{formatCurrency(property.renovation_cost)}</p>
+                  <p className="font-semibold text-orange-600">{formatCurrency(firstSim?.renovation_cost ?? property.renovation_cost)}</p>
                 </div>
               )}
               {property.dpe_rating && (
@@ -250,7 +250,7 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
 
           {/* Données marché */}
           <CollapsibleSection title="Données du marché" variant="emerald" defaultOpen={!!marketData}>
-            <MarketDataPanel property={property} marketData={marketData} loading={property.enrichment_status === "running"} />
+            <MarketDataPanel property={property} marketData={marketData} loading={property.enrichment_status === "running"} monthlyRent={firstSim?.monthly_rent} />
           </CollapsibleSection>
 
           {/* Données socio-éco */}

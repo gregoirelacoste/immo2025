@@ -216,25 +216,29 @@ export async function scrapeAndSaveProperty(
   revalidatePath("/dashboard");
 
   // Create default simulation
-  createSimulation(id, userId, {
-    name: "Simulation 1",
-    loan_amount: loanAmount,
-    interest_rate: 3.5,
-    loan_duration: 20,
-    personal_contribution: 0,
-    insurance_rate: 0.34,
-    loan_fees: 0,
-    notary_fees: 0,
-    monthly_rent: monthlyRent,
-    condo_charges: condoCharges,
-    property_tax: propertyTax,
-    vacancy_rate: 5,
-    airbnb_price_per_night: 0,
-    airbnb_occupancy_rate: 60,
-    airbnb_charges: 0,
-    renovation_cost: 0,
-    fiscal_regime: "micro_bic",
-  }).catch(() => {});
+  try {
+    await createSimulation(id, userId, {
+      name: "Simulation 1",
+      loan_amount: loanAmount,
+      interest_rate: 3.5,
+      loan_duration: 20,
+      personal_contribution: 0,
+      insurance_rate: 0.34,
+      loan_fees: 0,
+      notary_fees: 0,
+      monthly_rent: monthlyRent,
+      condo_charges: condoCharges,
+      property_tax: propertyTax,
+      vacancy_rate: 5,
+      airbnb_price_per_night: 0,
+      airbnb_occupancy_rate: 60,
+      airbnb_charges: 0,
+      renovation_cost: 0,
+      fiscal_regime: "micro_bic",
+    });
+  } catch (simErr) {
+    console.error("Failed to create default simulation:", simErr);
+  }
 
   // Fire-and-forget enrichment
   enrichPropertyQuiet(id).catch(() => {});
@@ -378,25 +382,29 @@ export async function createPropertyFromText(
     revalidatePath("/dashboard");
 
     // Create default simulation
-    createSimulation(id, userId, {
-      name: "Simulation 1",
-      loan_amount: loanAmount,
-      interest_rate: 3.5,
-      loan_duration: 20,
-      personal_contribution: 0,
-      insurance_rate: 0.34,
-      loan_fees: 0,
-      notary_fees: 0,
-      monthly_rent: monthlyRent,
-      condo_charges: condoCharges,
-      property_tax: propertyTax,
-      vacancy_rate: 5,
-      airbnb_price_per_night: 0,
-      airbnb_occupancy_rate: 60,
-      airbnb_charges: 0,
-      renovation_cost: 0,
-      fiscal_regime: "micro_bic",
-    }).catch(() => {});
+    try {
+      await createSimulation(id, userId, {
+        name: "Simulation 1",
+        loan_amount: loanAmount,
+        interest_rate: 3.5,
+        loan_duration: 20,
+        personal_contribution: 0,
+        insurance_rate: 0.34,
+        loan_fees: 0,
+        notary_fees: 0,
+        monthly_rent: monthlyRent,
+        condo_charges: condoCharges,
+        property_tax: propertyTax,
+        vacancy_rate: 5,
+        airbnb_price_per_night: 0,
+        airbnb_occupancy_rate: 60,
+        airbnb_charges: 0,
+        renovation_cost: 0,
+        fiscal_regime: "micro_bic",
+      });
+    } catch (simErr) {
+      console.error("Failed to create default simulation:", simErr);
+    }
 
     // Fire-and-forget enrichment
     enrichPropertyQuiet(id).catch(() => {});

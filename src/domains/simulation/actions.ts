@@ -121,7 +121,7 @@ export async function duplicateSimulation(
   }
 }
 
-/** Create a default simulation from property data */
+/** Create a default simulation from property data (internal helper) */
 export async function createDefaultSimulation(property: Property): Promise<string> {
   const userId = property.user_id || "";
   const data: SimulationFormData = {
@@ -144,4 +144,21 @@ export async function createDefaultSimulation(property: Property): Promise<strin
     fiscal_regime: property.fiscal_regime || "micro_bic",
   };
   return createSimulation(property.id, userId, data);
+}
+
+/** Server action: create a default simulation for a property (auto-repair / client button) */
+export async function createDefaultSimulationAction(
+  propertyId: string
+): Promise<{ success: boolean; simulationId?: string; error?: string }> {
+  try {
+    const userId = await getOptionalUserId();
+    const property = await getPropertyById(propertyId, userId ?? undefined);
+    if (!property) return { success: false, error: "Bien introuvable." };
+
+    const id = await createDefaultSimulation(property);
+    revalidatePath(`/property/${propertyId}`);
+    return { success: true, simulationId: id };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
 }

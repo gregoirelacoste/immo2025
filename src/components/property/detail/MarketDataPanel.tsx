@@ -7,9 +7,11 @@ interface Props {
   property: Property;
   marketData: MarketData | null;
   loading: boolean;
+  /** Monthly rent from first simulation (overrides property.monthly_rent) */
+  monthlyRent?: number;
 }
 
-export default function MarketDataPanel({ property, marketData, loading }: Props) {
+export default function MarketDataPanel({ property, marketData, loading, monthlyRent }: Props) {
   if (loading) {
     return (
       <section className="bg-emerald-50 rounded-xl border border-emerald-200 p-4 md:p-6">
@@ -106,10 +108,10 @@ export default function MarketDataPanel({ property, marketData, loading }: Props
             {estimatedMonthlyRent ? formatCurrency(estimatedMonthlyRent) : "—"}
           </p>
         </div>
-        {property.monthly_rent > 0 ? (
+        {(monthlyRent ?? property.monthly_rent) > 0 ? (
           <div className="bg-white rounded-lg p-3 border border-emerald-100">
             <p className="text-xs text-gray-500">Votre loyer /mois</p>
-            <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(property.monthly_rent)}</p>
+            <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(monthlyRent ?? property.monthly_rent)}</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg p-3 border border-emerald-100">
@@ -117,16 +119,16 @@ export default function MarketDataPanel({ property, marketData, loading }: Props
             <p className="text-lg font-bold text-gray-400">Non renseigné</p>
           </div>
         )}
-        {property.monthly_rent > 0 && estimatedMonthlyRent ? (
+        {(monthlyRent ?? property.monthly_rent) > 0 && estimatedMonthlyRent ? (
           <div className={`rounded-lg p-3 border ${
-            property.monthly_rent >= estimatedMonthlyRent ? "bg-green-100 border-green-200" : "bg-amber-50 border-amber-200"
+            (monthlyRent ?? property.monthly_rent) >= estimatedMonthlyRent ? "bg-green-100 border-green-200" : "bg-amber-50 border-amber-200"
           }`}>
             <p className="text-xs text-gray-500">Écart marché</p>
             <p className={`text-lg font-bold ${
-              property.monthly_rent >= estimatedMonthlyRent ? "text-green-700" : "text-amber-600"
+              (monthlyRent ?? property.monthly_rent) >= estimatedMonthlyRent ? "text-green-700" : "text-amber-600"
             }`}>
-              {property.monthly_rent >= estimatedMonthlyRent ? "+" : ""}
-              {((property.monthly_rent - estimatedMonthlyRent) / estimatedMonthlyRent * 100).toFixed(0)} %
+              {(monthlyRent ?? property.monthly_rent) >= estimatedMonthlyRent ? "+" : ""}
+              {(((monthlyRent ?? property.monthly_rent) - estimatedMonthlyRent) / estimatedMonthlyRent * 100).toFixed(0)} %
             </p>
           </div>
         ) : (

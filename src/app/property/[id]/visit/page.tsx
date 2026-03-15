@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getPropertyById } from "@/domains/property/repository";
+import { getFirstSimulationForProperty } from "@/domains/simulation/repository";
 import VisitMode from "@/components/visit/VisitMode";
 
 export const dynamic = "force-dynamic";
@@ -20,5 +21,7 @@ export default async function VisitPage({
     notFound();
   }
 
-  return <VisitMode property={property} />;
+  const firstSim = await getFirstSimulationForProperty(id);
+
+  return <VisitMode property={property} simulation={firstSim} />;
 }

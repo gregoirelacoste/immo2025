@@ -3,8 +3,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Property } from "@/domains/property/types";
+import type { Simulation } from "@/domains/simulation/types";
 import { parseAmenities, AMENITY_LABELS } from "@/domains/property/amenities";
-import { calculateAll, formatCurrency, formatPercent } from "@/lib/calculations";
+import { calculateAll, calculateSimulation, formatCurrency, formatPercent } from "@/lib/calculations";
 import { resolveVisitConfig } from "@/domains/visit/constants";
 import { changePropertyStatus } from "@/domains/property/actions";
 import { useVisitData } from "@/domains/visit/hooks/useVisitData";
@@ -23,11 +24,15 @@ import PhotoGuidedMode from "./PhotoGuidedMode";
 
 interface Props {
   property: Property;
+  simulation?: Simulation | null;
 }
 
-export default function VisitMode({ property }: Props) {
+export default function VisitMode({ property, simulation }: Props) {
   const router = useRouter();
-  const calculations = useMemo(() => calculateAll(property), [property]);
+  const calculations = useMemo(
+    () => simulation ? calculateSimulation(property, simulation) : calculateAll(property),
+    [property, simulation]
+  );
   const amenities = useMemo(
     () => parseAmenities(property.amenities),
     [property.amenities],

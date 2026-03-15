@@ -95,6 +95,50 @@ export async function countSimulationsForProperty(propertyId: string): Promise<n
   return Number(result.rows[0]?.cnt ?? 0);
 }
 
+/**
+ * Get the first (oldest) simulation for a single property.
+ * Returns null if no simulation exists.
+ */
+export async function getFirstSimulationForProperty(propertyId: string): Promise<Simulation | null> {
+  const db = await getDb();
+  const result = await db.execute({
+    sql: "SELECT * FROM simulations WHERE property_id = ? ORDER BY created_at ASC LIMIT 1",
+    args: [propertyId],
+  });
+  return result.rows.length > 0 ? rowToSimulation(result.rows[0]) : null;
+}
+
+/**
+ * Get the first (oldest) simulation for each property in a batch.
+ * Returns a map of property_id → Simulation.
+ */
+export async function getFirstSimulationsForProperties(
+  propertyIds: string[]
+): Promise<Map<string, Simulation>> {
+  if (propertyIds.length === 0) return new Map();
+  const db = await getDb();
+  // Use a window function to get the first simulation per property
+  const placeholders = propertyIds.map(() => "?").join(",");
+  const result = await db.execute({
+    sql: `SELECT s.* FROM simulations s
+      INNER JOIN (
+        SELECT property_id, MIN(created_at) as min_created
+        FROM simulations
+        WHERE property_id IN (${placeholders})
+        GROUP BY property_id
+      ) first ON s.property_id = first.property_id AND s.created_at = first.min_created`,
+    args: propertyIds,
+  });
+  const map = new Map<string, Simulation>();
+  for (const row of result.rows) {
+    const sim = rowToSimulation(row);
+    if (!map.has(sim.property_id)) {
+      map.set(sim.property_id, sim);
+    }
+  }
+  return map;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rowToSimulation(row: any): Simulation {
   return {
