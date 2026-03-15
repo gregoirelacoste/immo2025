@@ -23,6 +23,7 @@ import { scrapeUrl } from "@/domains/scraping/pipeline/orchestrator";
 import { Property, PropertyFormData, PROPERTY_STATUSES, type PropertyStatus } from "@/domains/property/types";
 import { mergeRescrapeIntoPrefill, parsePrefill } from "@/domains/property/prefill";
 import { enrichPropertyQuiet } from "@/domains/enrich/actions";
+import { createSimulation } from "@/domains/simulation/repository";
 
 export async function saveProperty(
   formData: PropertyFormData,
@@ -58,7 +59,30 @@ export async function saveProperty(
       }
     } else {
       const userId = await getOptionalUserId();
-      await createProperty({ ...payload, user_id: userId });
+      const newId = await createProperty({ ...payload, user_id: userId });
+
+      // Create default simulation for new property
+      createSimulation(newId, userId, {
+        name: "Simulation 1",
+        loan_amount: payload.loan_amount,
+        interest_rate: payload.interest_rate,
+        loan_duration: payload.loan_duration,
+        personal_contribution: payload.personal_contribution,
+        insurance_rate: payload.insurance_rate,
+        loan_fees: payload.loan_fees,
+        notary_fees: payload.notary_fees > 0 ? payload.notary_fees : 0,
+        monthly_rent: payload.monthly_rent,
+        condo_charges: payload.condo_charges,
+        property_tax: payload.property_tax,
+        vacancy_rate: payload.vacancy_rate,
+        airbnb_price_per_night: payload.airbnb_price_per_night,
+        airbnb_occupancy_rate: payload.airbnb_occupancy_rate,
+        airbnb_charges: payload.airbnb_charges,
+        renovation_cost: payload.renovation_cost ?? 0,
+        fiscal_regime: payload.fiscal_regime || "micro_bic",
+      }).catch(() => {});
+
+      enrichPropertyQuiet(newId).catch(() => {});
     }
 
     revalidatePath("/dashboard");

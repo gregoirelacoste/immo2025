@@ -4,7 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
-import { calculateAll, formatCurrency, formatPercent } from "@/lib/calculations";
+import { calculateAll, formatCurrency } from "@/lib/calculations";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
@@ -21,10 +21,11 @@ import StatusSelector from "@/components/property/StatusSelector";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import TabNavigation, { type TabId } from "./TabNavigation";
 import StickyHeader from "./StickyHeader";
-import FiscalSection from "@/components/property/form/FiscalSection";
 import BudgetIndicator from "@/components/property/BudgetIndicator";
+import SimulationTab from "./SimulationTab";
 import type { UserProfile } from "@/domains/auth/types";
 import type { Photo } from "@/domains/photo/types";
+import type { Simulation } from "@/domains/simulation/types";
 import PhotoGallery from "./PhotoGallery";
 
 const PropertyMap = dynamic(() => import("./PropertyMap"), { ssr: false });
@@ -34,6 +35,7 @@ interface Props {
   isOwner?: boolean;
   userProfile?: UserProfile | null;
   photos?: Photo[];
+  simulations?: Simulation[];
 }
 
 function parseJson<T>(json: string, fallback: T): T {
@@ -41,13 +43,13 @@ function parseJson<T>(json: string, fallback: T): T {
   catch { return fallback; }
 }
 
-export default function PropertyDetail({ property, isOwner = false, userProfile, photos = [] }: Props) {
+export default function PropertyDetail({ property, isOwner = false, userProfile, photos = [], simulations = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const calcs = calculateAll(property);
   const [refreshing, setRefreshing] = useState(false);
 
-  const activeTab = (searchParams.get("tab") as TabId) || "financier";
+  const activeTab = (searchParams.get("tab") as TabId) || "bien";
 
   const marketData = parseJson<MarketData | null>(property.market_data, null);
   const scoreBreakdown = parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null);
@@ -163,8 +165,8 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
       {/* Tab navigation */}
       <TabNavigation />
 
-      {/* ═══════════════════ ONGLET FINANCIER ═══════════════════ */}
-      {activeTab === "financier" && (
+      {/* ═══════════════════ ONGLET BIEN (description factuelle) ═══════════════════ */}
+      {activeTab === "bien" && (
         <div className="space-y-4 mt-4">
           {/* Infos clés */}
           <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
@@ -172,10 +174,6 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
               <div>
                 <span className="text-gray-500">Prix au m²</span>
                 <p className="font-semibold">{pricePerM2 > 0 ? formatCurrency(pricePerM2) : "—"}</p>
-              </div>
-              <div>
-                <span className="text-gray-500">Loyer mensuel</span>
-                <p className="font-semibold">{property.monthly_rent > 0 ? formatCurrency(property.monthly_rent) : "—"}</p>
               </div>
               <div>
                 <span className="text-gray-500">Type</span>
@@ -220,133 +218,14 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
             )}
           </section>
 
-          {/* Financement */}
-          <CollapsibleSection title="Financement" defaultOpen>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500">Montant emprunté</span>
-                <p className="font-semibold">{formatCurrency(property.loan_amount)}</p>
-              </div>
-              <div>
-                <span className="text-gray-500">Taux d&apos;intérêt</span>
-                <p className="font-semibold">{property.interest_rate} %</p>
-              </div>
-              <div>
-                <span className="text-gray-500">Durée</span>
-                <p className="font-semibold">{property.loan_duration} ans</p>
-              </div>
-              <div>
-                <span className="text-gray-500">Apport</span>
-                <p className="font-semibold">{formatCurrency(property.personal_contribution)}</p>
-              </div>
-              <div>
-                <span className="text-gray-500">Mensualité crédit</span>
-                <p className="font-semibold">{formatCurrency(calcs.monthly_payment)}</p>
-              </div>
-              <div>
-                <span className="text-gray-500">Assurance / mois</span>
-                <p className="font-semibold">{formatCurrency(calcs.monthly_insurance)}</p>
-              </div>
-              <div>
-                <span className="text-gray-500">Frais de notaire</span>
-                <p className="font-semibold">{formatCurrency(calcs.total_notary_fees)}</p>
-              </div>
-              <div>
-                <span className="text-gray-500">Coût total crédit</span>
-                <p className="font-semibold">{formatCurrency(calcs.total_loan_cost)}</p>
-              </div>
-              <div>
-                <span className="text-gray-500">Coût total projet</span>
-                <p className="font-semibold text-amber-600">{formatCurrency(calcs.total_project_cost)}</p>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* Location classique */}
-          <CollapsibleSection title="Location classique" variant="blue" defaultOpen>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white rounded-lg p-3 border border-blue-100">
-                <p className="text-xs text-gray-500">Loyer mensuel</p>
-                <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(property.monthly_rent)}</p>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-blue-100">
-                <p className="text-xs text-gray-500">Revenu annuel net</p>
-                <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(calcs.annual_rent_income)}</p>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-blue-100">
-                <p className="text-xs text-gray-500">Rentabilité brute</p>
-                <p className="text-lg font-bold text-[#1a1a2e]">{formatPercent(calcs.gross_yield)}</p>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-blue-100">
-                <p className="text-xs text-gray-500">Rentabilité nette</p>
-                <p className="text-lg font-bold text-[#1a1a2e]">{formatPercent(calcs.net_yield)}</p>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-blue-100">
-                <p className="text-xs text-gray-500">Cash-flow / mois</p>
-                <p className={`text-lg font-bold ${calcs.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {formatCurrency(calcs.monthly_cashflow)}
-                </p>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-blue-100">
-                <p className="text-xs text-gray-500">Charges annuelles</p>
-                <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(calcs.annual_charges)}</p>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* Airbnb (si renseigné) */}
-          {property.airbnb_price_per_night > 0 && (
-            <CollapsibleSection title="Airbnb" variant="purple">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white rounded-lg p-3 border border-purple-100">
-                  <p className="text-xs text-gray-500">Prix / nuit</p>
-                  <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(property.airbnb_price_per_night)}</p>
-                </div>
-                <div className="bg-white rounded-lg p-3 border border-purple-100">
-                  <p className="text-xs text-gray-500">Revenu annuel</p>
-                  <p className="text-lg font-bold text-[#1a1a2e]">{formatCurrency(calcs.airbnb_annual_income)}</p>
-                </div>
-                <div className="bg-white rounded-lg p-3 border border-purple-100">
-                  <p className="text-xs text-gray-500">Rentabilité nette</p>
-                  <p className="text-lg font-bold text-[#1a1a2e]">{formatPercent(calcs.airbnb_net_yield)}</p>
-                </div>
-                <div className="bg-white rounded-lg p-3 border border-purple-100">
-                  <p className="text-xs text-gray-500">Cash-flow / mois</p>
-                  <p className={`text-lg font-bold ${calcs.airbnb_monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    {formatCurrency(calcs.airbnb_monthly_cashflow)}
-                  </p>
-                </div>
-              </div>
-            </CollapsibleSection>
+          {/* Description */}
+          {property.description && (
+            <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
+              <h3 className="text-lg font-semibold mb-2">Description</h3>
+              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{property.description}</p>
+            </section>
           )}
 
-          {/* Données marché */}
-          <CollapsibleSection title="Données du marché" variant="emerald" defaultOpen={!!marketData}>
-            <MarketDataPanel property={property} marketData={marketData} loading={property.enrichment_status === "running"} />
-          </CollapsibleSection>
-
-          {/* Simulation fiscale (en bas) */}
-          <FiscalSection calcs={calcs} fiscalRegime={property.fiscal_regime || "micro_bic"} />
-        </div>
-      )}
-
-      {/* ═══════════════════ ONGLET SCORE ═══════════════════ */}
-      {activeTab === "score" && (
-        <div className="space-y-4 mt-4">
-          <InvestmentScorePanel
-            score={property.investment_score}
-            breakdown={scoreBreakdown}
-            status={property.enrichment_status}
-            error={property.enrichment_error}
-            onRefresh={handleRefreshEnrichment}
-            refreshing={refreshing}
-          />
-        </div>
-      )}
-
-      {/* ═══════════════════ ONGLET CONTEXTE ═══════════════════ */}
-      {activeTab === "contexte" && (
-        <div className="space-y-4 mt-4">
           {/* Photos */}
           <PhotoGallery
             photos={photos}
@@ -354,14 +233,6 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
             isOwner={isOwner}
             propertyId={property.id}
           />
-
-          {/* Description */}
-          {property.description && (
-            <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
-              <h3 className="text-lg font-semibold mb-2">Description</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">{property.description}</p>
-            </section>
-          )}
 
           {/* Carte */}
           {property.latitude != null && property.longitude != null && (
@@ -375,12 +246,40 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
             </section>
           )}
 
+          {/* Données marché */}
+          <CollapsibleSection title="Données du marché" variant="emerald" defaultOpen={!!marketData}>
+            <MarketDataPanel property={property} marketData={marketData} loading={property.enrichment_status === "running"} />
+          </CollapsibleSection>
+
           {/* Données socio-éco */}
           {socioData && (
             <CollapsibleSection title="Données socio-économiques" variant="violet" defaultOpen>
               <SocioEconomicPanel data={socioData} />
             </CollapsibleSection>
           )}
+        </div>
+      )}
+
+      {/* ═══════════════════ ONGLET SIMULATION ═══════════════════ */}
+      {activeTab === "simulation" && (
+        <SimulationTab
+          property={property}
+          simulations={simulations}
+          isOwner={isOwner}
+        />
+      )}
+
+      {/* ═══════════════════ ONGLET SCORE ═══════════════════ */}
+      {activeTab === "score" && (
+        <div className="space-y-4 mt-4">
+          <InvestmentScorePanel
+            score={property.investment_score}
+            breakdown={scoreBreakdown}
+            status={property.enrichment_status}
+            error={property.enrichment_error}
+            onRefresh={handleRefreshEnrichment}
+            refreshing={refreshing}
+          />
         </div>
       )}
 

@@ -7,6 +7,7 @@ import { extractFromPhoto } from "@/domains/collect/ai/photo-extractor";
 import { extractFromText } from "@/domains/scraping/ai/text-extractor";
 import { getOptionalUserId } from "@/lib/auth-actions";
 import { createProperty, updateCollectFields } from "@/domains/property/repository";
+import { createSimulation } from "@/domains/simulation/repository";
 import { calculateNotaryFees } from "@/lib/calculations";
 import { getMarketData } from "@/domains/market/service";
 import { applyMarketDataToPrefill } from "@/domains/property/prefill";
@@ -15,7 +16,7 @@ import { PhotoExtractedListing } from "@/domains/collect/types";
 
 /**
  * Fast path for URL-only shares (serverless-safe, no in-memory store).
- * Scrapes the URL and creates a property directly.
+ * scrapeAndSaveProperty already handles dedup internally.
  */
 export async function processShareUrlDirect(
   url: string,
@@ -27,7 +28,6 @@ export async function processShareUrlDirect(
   }
 
   try {
-    // Try scraping first
     const sharedText = [title, text].filter(Boolean).join("\n") || undefined;
     const result = await scrapeAndSaveProperty(url, sharedText);
     if (result.propertyId) {
@@ -196,6 +196,28 @@ export async function processShareAndCreate(
     }
 
     revalidatePath("/dashboard");
+
+    // Create default simulation
+    createSimulation(id, userId, {
+      name: "Simulation 1",
+      loan_amount: loanAmount,
+      interest_rate: 3.5,
+      loan_duration: 20,
+      personal_contribution: 0,
+      insurance_rate: 0.34,
+      loan_fees: 0,
+      notary_fees: 0,
+      monthly_rent: monthlyRent,
+      condo_charges: condoCharges,
+      property_tax: propertyTax,
+      vacancy_rate: 5,
+      airbnb_price_per_night: 0,
+      airbnb_occupancy_rate: 60,
+      airbnb_charges: 0,
+      renovation_cost: 0,
+      fiscal_regime: "micro_bic",
+    }).catch(() => {});
+
     enrichPropertyQuiet(id).catch(() => {});
 
     return { propertyId: id };

@@ -1,0 +1,49 @@
+export interface Simulation {
+  id: string;
+  property_id: string;
+  user_id: string;
+  name: string;
+  // Paramètres financiers
+  loan_amount: number;
+  interest_rate: number;
+  loan_duration: number;
+  personal_contribution: number;
+  insurance_rate: number;
+  loan_fees: number;
+  notary_fees: number;
+  monthly_rent: number;
+  condo_charges: number;
+  property_tax: number;
+  vacancy_rate: number;
+  airbnb_price_per_night: number;
+  airbnb_occupancy_rate: number;
+  airbnb_charges: number;
+  renovation_cost: number;
+  fiscal_regime: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SimulationFormData = Omit<Simulation, "id" | "property_id" | "user_id" | "created_at" | "updated_at">;
+
+/** Fields that can be adjusted in the simulator */
+export const SIMULATION_FIELDS = [
+  "loan_amount",
+  "interest_rate",
+  "loan_duration",
+  "personal_contribution",
+  "insurance_rate",
+  "loan_fees",
+  "notary_fees",
+  "monthly_rent",
+  "condo_charges",
+  "property_tax",
+  "vacancy_rate",
+  "airbnb_price_per_night",
+  "airbnb_occupancy_rate",
+  "airbnb_charges",
+  "renovation_cost",
+  "fiscal_regime",
+] as const;
+
+export type SimulationField = typeof SIMULATION_FIELDS[number];
