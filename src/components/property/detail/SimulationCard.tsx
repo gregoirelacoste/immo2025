@@ -2,7 +2,7 @@
 
 import { Property } from "@/domains/property/types";
 import { Simulation } from "@/domains/simulation/types";
-import { calculateSimulation, formatCurrency } from "@/lib/calculations";
+import { calculateSimulation, formatCurrency, getEffectiveRent } from "@/lib/calculations";
 
 interface Props {
   property: Property;
@@ -68,7 +68,7 @@ export default function SimulationCard({
         <span>Apport: {formatCurrency(simulation.personal_contribution)}</span>
         <span>Durée: {simulation.loan_duration} ans</span>
         <span>Taux: {simulation.interest_rate}%</span>
-        <span>Loyer: {formatCurrency(simulation.monthly_rent)}</span>
+        <span>Loyer: {formatCurrency(getEffectiveRent(property, simulation))}</span>
       </div>
 
       {/* KPIs */}

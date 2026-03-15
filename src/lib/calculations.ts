@@ -187,10 +187,14 @@ export function calculateAll(property: Property): PropertyCalculations {
   };
 }
 
-/** Calculate results for a simulation by overlaying simulation params on top of property base data */
+/** Calculate results for a simulation by overlaying simulation params on top of property base data.
+ *  - condo_charges & property_tax always come from the property (factual data).
+ *  - monthly_rent uses simulation override if > 0, otherwise falls back to property value.
+ */
 export function calculateSimulation(property: Property, simulation: Simulation): PropertyCalculations {
   const merged: Property = {
     ...property,
+    // Loan params — always from simulation
     loan_amount: simulation.loan_amount,
     interest_rate: simulation.interest_rate,
     loan_duration: simulation.loan_duration,
@@ -198,9 +202,12 @@ export function calculateSimulation(property: Property, simulation: Simulation):
     insurance_rate: simulation.insurance_rate,
     loan_fees: simulation.loan_fees,
     notary_fees: simulation.notary_fees,
-    monthly_rent: simulation.monthly_rent,
-    condo_charges: simulation.condo_charges,
-    property_tax: simulation.property_tax,
+    // Rent — simulation override if > 0, else property value
+    monthly_rent: simulation.monthly_rent > 0 ? simulation.monthly_rent : property.monthly_rent,
+    // Factual data — always from property
+    condo_charges: property.condo_charges,
+    property_tax: property.property_tax,
+    // Other simulation params
     vacancy_rate: simulation.vacancy_rate,
     airbnb_price_per_night: simulation.airbnb_price_per_night,
     airbnb_occupancy_rate: simulation.airbnb_occupancy_rate,
@@ -209,6 +216,11 @@ export function calculateSimulation(property: Property, simulation: Simulation):
     fiscal_regime: simulation.fiscal_regime,
   };
   return calculateAll(merged);
+}
+
+/** Get the effective monthly rent for a simulation (handles 0 = fallback to property) */
+export function getEffectiveRent(property: Property, simulation: Simulation): number {
+  return simulation.monthly_rent > 0 ? simulation.monthly_rent : property.monthly_rent;
 }
 
 export function formatCurrency(value: number): string {

@@ -26,7 +26,10 @@ export interface Simulation {
 
 export type SimulationFormData = Omit<Simulation, "id" | "property_id" | "user_id" | "created_at" | "updated_at">;
 
-/** Fields that can be adjusted in the simulator */
+/** Fields that can be adjusted in the simulator.
+ *  Note: condo_charges & property_tax are factual data from the property and NOT adjustable.
+ *  monthly_rent is adjustable (0 = fallback to property value).
+ */
 export const SIMULATION_FIELDS = [
   "loan_amount",
   "interest_rate",
@@ -36,8 +39,6 @@ export const SIMULATION_FIELDS = [
   "loan_fees",
   "notary_fees",
   "monthly_rent",
-  "condo_charges",
-  "property_tax",
   "vacancy_rate",
   "airbnb_price_per_night",
   "airbnb_occupancy_rate",

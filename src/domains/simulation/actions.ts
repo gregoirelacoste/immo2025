@@ -121,7 +121,10 @@ export async function duplicateSimulation(
   }
 }
 
-/** Create a default simulation from property data (internal helper) */
+/** Create a default simulation from property data (internal helper).
+ *  monthly_rent defaults to 0 (= use property value). condo_charges/property_tax
+ *  are stored for DB compatibility but ignored by calculateSimulation.
+ */
 export async function createDefaultSimulation(property: Property): Promise<string> {
   const userId = property.user_id || "";
   const data: SimulationFormData = {
@@ -133,9 +136,9 @@ export async function createDefaultSimulation(property: Property): Promise<strin
     insurance_rate: property.insurance_rate,
     loan_fees: property.loan_fees,
     notary_fees: property.notary_fees,
-    monthly_rent: property.monthly_rent,
-    condo_charges: property.condo_charges,
-    property_tax: property.property_tax,
+    monthly_rent: 0, // 0 = fallback to property value
+    condo_charges: property.condo_charges, // ignored by calculateSimulation
+    property_tax: property.property_tax, // ignored by calculateSimulation
     vacancy_rate: property.vacancy_rate,
     airbnb_price_per_night: property.airbnb_price_per_night,
     airbnb_occupancy_rate: property.airbnb_occupancy_rate,
