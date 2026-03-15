@@ -9,52 +9,31 @@ interface Props {
   calcs: PropertyCalculations;
   prefillHint: (field: string) => ReactNode;
   rentAutoCalc?: boolean;
-  readOnly?: boolean;
 }
 
 const inputClass =
   "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]";
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
-const valueClass = "text-base font-medium text-[#1a1a2e] py-2";
-
-export default function ClassicRentalSection({ form, onChange, calcs, prefillHint, readOnly }: Props) {
+export default function ClassicRentalSection({ form, onChange, calcs, prefillHint }: Props) {
   return (
     <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-4">Location classique</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className={labelClass}>Loyer mensuel</label>
-          {readOnly ? (
-            <p className={valueClass}>{form.monthly_rent > 0 ? formatCurrency(form.monthly_rent) : "—"}</p>
-          ) : (
-            <>
-              <input type="number" inputMode="numeric" value={form.monthly_rent || ""} onChange={(e) => onChange("monthly_rent", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="800" />
-              {prefillHint("monthly_rent")}
-            </>
-          )}
+          <input type="number" inputMode="numeric" value={form.monthly_rent || ""} onChange={(e) => onChange("monthly_rent", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="800" />
+          {prefillHint("monthly_rent")}
         </div>
         <div>
-          <label className={labelClass}>Charges copro / mois{!readOnly && <FieldTooltip text="Charges de copropriété mensuelles (entretien, gardien, ascenseur...). Demandez le PV d'AG pour les connaître." />}</label>
-          {readOnly ? (
-            <p className={valueClass}>{form.condo_charges > 0 ? formatCurrency(form.condo_charges) : "—"}</p>
-          ) : (
-            <>
-              <input type="number" inputMode="numeric" value={form.condo_charges || ""} onChange={(e) => onChange("condo_charges", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="100" />
-              {prefillHint("condo_charges")}
-            </>
-          )}
+          <label className={labelClass}>Charges copro / mois<FieldTooltip text="Charges de copropriété mensuelles (entretien, gardien, ascenseur...). Demandez le PV d'AG pour les connaître." /></label>
+          <input type="number" inputMode="numeric" value={form.condo_charges || ""} onChange={(e) => onChange("condo_charges", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="100" />
+          {prefillHint("condo_charges")}
         </div>
         <div>
-          <label className={labelClass}>Taxe foncière / an{!readOnly && <FieldTooltip text="Taxe foncière annuelle. Consultez l'avis d'imposition du vendeur ou estimez ~1 mois de loyer." />}</label>
-          {readOnly ? (
-            <p className={valueClass}>{form.property_tax > 0 ? formatCurrency(form.property_tax) : "—"}</p>
-          ) : (
-            <>
-              <input type="number" inputMode="numeric" value={form.property_tax || ""} onChange={(e) => onChange("property_tax", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="800" />
-              {prefillHint("property_tax")}
-            </>
-          )}
+          <label className={labelClass}>Taxe foncière / an<FieldTooltip text="Taxe foncière annuelle. Consultez l'avis d'imposition du vendeur ou estimez ~1 mois de loyer." /></label>
+          <input type="number" inputMode="numeric" value={form.property_tax || ""} onChange={(e) => onChange("property_tax", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="800" />
+          {prefillHint("property_tax")}
         </div>
       </div>
       {form.monthly_rent > 0 && (

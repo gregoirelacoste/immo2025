@@ -23,7 +23,7 @@ import { scrapeUrl } from "@/domains/scraping/pipeline/orchestrator";
 import { Property, PropertyFormData, PROPERTY_STATUSES, type PropertyStatus } from "@/domains/property/types";
 import { mergeRescrapeIntoPrefill, parsePrefill } from "@/domains/property/prefill";
 import { enrichPropertyQuiet } from "@/domains/enrich/actions";
-import { createSimulation, getFirstSimulationForProperty, updateSimulation } from "@/domains/simulation/repository";
+import { createSimulation, getFirstSimulationForProperty, getSimulationsForProperty, updateSimulation } from "@/domains/simulation/repository";
 
 export async function saveProperty(
   formData: PropertyFormData,
@@ -45,6 +45,9 @@ export async function saveProperty(
     };
 
     if (existingId) {
+      // Fetch old property to detect price/type changes
+      const oldProperty = await getPropertyByIdPublic(existingId);
+
       const orphan = await getOrphanPropertyById(existingId);
       if (orphan) {
         await updateOrphanProperty(existingId, payload);
@@ -56,6 +59,23 @@ export async function saveProperty(
         } else {
           await updateProperty(existingId, userId, payload);
         }
+      }
+
+      // Sync simulation loan_amounts when purchase_price or property_type changes
+      if (oldProperty && (
+        oldProperty.purchase_price !== payload.purchase_price ||
+        oldProperty.property_type !== payload.property_type
+      )) {
+        try {
+          const sims = await getSimulationsForProperty(existingId);
+          for (const sim of sims) {
+            const newNotary = sim.notary_fees > 0
+              ? sim.notary_fees
+              : calculateNotaryFees(payload.purchase_price, propertyType);
+            const newLoan = Math.max(0, payload.purchase_price + newNotary + sim.renovation_cost - sim.personal_contribution);
+            await updateSimulation(sim.id, sim.user_id, { loan_amount: newLoan });
+          }
+        } catch { /* simulation sync is non-fatal */ }
       }
     } else {
       const userId = await getOptionalUserId();

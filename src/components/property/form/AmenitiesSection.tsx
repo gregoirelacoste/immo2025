@@ -5,10 +5,9 @@ import { AMENITY_KEYS, AMENITY_LABELS, AMENITY_ICONS, type AmenityKey } from "@/
 interface Props {
   selected: AmenityKey[];
   onChange: (amenities: AmenityKey[]) => void;
-  readOnly?: boolean;
 }
 
-export default function AmenitiesSection({ selected, onChange, readOnly }: Props) {
+export default function AmenitiesSection({ selected, onChange }: Props) {
   const toggle = (key: AmenityKey) => {
     if (selected.includes(key)) {
       onChange(selected.filter((k) => k !== key));
@@ -16,27 +15,6 @@ export default function AmenitiesSection({ selected, onChange, readOnly }: Props
       onChange([...selected, key]);
     }
   };
-
-  // In readOnly mode, only show selected amenities
-  if (readOnly) {
-    if (selected.length === 0) return null;
-    return (
-      <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
-        <h2 className="text-lg font-semibold mb-4">Equipements</h2>
-        <div className="flex flex-wrap gap-2">
-          {selected.map((key) => (
-            <span
-              key={key}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium bg-amber-100 text-amber-800 border border-amber-300"
-            >
-              <span>{AMENITY_ICONS[key]}</span>
-              <span>{AMENITY_LABELS[key]}</span>
-            </span>
-          ))}
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
