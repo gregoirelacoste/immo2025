@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Property, PropertyCalculations } from "@/domains/property/types";
+import { Property } from "@/domains/property/types";
 import { Simulation, SimulationFormData } from "@/domains/simulation/types";
-import { calculateSimulation, formatCurrency, formatPercent } from "@/lib/calculations";
+import { calculateSimulation, formatCurrency, formatPercent, calculateNotaryFees } from "@/lib/calculations";
 import { updateSimulationAction } from "@/domains/simulation/actions";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import FiscalSection from "@/components/property/form/FiscalSection";
@@ -21,98 +21,89 @@ interface SliderConfig {
   max: number;
   step: number;
   format: (v: number) => string;
-  unit?: string;
 }
 
-const SLIDER_CONFIGS: SliderConfig[] = [
-  { field: "personal_contribution", label: "Apport personnel", min: 0, max: 200000, step: 1000, format: (v) => formatCurrency(v) },
-  { field: "loan_duration", label: "Durée du crédit", min: 5, max: 30, step: 1, format: (v) => `${v} ans` },
-  { field: "interest_rate", label: "Taux d'intérêt", min: 0, max: 8, step: 0.05, format: (v) => `${v.toFixed(2)} %` },
-  { field: "monthly_rent", label: "Loyer mensuel", min: 0, max: 5000, step: 10, format: (v) => formatCurrency(v) },
-  { field: "vacancy_rate", label: "Taux de vacance", min: 0, max: 30, step: 1, format: (v) => `${v} %` },
-  { field: "renovation_cost", label: "Travaux", min: 0, max: 200000, step: 1000, format: (v) => formatCurrency(v) },
-];
+function buildSliderConfigs(property: Property): SliderConfig[] {
+  const maxPrice = Math.max(property.purchase_price * 2, 500000);
+  return [
+    { field: "personal_contribution", label: "Apport personnel", min: 0, max: maxPrice, step: 1000, format: (v) => formatCurrency(v) },
+    { field: "loan_duration", label: "Durée du crédit", min: 5, max: 30, step: 1, format: (v) => `${v} ans` },
+    { field: "interest_rate", label: "Taux d'intérêt", min: 0, max: 8, step: 0.05, format: (v) => `${v.toFixed(2)} %` },
+    { field: "monthly_rent", label: "Loyer mensuel", min: 0, max: 5000, step: 10, format: (v) => formatCurrency(v) },
+    { field: "vacancy_rate", label: "Taux de vacance", min: 0, max: 30, step: 1, format: (v) => `${v} %` },
+    { field: "renovation_cost", label: "Travaux", min: 0, max: 200000, step: 1000, format: (v) => formatCurrency(v) },
+  ];
+}
+
+/** Compute loan_amount from property price, contribution, renovation, notary */
+function computeLoanAmount(property: Property, form: SimulationFormData): number {
+  const notary = form.notary_fees > 0
+    ? form.notary_fees
+    : calculateNotaryFees(property.purchase_price, property.property_type);
+  return Math.max(0, property.purchase_price + notary + form.renovation_cost - form.personal_contribution);
+}
+
+function simFormFromSimulation(sim: Simulation): SimulationFormData {
+  return {
+    name: sim.name,
+    loan_amount: sim.loan_amount,
+    interest_rate: sim.interest_rate,
+    loan_duration: sim.loan_duration,
+    personal_contribution: sim.personal_contribution,
+    insurance_rate: sim.insurance_rate,
+    loan_fees: sim.loan_fees,
+    notary_fees: sim.notary_fees,
+    monthly_rent: sim.monthly_rent,
+    condo_charges: sim.condo_charges,
+    property_tax: sim.property_tax,
+    vacancy_rate: sim.vacancy_rate,
+    airbnb_price_per_night: sim.airbnb_price_per_night,
+    airbnb_occupancy_rate: sim.airbnb_occupancy_rate,
+    airbnb_charges: sim.airbnb_charges,
+    renovation_cost: sim.renovation_cost,
+    fiscal_regime: sim.fiscal_regime,
+  };
+}
 
 export default function SimulationEditor({ property, simulation, onUpdated }: Props) {
-  const [form, setForm] = useState<SimulationFormData>(() => ({
-    name: simulation.name,
-    loan_amount: simulation.loan_amount,
-    interest_rate: simulation.interest_rate,
-    loan_duration: simulation.loan_duration,
-    personal_contribution: simulation.personal_contribution,
-    insurance_rate: simulation.insurance_rate,
-    loan_fees: simulation.loan_fees,
-    notary_fees: simulation.notary_fees,
-    monthly_rent: simulation.monthly_rent,
-    condo_charges: simulation.condo_charges,
-    property_tax: simulation.property_tax,
-    vacancy_rate: simulation.vacancy_rate,
-    airbnb_price_per_night: simulation.airbnb_price_per_night,
-    airbnb_occupancy_rate: simulation.airbnb_occupancy_rate,
-    airbnb_charges: simulation.airbnb_charges,
-    renovation_cost: simulation.renovation_cost,
-    fiscal_regime: simulation.fiscal_regime,
-  }));
-
+  const [form, setForm] = useState<SimulationFormData>(() => simFormFromSimulation(simulation));
   const [saving, setSaving] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(simulation.name);
 
-  // Reset form when simulation changes
+  const sliderConfigs = buildSliderConfigs(property);
+
+  // Reset form when simulation changes (e.g. switching between simulations)
   useEffect(() => {
-    setForm({
-      name: simulation.name,
-      loan_amount: simulation.loan_amount,
-      interest_rate: simulation.interest_rate,
-      loan_duration: simulation.loan_duration,
-      personal_contribution: simulation.personal_contribution,
-      insurance_rate: simulation.insurance_rate,
-      loan_fees: simulation.loan_fees,
-      notary_fees: simulation.notary_fees,
-      monthly_rent: simulation.monthly_rent,
-      condo_charges: simulation.condo_charges,
-      property_tax: simulation.property_tax,
-      vacancy_rate: simulation.vacancy_rate,
-      airbnb_price_per_night: simulation.airbnb_price_per_night,
-      airbnb_occupancy_rate: simulation.airbnb_occupancy_rate,
-      airbnb_charges: simulation.airbnb_charges,
-      renovation_cost: simulation.renovation_cost,
-      fiscal_regime: simulation.fiscal_regime,
-    });
+    setForm(simFormFromSimulation(simulation));
     setNameValue(simulation.name);
-  }, [simulation]);
+  }, [simulation.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-compute loan_amount when contribution changes
-  useEffect(() => {
-    const notary = form.notary_fees > 0 ? form.notary_fees : Math.round(property.purchase_price * (property.property_type === "ancien" ? 0.075 : 0.025));
-    const newLoan = Math.max(0, property.purchase_price + notary + form.renovation_cost - form.personal_contribution);
-    if (newLoan !== form.loan_amount) {
-      setForm(prev => ({ ...prev, loan_amount: newLoan }));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.personal_contribution, form.renovation_cost, property.purchase_price, property.property_type]);
-
-  // Build a fake Property for calculations
-  const fakeProperty: Property = {
-    ...property,
+  // Compute calcs from current form state
+  const currentLoan = computeLoanAmount(property, form);
+  const calcs = calculateSimulation(property, {
+    ...simulation,
     ...form,
-    loan_amount: form.loan_amount,
-  };
-  const calcs = calculateSimulation(property, { ...simulation, ...form } as Simulation);
+    loan_amount: currentLoan,
+  } as Simulation);
 
-  // Debounced save
+  // Save helper — always includes computed loan_amount
   const saveChanges = useCallback(async (data: Partial<SimulationFormData>) => {
+    const updatedForm = { ...form, ...data };
+    const loan = computeLoanAmount(property, updatedForm);
+    const payload = { ...data, loan_amount: loan };
     setSaving(true);
-    await updateSimulationAction(simulation.id, data);
+    await updateSimulationAction(simulation.id, payload);
     setSaving(false);
     onUpdated();
-  }, [simulation.id, onUpdated]);
+  }, [simulation.id, onUpdated, form, property]);
 
   function handleSliderChange(field: keyof SimulationFormData, value: number) {
     setForm(prev => ({ ...prev, [field]: value }));
   }
 
   function handleSliderCommit(field: keyof SimulationFormData, value: number) {
+    setForm(prev => ({ ...prev, [field]: value }));
     saveChanges({ [field]: value });
   }
 
@@ -194,9 +185,17 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
       {/* Sliders */}
       <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6 space-y-5">
         <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Paramètres ajustables</h3>
-        {SLIDER_CONFIGS.map((config) => {
+
+        {/* Loan amount (read-only, computed) */}
+        <div className="flex justify-between items-baseline pb-3 border-b border-gray-100">
+          <span className="text-sm text-gray-600 font-medium">Montant emprunté</span>
+          <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)]">
+            {formatCurrency(currentLoan)}
+          </span>
+        </div>
+
+        {sliderConfigs.map((config) => {
           const value = form[config.field] as number;
-          // Dynamically extend max if current value exceeds default max
           const effectiveMax = Math.max(config.max, value * 1.5 || config.max);
           return (
             <div key={config.field}>
@@ -258,7 +257,7 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <div>
             <span className="text-gray-500">Montant emprunté</span>
-            <p className="font-semibold">{formatCurrency(form.loan_amount)}</p>
+            <p className="font-semibold">{formatCurrency(currentLoan)}</p>
           </div>
           <div>
             <span className="text-gray-500">Mensualité crédit</span>
