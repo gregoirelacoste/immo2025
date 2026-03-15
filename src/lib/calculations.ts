@@ -1,4 +1,5 @@
 import { Property, PropertyCalculations, FiscalImpact } from "@/domains/property/types";
+import type { Simulation } from "@/domains/simulation/types";
 
 export function calculateNotaryFees(
   price: number,
@@ -184,6 +185,30 @@ export function calculateAll(property: Property): PropertyCalculations {
     airbnb_annual_income: Math.round(airbnb_annual_income),
     airbnb_annual_charges: Math.round(airbnb_annual_charges),
   };
+}
+
+/** Calculate results for a simulation by overlaying simulation params on top of property base data */
+export function calculateSimulation(property: Property, simulation: Simulation): PropertyCalculations {
+  const merged: Property = {
+    ...property,
+    loan_amount: simulation.loan_amount,
+    interest_rate: simulation.interest_rate,
+    loan_duration: simulation.loan_duration,
+    personal_contribution: simulation.personal_contribution,
+    insurance_rate: simulation.insurance_rate,
+    loan_fees: simulation.loan_fees,
+    notary_fees: simulation.notary_fees,
+    monthly_rent: simulation.monthly_rent,
+    condo_charges: simulation.condo_charges,
+    property_tax: simulation.property_tax,
+    vacancy_rate: simulation.vacancy_rate,
+    airbnb_price_per_night: simulation.airbnb_price_per_night,
+    airbnb_occupancy_rate: simulation.airbnb_occupancy_rate,
+    airbnb_charges: simulation.airbnb_charges,
+    renovation_cost: simulation.renovation_cost,
+    fiscal_regime: simulation.fiscal_regime,
+  };
+  return calculateAll(merged);
 }
 
 export function formatCurrency(value: number): string {

@@ -26,6 +26,44 @@ import {
 import { Property } from "@/domains/property/types";
 import { enrichPropertyQuiet } from "@/domains/enrich/actions";
 import { resolveLocalityData } from "@/domains/locality/resolver";
+import { createSimulation } from "@/domains/simulation/repository";
+
+/** Normalize URL for dedup: strip fragment, trailing slash, utm params */
+function normalizeUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    u.hash = "";
+    // Remove common tracking params
+    for (const p of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid", "gclid"]) {
+      u.searchParams.delete(p);
+    }
+    // Sort remaining params for consistency
+    u.searchParams.sort();
+    // Remove trailing slash on path
+    u.pathname = u.pathname.replace(/\/+$/, "") || "/";
+    return u.toString();
+  } catch {
+    return raw.trim();
+  }
+}
+
+/** Check for existing property by URL (normalized), returns id if found */
+async function findExistingByUrl(
+  url: string,
+  userId: string | null
+): Promise<string | null> {
+  const normalized = normalizeUrl(url);
+  if (userId) {
+    // Check both raw and normalized URLs
+    const existing = await getPropertyBySourceUrl(url, userId)
+      ?? await getPropertyBySourceUrl(normalized, userId);
+    return existing?.id ?? null;
+  } else {
+    const existing = await getOrphanPropertyBySourceUrl(url)
+      ?? await getOrphanPropertyBySourceUrl(normalized);
+    return existing?.id ?? null;
+  }
+}
 
 export async function scrapeAndSaveProperty(
   url: string,
@@ -34,16 +72,9 @@ export async function scrapeAndSaveProperty(
   const userId = await getOptionalUserId();
 
   // Dedup: check if a property with this URL already exists
-  if (userId) {
-    const existing = await getPropertyBySourceUrl(url, userId);
-    if (existing) {
-      return { propertyId: existing.id };
-    }
-  } else {
-    const existing = await getOrphanPropertyBySourceUrl(url);
-    if (existing) {
-      return { propertyId: existing.id };
-    }
+  const existingId = await findExistingByUrl(url, userId);
+  if (existingId) {
+    return { propertyId: existingId };
   }
 
   let result;
@@ -135,6 +166,13 @@ export async function scrapeAndSaveProperty(
     value: notary,
   };
 
+  // Second dedup check right before creation (catches race conditions)
+  const raceCheckId = await findExistingByUrl(url, userId);
+  if (raceCheckId) {
+    return { propertyId: raceCheckId };
+  }
+
+  const normalizedUrl = normalizeUrl(url);
   const id = await createProperty({
     user_id: userId,
     visibility: "public",
@@ -164,7 +202,7 @@ export async function scrapeAndSaveProperty(
     dpe_rating: null,
     fiscal_regime: "micro_bic",
     amenities: d.amenities ? JSON.stringify(d.amenities) : "[]",
-    source_url: url,
+    source_url: normalizedUrl,
     image_urls: d.image_urls ? JSON.stringify(d.image_urls) : "[]",
     prefill_sources: JSON.stringify(prefill),
   });
@@ -172,10 +210,31 @@ export async function scrapeAndSaveProperty(
   // Set collect_urls with this URL
   await updateCollectFields(id, {
     collect_urls: JSON.stringify([url]),
-    source_url: url,
+    source_url: normalizedUrl,
   });
 
   revalidatePath("/dashboard");
+
+  // Create default simulation
+  createSimulation(id, userId, {
+    name: "Simulation 1",
+    loan_amount: loanAmount,
+    interest_rate: 3.5,
+    loan_duration: 20,
+    personal_contribution: 0,
+    insurance_rate: 0.34,
+    loan_fees: 0,
+    notary_fees: 0,
+    monthly_rent: monthlyRent,
+    condo_charges: condoCharges,
+    property_tax: propertyTax,
+    vacancy_rate: 5,
+    airbnb_price_per_night: 0,
+    airbnb_occupancy_rate: 60,
+    airbnb_charges: 0,
+    renovation_cost: 0,
+    fiscal_regime: "micro_bic",
+  }).catch(() => {});
 
   // Fire-and-forget enrichment
   enrichPropertyQuiet(id).catch(() => {});
@@ -317,6 +376,27 @@ export async function createPropertyFromText(
     });
 
     revalidatePath("/dashboard");
+
+    // Create default simulation
+    createSimulation(id, userId, {
+      name: "Simulation 1",
+      loan_amount: loanAmount,
+      interest_rate: 3.5,
+      loan_duration: 20,
+      personal_contribution: 0,
+      insurance_rate: 0.34,
+      loan_fees: 0,
+      notary_fees: 0,
+      monthly_rent: monthlyRent,
+      condo_charges: condoCharges,
+      property_tax: propertyTax,
+      vacancy_rate: 5,
+      airbnb_price_per_night: 0,
+      airbnb_occupancy_rate: 60,
+      airbnb_charges: 0,
+      renovation_cost: 0,
+      fiscal_regime: "micro_bic",
+    }).catch(() => {});
 
     // Fire-and-forget enrichment
     enrichPropertyQuiet(id).catch(() => {});

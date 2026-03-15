@@ -5,8 +5,9 @@ import { getPropertyById } from "@/domains/property/repository";
 import { isAdmin as checkIsAdmin } from "@/lib/auth-actions";
 import { getUserProfile } from "@/domains/auth/repository";
 import { getPhotosForProperty } from "@/domains/photo/repository";
+import { getSimulationsForProperty } from "@/domains/simulation/repository";
 import Navbar from "@/components/Navbar";
-import PropertyForm from "@/components/property/form/PropertyForm";
+import PropertyDetail from "@/components/property/detail/PropertyDetail";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +28,10 @@ export default async function PropertyPage({
   }
 
   const isOwner = admin || (!!userId && property.user_id === userId);
-  const [userProfile, photos] = await Promise.all([
+  const [userProfile, photos, simulations] = await Promise.all([
     userId ? getUserProfile(userId) : null,
     getPhotosForProperty(id),
+    getSimulationsForProperty(id),
   ]);
 
   return (
@@ -37,12 +39,12 @@ export default async function PropertyPage({
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Suspense fallback={<div className="text-gray-400">Chargement...</div>}>
-          <PropertyForm
-            existingProperty={property}
-            readOnly
+          <PropertyDetail
+            property={property}
             isOwner={isOwner}
             userProfile={userProfile}
             photos={photos}
+            simulations={simulations}
           />
         </Suspense>
       </main>

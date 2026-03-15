@@ -156,6 +156,33 @@ export async function getDb(): Promise<Client> {
         UNIQUE(property_id, month)
       )`,
       "CREATE INDEX IF NOT EXISTS idx_rental_entries_property ON rental_entries(property_id)",
+      // Phase 7: Simulations
+      `CREATE TABLE IF NOT EXISTS simulations (
+        id TEXT PRIMARY KEY,
+        property_id TEXT NOT NULL,
+        user_id TEXT NOT NULL DEFAULT '',
+        name TEXT NOT NULL DEFAULT 'Simulation 1',
+        loan_amount REAL NOT NULL DEFAULT 0,
+        interest_rate REAL NOT NULL DEFAULT 3.5,
+        loan_duration INTEGER NOT NULL DEFAULT 20,
+        personal_contribution REAL DEFAULT 0,
+        insurance_rate REAL DEFAULT 0.34,
+        loan_fees REAL DEFAULT 0,
+        notary_fees REAL DEFAULT 0,
+        monthly_rent REAL DEFAULT 0,
+        condo_charges REAL DEFAULT 0,
+        property_tax REAL DEFAULT 0,
+        vacancy_rate REAL DEFAULT 5,
+        airbnb_price_per_night REAL DEFAULT 0,
+        airbnb_occupancy_rate REAL DEFAULT 60,
+        airbnb_charges REAL DEFAULT 0,
+        renovation_cost INTEGER DEFAULT 0,
+        fiscal_regime TEXT DEFAULT 'micro_bic',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+      )`,
+      "CREATE INDEX IF NOT EXISTS idx_simulations_property ON simulations(property_id)",
     ]) {
       try { await client.execute(stmt); } catch { /* already exists */ }
     }
