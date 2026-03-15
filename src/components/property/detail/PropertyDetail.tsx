@@ -206,6 +206,32 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
               )}
             </div>
 
+            {/* Données financières du bien */}
+            {(property.monthly_rent > 0 || property.condo_charges > 0 || property.property_tax > 0) && (
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  {property.monthly_rent > 0 && (
+                    <div>
+                      <span className="text-gray-500">Loyer</span>
+                      <p className="font-semibold">{formatCurrency(property.monthly_rent)}/mois</p>
+                    </div>
+                  )}
+                  {property.condo_charges > 0 && (
+                    <div>
+                      <span className="text-gray-500">Charges copro</span>
+                      <p className="font-semibold">{formatCurrency(property.condo_charges)}/mois</p>
+                    </div>
+                  )}
+                  {property.property_tax > 0 && (
+                    <div>
+                      <span className="text-gray-500">Taxe foncière</span>
+                      <p className="font-semibold">{formatCurrency(property.property_tax)}/an</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {amenities.length > 0 && (
               <div className="mt-4 pt-3 border-t border-gray-100">
                 <div className="flex flex-wrap gap-1.5">
