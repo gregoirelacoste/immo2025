@@ -136,6 +136,7 @@ export async function getDb(): Promise<Client> {
       "ALTER TABLE properties ADD COLUMN fiscal_regime TEXT DEFAULT 'micro_bic'",
       "ALTER TABLE properties ADD COLUMN is_favorite INTEGER DEFAULT 0",
       "ALTER TABLE properties ADD COLUMN status_changed_at TEXT DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN neighborhood TEXT DEFAULT ''",
       // Phase 6.4: Alert thresholds on user profile
       "ALTER TABLE user_profile ADD COLUMN alert_thresholds TEXT DEFAULT '{}'",
       "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",

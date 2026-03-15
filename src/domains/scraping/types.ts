@@ -29,6 +29,7 @@ export interface ScrapedPropertyData {
   postal_code?: string;
   address?: string;
   description?: string;
+  neighborhood?: string;
   property_type?: "ancien" | "neuf";
   image_urls?: string[];
   amenities?: string[];

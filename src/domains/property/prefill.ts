@@ -24,6 +24,7 @@ export function buildPrefillFromScrape(
   if (data.surface && data.surface > 0)
     prefill.surface = { source: label, value: data.surface };
   if (data.city) prefill.city = { source: label, value: data.city };
+  if (data.neighborhood) prefill.neighborhood = { source: label, value: data.neighborhood };
   if (data.address) prefill.address = { source: label, value: data.address };
   if (data.postal_code) prefill.postal_code = { source: label, value: data.postal_code };
   // Champs locatifs scrapés
@@ -112,6 +113,7 @@ export function mergeRescrapeIntoPrefill(
   if (data.purchase_price != null) merged.purchase_price = { source: label, value: data.purchase_price };
   if (data.surface != null) merged.surface = { source: label, value: data.surface };
   if (data.city) merged.city = { source: label, value: data.city };
+  if (data.neighborhood) merged.neighborhood = { source: label, value: data.neighborhood };
   if (data.address) merged.address = { source: label, value: data.address };
   if (data.postal_code) merged.postal_code = { source: label, value: data.postal_code };
   if (data.monthly_rent != null) merged.monthly_rent = { source: label, value: data.monthly_rent };
@@ -131,6 +133,7 @@ export function mergeTextExtractionIntoPrefill(
   if (data.purchase_price != null) merged.purchase_price = { source: "Collage texte (IA)", value: data.purchase_price };
   if (data.surface != null) merged.surface = { source: "Collage texte (IA)", value: data.surface };
   if (data.city) merged.city = { source: "Collage texte (IA)", value: data.city };
+  if (data.neighborhood) merged.neighborhood = { source: "Collage texte (IA)", value: data.neighborhood };
   if (data.address) merged.address = { source: "Collage texte (IA)", value: data.address };
   if (data.postal_code) merged.postal_code = { source: "Collage texte (IA)", value: data.postal_code };
   if (data.monthly_rent != null) merged.monthly_rent = { source: "Collage texte (IA)", value: data.monthly_rent };

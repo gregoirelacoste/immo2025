@@ -31,5 +31,6 @@ export const PROPERTY_FIELDS = [
   "postal_code",
   "address",
   "description",
+  "neighborhood",
   "property_type",
 ] as const;

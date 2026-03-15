@@ -305,22 +305,13 @@ export default function DashboardClient({ properties, currentUserId, isAdmin, si
         <>
           <SortBar sortKey={sortKey} sortAsc={sortAsc} onSort={toggleSort} />
 
-          {/* Column header — IDE-style (mobile only) */}
-          <div className="md:hidden flex justify-between items-center px-5 pt-2 pb-1">
-            <span className="text-[9px] text-[#b0b0b8] font-semibold tracking-wider uppercase">Bien</span>
-            <div className="flex gap-6">
-              <span className="text-[9px] text-[#b0b0b8] font-semibold tracking-wider uppercase w-14 text-right">Prix</span>
-              <span className="text-[9px] text-[#b0b0b8] font-semibold tracking-wider uppercase w-10 text-right">Renta</span>
-              <span className="text-[9px] text-[#b0b0b8] font-semibold tracking-wider uppercase w-12 text-right">CF</span>
-            </div>
-          </div>
-
-          <div className="md:hidden flex flex-col gap-1.5">
-            {sorted.map(({ property, calcs }) => (
+          <div className="md:hidden flex flex-col gap-2 pt-1">
+            {sorted.map(({ property, calcs }, i) => (
               <PropertyCard
                 key={property.id}
                 property={property}
                 calcs={calcs}
+                index={i}
               />
             ))}
           </div>

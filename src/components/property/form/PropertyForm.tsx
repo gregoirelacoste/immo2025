@@ -40,6 +40,7 @@ function buildDefaultFormData(defaults?: DefaultInputs): PropertyFormData {
     surface: 0,
     property_type: "ancien",
     description: "",
+    neighborhood: "",
     loan_amount: 0,
     interest_rate: defaults?.interest_rate ?? 3.5,
     loan_duration: defaults?.loan_duration ?? 20,
