@@ -23,7 +23,7 @@ import { scrapeUrl } from "@/domains/scraping/pipeline/orchestrator";
 import { Property, PropertyFormData, PROPERTY_STATUSES, type PropertyStatus } from "@/domains/property/types";
 import { mergeRescrapeIntoPrefill, parsePrefill } from "@/domains/property/prefill";
 import { enrichPropertyQuiet } from "@/domains/enrich/actions";
-import { createSimulation } from "@/domains/simulation/repository";
+import { createSimulation, getFirstSimulationForProperty, updateSimulation } from "@/domains/simulation/repository";
 
 export async function saveProperty(
   formData: PropertyFormData,
@@ -62,25 +62,29 @@ export async function saveProperty(
       const newId = await createProperty({ ...payload, user_id: userId });
 
       // Create default simulation for new property
-      createSimulation(newId, userId, {
-        name: "Simulation 1",
-        loan_amount: payload.loan_amount,
-        interest_rate: payload.interest_rate,
-        loan_duration: payload.loan_duration,
-        personal_contribution: payload.personal_contribution,
-        insurance_rate: payload.insurance_rate,
-        loan_fees: payload.loan_fees,
-        notary_fees: payload.notary_fees > 0 ? payload.notary_fees : 0,
-        monthly_rent: payload.monthly_rent,
-        condo_charges: payload.condo_charges,
-        property_tax: payload.property_tax,
-        vacancy_rate: payload.vacancy_rate,
-        airbnb_price_per_night: payload.airbnb_price_per_night,
-        airbnb_occupancy_rate: payload.airbnb_occupancy_rate,
-        airbnb_charges: payload.airbnb_charges,
-        renovation_cost: payload.renovation_cost ?? 0,
-        fiscal_regime: payload.fiscal_regime || "micro_bic",
-      }).catch(() => {});
+      try {
+        await createSimulation(newId, userId, {
+          name: "Simulation 1",
+          loan_amount: payload.loan_amount,
+          interest_rate: payload.interest_rate,
+          loan_duration: payload.loan_duration,
+          personal_contribution: payload.personal_contribution,
+          insurance_rate: payload.insurance_rate,
+          loan_fees: payload.loan_fees,
+          notary_fees: payload.notary_fees > 0 ? payload.notary_fees : 0,
+          monthly_rent: payload.monthly_rent,
+          condo_charges: payload.condo_charges,
+          property_tax: payload.property_tax,
+          vacancy_rate: payload.vacancy_rate,
+          airbnb_price_per_night: payload.airbnb_price_per_night,
+          airbnb_occupancy_rate: payload.airbnb_occupancy_rate,
+          airbnb_charges: payload.airbnb_charges,
+          renovation_cost: payload.renovation_cost ?? 0,
+          fiscal_regime: payload.fiscal_regime || "micro_bic",
+        });
+      } catch (simErr) {
+        console.error("Failed to create default simulation:", simErr);
+      }
 
       enrichPropertyQuiet(newId).catch(() => {});
     }
@@ -210,6 +214,20 @@ export async function rescrapeProperty(
     await updatePropertyAsAdmin(id, updatePayload);
   } else {
     await updateProperty(id, userId, updatePayload);
+  }
+
+  // Sync first simulation with scraped rental data
+  const simUpdateData: Record<string, number> = {};
+  if (d.monthly_rent != null) simUpdateData.monthly_rent = d.monthly_rent;
+  if (d.condo_charges != null) simUpdateData.condo_charges = d.condo_charges;
+  if (d.property_tax != null) simUpdateData.property_tax = d.property_tax;
+  if (Object.keys(simUpdateData).length > 0) {
+    try {
+      const firstSim = await getFirstSimulationForProperty(id);
+      if (firstSim) {
+        await updateSimulation(firstSim.id, firstSim.user_id, simUpdateData);
+      }
+    } catch { /* simulation sync is non-fatal */ }
   }
 
   revalidatePath(`/property/${id}`);

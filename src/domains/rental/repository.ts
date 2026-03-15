@@ -1,7 +1,8 @@
 import { getDb } from "@/infrastructure/database/client";
 import { rowAs } from "@/infrastructure/database/row-mapper";
 import { Property } from "@/domains/property/types";
-import { calculateAll } from "@/lib/calculations";
+import type { Simulation } from "@/domains/simulation/types";
+import { calculateAll, calculateSimulation } from "@/lib/calculations";
 import { RentalEntry, RentalSummary } from "./types";
 
 export async function getRentalEntries(propertyId: string): Promise<RentalEntry[]> {
@@ -52,7 +53,8 @@ export async function deleteRentalEntry(id: string): Promise<void> {
 
 export async function getRentalSummary(
   propertyId: string,
-  property: Property
+  property: Property,
+  simulation?: Simulation | null
 ): Promise<RentalSummary | null> {
   const entries = await getRentalEntries(propertyId);
   if (entries.length === 0) return null;
@@ -66,7 +68,7 @@ export async function getRentalSummary(
   const avg_monthly_charges = total_charges_paid / months_tracked;
 
   // Calculate actual net yield based on real data
-  const calcs = calculateAll(property);
+  const calcs = simulation ? calculateSimulation(property, simulation) : calculateAll(property);
   const annual_actual_net = (avg_monthly_rent - avg_monthly_charges) * 12;
   const actual_net_yield =
     calcs.total_project_cost > 0

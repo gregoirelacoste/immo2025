@@ -37,7 +37,7 @@ export default async function PortfolioPage() {
       const calcs = sim ? calculateSimulation(property, sim) : calculateAll(property);
       calculationsMap.set(property.id, calcs);
 
-      const summary = await getRentalSummary(property.id, property);
+      const summary = await getRentalSummary(property.id, property, sim);
       if (summary) {
         rentalDataMap.set(property.id, summary);
       }

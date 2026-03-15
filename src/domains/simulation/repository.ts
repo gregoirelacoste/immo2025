@@ -96,6 +96,19 @@ export async function countSimulationsForProperty(propertyId: string): Promise<n
 }
 
 /**
+ * Get the first (oldest) simulation for a single property.
+ * Returns null if no simulation exists.
+ */
+export async function getFirstSimulationForProperty(propertyId: string): Promise<Simulation | null> {
+  const db = await getDb();
+  const result = await db.execute({
+    sql: "SELECT * FROM simulations WHERE property_id = ? ORDER BY created_at ASC LIMIT 1",
+    args: [propertyId],
+  });
+  return result.rows.length > 0 ? rowToSimulation(result.rows[0]) : null;
+}
+
+/**
  * Get the first (oldest) simulation for each property in a batch.
  * Returns a map of property_id → Simulation.
  */

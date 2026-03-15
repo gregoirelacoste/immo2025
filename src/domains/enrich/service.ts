@@ -1,9 +1,10 @@
 import { getMarketData } from "@/domains/market/service";
 import { forwardGeocode } from "@/domains/collect/geocoding";
-import { calculateAll } from "@/lib/calculations";
+import { calculateAll, calculateSimulation } from "@/lib/calculations";
 import { computeInvestmentScore } from "./scoring";
 import { EnrichmentResult } from "./types";
 import { Property } from "@/domains/property/types";
+import { getFirstSimulationForProperty } from "@/domains/simulation/repository";
 import { SocioEconomicData } from "./socioeconomic-types";
 import { resolveLocalityData } from "@/domains/locality/resolver";
 
@@ -88,8 +89,9 @@ export async function runEnrichmentPipeline(
     /* socio-economic failure is non-fatal */
   }
 
-  // Step 4: Investment score
-  const calcs = calculateAll(property);
+  // Step 4: Investment score (use first simulation if available)
+  const firstSim = await getFirstSimulationForProperty(property.id);
+  const calcs = firstSim ? calculateSimulation(property, firstSim) : calculateAll(property);
   const breakdown = computeInvestmentScore(
     {
       purchase_price: property.purchase_price,
