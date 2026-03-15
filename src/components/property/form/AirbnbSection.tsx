@@ -5,43 +5,28 @@ interface Props {
   form: PropertyFormData;
   onChange: (field: keyof PropertyFormData, value: string | number) => void;
   calcs: PropertyCalculations;
-  readOnly?: boolean;
 }
 
 const inputClass =
   "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]";
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
-const valueClass = "text-base font-medium text-[#1a1a2e] py-2";
-
-export default function AirbnbSection({ form, onChange, calcs, readOnly }: Props) {
+export default function AirbnbSection({ form, onChange, calcs }: Props) {
   return (
     <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
       <h2 className="text-lg font-semibold mb-4">Airbnb / Location courte durée</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className={labelClass}>Prix par nuit</label>
-          {readOnly ? (
-            <p className={valueClass}>{form.airbnb_price_per_night > 0 ? formatCurrency(form.airbnb_price_per_night) : "—"}</p>
-          ) : (
-            <input type="number" inputMode="numeric" value={form.airbnb_price_per_night || ""} onChange={(e) => onChange("airbnb_price_per_night", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="80" />
-          )}
+          <input type="number" inputMode="numeric" value={form.airbnb_price_per_night || ""} onChange={(e) => onChange("airbnb_price_per_night", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="80" />
         </div>
         <div>
           <label className={labelClass}>Taux d&apos;occupation (%)</label>
-          {readOnly ? (
-            <p className={valueClass}>{form.airbnb_occupancy_rate} %</p>
-          ) : (
-            <input type="number" inputMode="decimal" step="0.1" value={form.airbnb_occupancy_rate || ""} onChange={(e) => onChange("airbnb_occupancy_rate", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="60" />
-          )}
+          <input type="number" inputMode="decimal" step="0.1" value={form.airbnb_occupancy_rate || ""} onChange={(e) => onChange("airbnb_occupancy_rate", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="60" />
         </div>
         <div>
           <label className={labelClass}>Charges mensuelles Airbnb</label>
-          {readOnly ? (
-            <p className={valueClass}>{form.airbnb_charges > 0 ? formatCurrency(form.airbnb_charges) : "—"}</p>
-          ) : (
-            <input type="number" inputMode="numeric" value={form.airbnb_charges || ""} onChange={(e) => onChange("airbnb_charges", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="200" />
-          )}
+          <input type="number" inputMode="numeric" value={form.airbnb_charges || ""} onChange={(e) => onChange("airbnb_charges", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="200" />
         </div>
       </div>
       {form.airbnb_price_per_night > 0 && (
