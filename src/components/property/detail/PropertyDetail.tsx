@@ -165,7 +165,7 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
       <StickyHeader property={property} calcs={calcs} />
 
       {/* Tab navigation */}
-      <TabNavigation />
+      <TabNavigation propertyId={property.id} isOwner={isOwner} />
 
       {/* ═══════════════════ ONGLET BIEN (description factuelle) ═══════════════════ */}
       {activeTab === "bien" && (
