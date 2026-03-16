@@ -45,22 +45,22 @@ export async function upsertOAuthUser(user: {
   image: string;
 }): Promise<User> {
   const db = await getDb();
-  const existing = await getUserByEmail(user.email);
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
 
-  if (existing) {
-    await db.execute({
-      sql: "UPDATE users SET name = $name, image = $image WHERE id = $id",
-      args: { id: existing.id, name: user.name || existing.name, image: user.image || existing.image },
-    });
-    return { ...existing, name: user.name || existing.name, image: user.image || existing.image };
-  }
+  // Atomic upsert — avoids race condition between concurrent OAuth sign-ins
+  await db.execute({
+    sql: `INSERT INTO users (id, email, name, password_hash, image, created_at)
+          VALUES ($id, $email, $name, '', $image, $created_at)
+          ON CONFLICT(email) DO UPDATE SET
+            name = CASE WHEN $name != '' THEN $name ELSE users.name END,
+            image = CASE WHEN $image != '' THEN $image ELSE users.image END`,
+    args: { id, email: user.email, name: user.name, image: user.image, created_at: now },
+  });
 
-  const id = await createUser({ ...user, password_hash: "" });
-  return {
-    id, email: user.email, name: user.name, password_hash: "",
-    plan: "free" as const, role: "user" as const, stripe_customer_id: "", image: user.image,
-    created_at: new Date().toISOString(),
-  };
+  // Fetch the final row (could be newly inserted or updated)
+  const result = await getUserByEmail(user.email);
+  return result!;
 }
 
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {

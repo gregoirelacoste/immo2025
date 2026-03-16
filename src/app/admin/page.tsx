@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth-actions";
-import { getAllLocalities, getLocalityDataHistory } from "@/domains/locality/repository";
+import { getAllLocalities, getAllLocalityDataForIds } from "@/domains/locality/repository";
 import type { LocalityData } from "@/domains/locality/types";
 import Navbar from "@/components/Navbar";
 import AdminLocalitiesClient from "@/components/admin/AdminLocalitiesClient";
@@ -11,13 +11,11 @@ export default async function AdminPage() {
   if (!admin) redirect("/dashboard");
 
   const localities = await getAllLocalities();
-  // Fetch all locality data in parallel instead of sequentially
-  const dataEntries = await Promise.all(
-    localities.map(async (loc) => [loc.id, await getLocalityDataHistory(loc.id)] as const)
-  );
+  // Single batch query instead of N+1 per-locality queries
+  const allData = await getAllLocalityDataForIds(localities.map((l) => l.id));
   const dataMap: Record<string, LocalityData[]> = {};
-  for (const [id, data] of dataEntries) {
-    dataMap[id] = data;
+  for (const d of allData) {
+    (dataMap[d.locality_id] ??= []).push(d);
   }
 
   return (

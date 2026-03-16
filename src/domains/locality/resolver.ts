@@ -7,7 +7,7 @@ import {
 import {
   findLocalityByCity,
   getLocalityById,
-  getLatestLocalityData,
+  getLatestLocalityDataBatch,
 } from "./repository";
 
 /**
@@ -25,47 +25,50 @@ export async function resolveLocalityData(
   const locality = await findLocalityByCity(city, postalCode, codeInsee);
   if (!locality) return null;
 
+  // Phase 1: Collect all ancestor IDs by walking up parent_id chain
+  // (sequential but only fetches IDs, typically 3-4 levels max)
+  const chain: Locality[] = [locality];
+  let current: Locality | undefined = locality;
+  const visited = new Set<string>([locality.id]);
+
+  while (current?.parent_id && !visited.has(current.parent_id)) {
+    visited.add(current.parent_id);
+    current = await getLocalityById(current.parent_id);
+    if (current) chain.push(current);
+  }
+
+  // Phase 2: Batch-fetch all locality data snapshots in ONE query
+  const chainIds = chain.map((l) => l.id);
+  const dataMap = await getLatestLocalityDataBatch(chainIds);
+
+  // Phase 3: Merge fields from most specific → least specific
   const fields: LocalityDataFields = {};
   const fieldSources: ResolvedLocalityData["fieldSources"] = {};
 
-  // Walk up the hierarchy, collecting missing fields
-  let current: Locality | undefined = locality;
-  const visited = new Set<string>();
+  for (const loc of chain) {
+    const snapshot = dataMap.get(loc.id);
+    if (!snapshot) continue;
 
-  while (current && !visited.has(current.id)) {
-    visited.add(current.id);
-
-    const snapshot = await getLatestLocalityData(current.id);
-    if (snapshot) {
-      let data: LocalityDataFields;
-      try {
-        data = JSON.parse(snapshot.data);
-      } catch {
-        data = {};
-      }
-
-      for (const key of LOCALITY_DATA_FIELD_KEYS) {
-        // Only fill if not already set by a more specific locality
-        if (fields[key] === undefined || fields[key] === null) {
-          const value = data[key];
-          if (value !== undefined && value !== null) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (fields as any)[key] = value;
-            fieldSources[key] = {
-              localityId: current.id,
-              localityName: current.name,
-              localityType: current.type,
-            };
-          }
-        }
-      }
+    let data: LocalityDataFields;
+    try {
+      data = JSON.parse(snapshot.data);
+    } catch {
+      continue;
     }
 
-    // Move to parent
-    if (current.parent_id) {
-      current = await getLocalityById(current.parent_id);
-    } else {
-      break;
+    for (const key of LOCALITY_DATA_FIELD_KEYS) {
+      if (fields[key] === undefined || fields[key] === null) {
+        const value = data[key];
+        if (value !== undefined && value !== null) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (fields as any)[key] = value;
+          fieldSources[key] = {
+            localityId: loc.id,
+            localityName: loc.name,
+            localityType: loc.type,
+          };
+        }
+      }
     }
   }
 
