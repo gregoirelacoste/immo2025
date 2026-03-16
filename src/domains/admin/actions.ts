@@ -85,7 +85,7 @@ export async function adminDeleteLocalityData(id: string): Promise<{ success: bo
   }
 }
 
-// ─── Equipments ───────────────────────────────────────────
+// ─── Equipments (backward-compatible wrappers) ──────────
 
 export async function adminUpdateEquipment(
   id: string,
@@ -130,6 +130,89 @@ export async function adminCreateEquipment(data: {
       if (eq) await updateEquipment(eq.id, { category: data.category });
     }
     revalidatePath("/admin/equipments");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+// ─── Generic reference items ─────────────────────────────
+
+import {
+  createItem,
+  updateItem,
+  deleteItem,
+  addCondition,
+  removeCondition,
+} from "@/domains/reference/service";
+import type { ReferenceItemType } from "@/domains/reference/types";
+
+export async function adminCreateReferenceItem(data: {
+  type: ReferenceItemType;
+  key: string;
+  label: string;
+  icon?: string;
+  category?: string;
+  config?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+    if (!data.key?.trim()) return { success: false, error: "Clé requise" };
+    if (!data.label?.trim()) return { success: false, error: "Label requis" };
+    await createItem(data);
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+export async function adminUpdateReferenceItem(
+  id: string,
+  data: { label?: string; icon?: string; category?: string; config?: string; sort_order?: number },
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+    await updateItem(id, data);
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+export async function adminDeleteReferenceItem(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+    await deleteItem(id);
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+export async function adminAddReferenceCondition(data: {
+  item_id: string;
+  condition_type: "amenity" | "property_type";
+  condition_value: string;
+  sort_order?: number;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+    await addCondition(data);
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+export async function adminRemoveReferenceCondition(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+    await removeCondition(id);
+    revalidatePath("/admin");
     return { success: true };
   } catch (e) {
     return { success: false, error: (e as Error).message };

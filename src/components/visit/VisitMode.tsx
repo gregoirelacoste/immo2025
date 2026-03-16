@@ -7,6 +7,7 @@ import type { Simulation } from "@/domains/simulation/types";
 import { parseAmenities } from "@/domains/property/amenities";
 import type { Equipment } from "@/domains/property/equipment-service";
 import { calculateAll, calculateSimulation, formatCurrency, formatPercent } from "@/lib/calculations";
+import type { ResolvedVisitConfig } from "@/domains/visit/constants";
 import { resolveVisitConfig } from "@/domains/visit/constants";
 import { changePropertyStatus } from "@/domains/property/actions";
 import { useVisitData } from "@/domains/visit/hooks/useVisitData";
@@ -27,9 +28,10 @@ interface Props {
   property: Property;
   simulation?: Simulation | null;
   equipments?: Equipment[];
+  visitConfig?: ResolvedVisitConfig;
 }
 
-export default function VisitMode({ property, simulation, equipments = [] }: Props) {
+export default function VisitMode({ property, simulation, equipments = [], visitConfig }: Props) {
   const router = useRouter();
   const calculations = useMemo(
     () => simulation ? calculateSimulation(property, simulation) : calculateAll(property),
@@ -39,9 +41,10 @@ export default function VisitMode({ property, simulation, equipments = [] }: Pro
     () => parseAmenities(property.amenities),
     [property.amenities],
   );
+  // Use server-provided config if available, otherwise fallback to synchronous resolver
   const config = useMemo(
-    () => resolveVisitConfig(amenities, property.property_type as "ancien" | "neuf"),
-    [amenities, property.property_type],
+    () => visitConfig ?? resolveVisitConfig(amenities, property.property_type as "ancien" | "neuf"),
+    [visitConfig, amenities, property.property_type],
   );
 
   const {
