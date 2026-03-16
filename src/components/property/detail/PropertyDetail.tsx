@@ -24,7 +24,11 @@ import TabNavigation, { type TabId } from "./TabNavigation";
 import StickyHeader from "./StickyHeader";
 import BudgetIndicator from "@/components/property/BudgetIndicator";
 import SimulationTab from "./SimulationTab";
-import CompletionTab from "./CompletionTab";
+import TravauxTab from "./TravauxTab";
+import CompletionBadge from "./CompletionBadge";
+import { getCompletionSummary } from "@/domains/property/completion";
+import { getFieldsByCategory, isFieldFilled } from "@/domains/property/field-registry";
+import InlineFieldEditor from "./InlineFieldEditor";
 import type { UserProfile } from "@/domains/auth/types";
 import type { Photo } from "@/domains/photo/types";
 import type { Simulation } from "@/domains/simulation/types";
@@ -65,6 +69,15 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
   const amenities = useMemo(() => parseAmenities(property.amenities), [property.amenities]);
   const eqMap = useMemo(() => new Map(equipments.map((e) => [e.key, e])), [equipments]);
   const images: string[] = parseJson(property.image_urls, []);
+
+  const completionSummary = useMemo(() => getCompletionSummary(property), [property]);
+
+  // Missing fields for the "Bien" tab: charges + revenus that are empty
+  const missingBienFields = useMemo(() => {
+    const chargesFields = getFieldsByCategory("charges");
+    const revenusFields = getFieldsByCategory("revenus");
+    return [...chargesFields, ...revenusFields].filter((f) => !isFieldFilled(property, f.key));
+  }, [property]);
 
   const pricePerM2 = property.surface > 0 ? property.purchase_price / property.surface : 0;
   const marketDiff = marketData?.medianPurchasePricePerM2 && pricePerM2
@@ -112,15 +125,18 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
                   )}
                   <BudgetIndicator monthlyPayment={calcs.monthly_payment} monthlyInsurance={calcs.monthly_insurance} userProfile={userProfile} />
                 </div>
-                {/* Score circle */}
-                <div
-                  className={`w-[52px] h-[52px] rounded-full ${grade.bg} flex flex-col items-center justify-center shrink-0`}
-                  style={{ border: `2.5px solid ${grade.hex}` }}
-                >
-                  <span className={`text-[8px] font-bold ${grade.color} leading-none mb-0.5`}>{grade.letter}</span>
-                  <span className={`text-lg font-extrabold ${grade.color} leading-none`}>
-                    {property.investment_score ?? "?"}
-                  </span>
+                {/* Score circle + completion badge */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <CompletionBadge percent={completionSummary.globalPercent} size="sm" />
+                  <div
+                    className={`w-[52px] h-[52px] rounded-full ${grade.bg} flex flex-col items-center justify-center`}
+                    style={{ border: `2.5px solid ${grade.hex}` }}
+                  >
+                    <span className={`text-[8px] font-bold ${grade.color} leading-none mb-0.5`}>{grade.letter}</span>
+                    <span className={`text-lg font-extrabold ${grade.color} leading-none`}>
+                      {property.investment_score ?? "?"}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -284,6 +300,34 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
             </section>
           )}
 
+          {/* Données manquantes — saisie inline */}
+          {missingBienFields.length > 0 && (
+            <CollapsibleSection title={`Données manquantes (${missingBienFields.length})`} variant="blue">
+              <div className="space-y-2">
+                {missingBienFields.map((field) => (
+                  <div key={field.key} className="border border-dashed border-gray-200 rounded-lg p-3 bg-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">{field.label}</span>
+                      {field.importance === "critical" && (
+                        <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">Important</span>
+                      )}
+                    </div>
+                    <InlineFieldEditor
+                      propertyId={property.id}
+                      field={field}
+                      onSaved={() => router.refresh()}
+                    />
+                    {field.agentQuestion && (
+                      <p className="text-[11px] text-gray-400 mt-1.5">
+                        💡 {field.agentQuestion}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+
           {/* Données marché */}
           <CollapsibleSection title="Données du marché" variant="emerald" defaultOpen={!!marketData}>
             <MarketDataPanel property={property} marketData={marketData} loading={property.enrichment_status === "running"} monthlyRent={firstSim?.monthly_rent} />
@@ -321,9 +365,9 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
         </div>
       )}
 
-      {/* ═══════════════════ ONGLET DONNÉES ═══════════════════ */}
-      {activeTab === "donnees" && (
-        <CompletionTab property={property} />
+      {/* ═══════════════════ ONGLET TRAVAUX ═══════════════════ */}
+      {activeTab === "travaux" && (
+        <TravauxTab property={property} />
       )}
 
       {/* ═══════════════════ ONGLET VISITE ═══════════════════ */}
