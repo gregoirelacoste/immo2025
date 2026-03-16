@@ -24,6 +24,7 @@ import TabNavigation, { type TabId } from "./TabNavigation";
 import StickyHeader from "./StickyHeader";
 import BudgetIndicator from "@/components/property/BudgetIndicator";
 import SimulationTab from "./SimulationTab";
+import CompletionTab from "./CompletionTab";
 import type { UserProfile } from "@/domains/auth/types";
 import type { Photo } from "@/domains/photo/types";
 import type { Simulation } from "@/domains/simulation/types";
@@ -318,6 +319,11 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
             refreshing={refreshing}
           />
         </div>
+      )}
+
+      {/* ═══════════════════ ONGLET DONNÉES ═══════════════════ */}
+      {activeTab === "donnees" && (
+        <CompletionTab property={property} />
       )}
 
       {/* ═══════════════════ ONGLET VISITE ═══════════════════ */}
