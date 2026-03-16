@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Locality, LocalityData, LocalityType } from "@/domains/locality/types";
 import { addLocality, removeLocality, importLocalityData, removeLocalityData } from "@/domains/locality/actions";
@@ -191,6 +191,8 @@ function AddLocalityForm({
   const [saving, setSaving] = useState(false);
   const [sector, setSector] = useState("");
   const [copied, setCopied] = useState<"example" | "prompt" | null>(null);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  useEffect(() => () => { if (copiedTimer.current) clearTimeout(copiedTimer.current); }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -246,7 +248,8 @@ function AddLocalityForm({
   function handleCopy(text: string, type: "example" | "prompt") {
     navigator.clipboard.writeText(text);
     setCopied(type);
-    setTimeout(() => setCopied(null), 2000);
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setCopied(null), 2000);
   }
 
   return (

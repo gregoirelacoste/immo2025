@@ -107,43 +107,9 @@ export async function getDb(): Promise<Client> {
       CREATE INDEX IF NOT EXISTS idx_photos_property_id ON photos(property_id);
     `);
 
-    // Migrations
-    for (const stmt of [
-      "ALTER TABLE properties ADD COLUMN image_urls TEXT DEFAULT '[]'",
-      "ALTER TABLE properties ADD COLUMN postal_code TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN prefill_sources TEXT DEFAULT '{}'",
-      "ALTER TABLE properties ADD COLUMN user_id TEXT NOT NULL DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'",
-      "CREATE INDEX IF NOT EXISTS idx_properties_user_id ON properties(user_id)",
-      "CREATE INDEX IF NOT EXISTS idx_properties_visibility ON properties(visibility)",
-      "ALTER TABLE properties ADD COLUMN latitude REAL DEFAULT NULL",
-      "ALTER TABLE properties ADD COLUMN longitude REAL DEFAULT NULL",
-      "ALTER TABLE properties ADD COLUMN market_data TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN investment_score REAL DEFAULT NULL",
-      "ALTER TABLE properties ADD COLUMN score_breakdown TEXT DEFAULT '{}'",
-      "ALTER TABLE properties ADD COLUMN enrichment_status TEXT NOT NULL DEFAULT 'pending'",
-      "ALTER TABLE properties ADD COLUMN enrichment_error TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN enrichment_at TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN socioeconomic_data TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN collect_urls TEXT DEFAULT '[]'",
-      "ALTER TABLE properties ADD COLUMN collect_texts TEXT DEFAULT '[]'",
-      "ALTER TABLE properties ADD COLUMN amenities TEXT DEFAULT '[]'",
-      "ALTER TABLE properties ADD COLUMN rent_per_m2 REAL DEFAULT 0",
-      "ALTER TABLE properties ADD COLUMN property_status TEXT NOT NULL DEFAULT 'added'",
-      // Phase 2: données métier
-      "ALTER TABLE properties ADD COLUMN renovation_cost INTEGER DEFAULT 0",
-      "ALTER TABLE properties ADD COLUMN dpe_rating TEXT DEFAULT NULL",
-      "ALTER TABLE properties ADD COLUMN fiscal_regime TEXT DEFAULT 'micro_bic'",
-      "ALTER TABLE properties ADD COLUMN is_favorite INTEGER DEFAULT 0",
-      "ALTER TABLE properties ADD COLUMN status_changed_at TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN neighborhood TEXT DEFAULT ''",
-      // Phase 6.4: Alert thresholds on user profile
-      "ALTER TABLE user_profile ADD COLUMN alert_thresholds TEXT DEFAULT '{}'",
-      "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
-      // Set admin for gregoire.lacoste@gmail.com
-      "UPDATE users SET role = 'admin' WHERE LOWER(email) = 'gregoire.lacoste@gmail.com'",
-      // Phase 6.5: Rental tracking
-      `CREATE TABLE IF NOT EXISTS rental_entries (
+    // Migrations: CREATE TABLE / INDEX statements can be batched
+    await client.executeMultiple(`
+      CREATE TABLE IF NOT EXISTS rental_entries (
         id TEXT PRIMARY KEY,
         property_id TEXT NOT NULL,
         user_id TEXT NOT NULL DEFAULT '',
@@ -155,10 +121,10 @@ export async function getDb(): Promise<Client> {
         created_at TEXT DEFAULT (datetime('now')),
         FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
         UNIQUE(property_id, month)
-      )`,
-      "CREATE INDEX IF NOT EXISTS idx_rental_entries_property ON rental_entries(property_id)",
-      // Phase 7: Simulations
-      `CREATE TABLE IF NOT EXISTS simulations (
+      );
+      CREATE INDEX IF NOT EXISTS idx_rental_entries_property ON rental_entries(property_id);
+
+      CREATE TABLE IF NOT EXISTS simulations (
         id TEXT PRIMARY KEY,
         property_id TEXT NOT NULL,
         user_id TEXT NOT NULL DEFAULT '',
@@ -187,20 +153,56 @@ export async function getDb(): Promise<Client> {
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
         FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
-      )`,
-      "CREATE INDEX IF NOT EXISTS idx_simulations_property ON simulations(property_id)",
-      // Phase 8: Exit simulation
+      );
+      CREATE INDEX IF NOT EXISTS idx_simulations_property ON simulations(property_id);
+      CREATE INDEX IF NOT EXISTS idx_properties_user_id ON properties(user_id);
+      CREATE INDEX IF NOT EXISTS idx_properties_visibility ON properties(visibility);
+    `);
+
+    // ALTER TABLE migrations — run in parallel batches (each is idempotent, errors = column exists)
+    const alterMigrations = [
+      "ALTER TABLE properties ADD COLUMN image_urls TEXT DEFAULT '[]'",
+      "ALTER TABLE properties ADD COLUMN postal_code TEXT DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN prefill_sources TEXT DEFAULT '{}'",
+      "ALTER TABLE properties ADD COLUMN user_id TEXT NOT NULL DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'",
+      "ALTER TABLE properties ADD COLUMN latitude REAL DEFAULT NULL",
+      "ALTER TABLE properties ADD COLUMN longitude REAL DEFAULT NULL",
+      "ALTER TABLE properties ADD COLUMN market_data TEXT DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN investment_score REAL DEFAULT NULL",
+      "ALTER TABLE properties ADD COLUMN score_breakdown TEXT DEFAULT '{}'",
+      "ALTER TABLE properties ADD COLUMN enrichment_status TEXT NOT NULL DEFAULT 'pending'",
+      "ALTER TABLE properties ADD COLUMN enrichment_error TEXT DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN enrichment_at TEXT DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN socioeconomic_data TEXT DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN collect_urls TEXT DEFAULT '[]'",
+      "ALTER TABLE properties ADD COLUMN collect_texts TEXT DEFAULT '[]'",
+      "ALTER TABLE properties ADD COLUMN amenities TEXT DEFAULT '[]'",
+      "ALTER TABLE properties ADD COLUMN rent_per_m2 REAL DEFAULT 0",
+      "ALTER TABLE properties ADD COLUMN property_status TEXT NOT NULL DEFAULT 'added'",
+      "ALTER TABLE properties ADD COLUMN renovation_cost INTEGER DEFAULT 0",
+      "ALTER TABLE properties ADD COLUMN dpe_rating TEXT DEFAULT NULL",
+      "ALTER TABLE properties ADD COLUMN fiscal_regime TEXT DEFAULT 'micro_bic'",
+      "ALTER TABLE properties ADD COLUMN is_favorite INTEGER DEFAULT 0",
+      "ALTER TABLE properties ADD COLUMN status_changed_at TEXT DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN neighborhood TEXT DEFAULT ''",
+      "ALTER TABLE properties ADD COLUMN active_simulation_id TEXT DEFAULT ''",
+      "ALTER TABLE user_profile ADD COLUMN alert_thresholds TEXT DEFAULT '{}'",
+      "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
       "ALTER TABLE simulations ADD COLUMN holding_duration INTEGER DEFAULT 0",
       "ALTER TABLE simulations ADD COLUMN annual_appreciation REAL DEFAULT 1.5",
-      // Phase 8.1: Maintenance cost + insurance
       "ALTER TABLE simulations ADD COLUMN maintenance_per_m2 REAL DEFAULT 12",
       "ALTER TABLE simulations ADD COLUMN pno_insurance REAL DEFAULT 200",
       "ALTER TABLE simulations ADD COLUMN gli_rate REAL DEFAULT 0",
-      // Phase 9: Active simulation per property
-      "ALTER TABLE properties ADD COLUMN active_simulation_id TEXT DEFAULT ''",
-    ]) {
-      try { await client.execute(stmt); } catch { /* already exists */ }
-    }
+    ];
+    await Promise.all(
+      alterMigrations.map((stmt) => client.execute(stmt).catch(() => { /* column already exists */ }))
+    );
+
+    // Set admin role (idempotent)
+    await client.execute(
+      "UPDATE users SET role = 'admin' WHERE LOWER(email) = 'gregoire.lacoste@gmail.com'"
+    );
 
     // ─── Reference items (unified generic table) ─────
     await client.executeMultiple(`
@@ -288,11 +290,6 @@ export async function getDb(): Promise<Client> {
       CREATE INDEX IF NOT EXISTS idx_locality_data_locality ON locality_data(locality_id);
       CREATE INDEX IF NOT EXISTS idx_locality_data_valid ON locality_data(valid_from, valid_to);
     `);
-
-    // Ensure admin role is set (runs every init, not just on migration)
-    await client.execute(
-      "UPDATE users SET role = 'admin' WHERE LOWER(email) = 'gregoire.lacoste@gmail.com'"
-    );
 
     _initialized = true;
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
@@ -50,7 +50,10 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
   const searchParams = useSearchParams();
   // Use first simulation's data for KPIs if available, otherwise fall back to property data
   const firstSim = simulations.length > 0 ? simulations[0] : null;
-  const calcs = firstSim ? calculateSimulation(property, firstSim) : calculateAll(property);
+  const calcs = useMemo(
+    () => firstSim ? calculateSimulation(property, firstSim) : calculateAll(property),
+    [property, firstSim]
+  );
   const [refreshing, setRefreshing] = useState(false);
 
   const activeTab = (searchParams.get("tab") as TabId) || "bien";

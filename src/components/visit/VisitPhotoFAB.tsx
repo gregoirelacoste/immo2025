@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 
 interface Props {
   photoCount: number;
@@ -10,6 +10,8 @@ interface Props {
 export default function VisitPhotoFAB({ photoCount, onCapture }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [flash, setFlash] = useState(false);
+  const flashTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -17,7 +19,8 @@ export default function VisitPhotoFAB({ photoCount, onCapture }: Props) {
 
     // Flash animation
     setFlash(true);
-    setTimeout(() => setFlash(false), 150);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlash(false), 150);
 
     // Haptic feedback
     if (navigator.vibrate) navigator.vibrate(30);

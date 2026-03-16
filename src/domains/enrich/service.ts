@@ -49,48 +49,39 @@ export async function runEnrichmentPipeline(
 ): Promise<EnrichmentResult> {
   const now = new Date().toISOString();
 
-  // Step 1: Geocoding (fail-safe)
-  let latitude: number | null = null;
-  let longitude: number | null = null;
-  try {
-    const query = property.address || property.city;
-    if (query) {
-      const coords = await forwardGeocode(query, property.city || undefined);
-      if (coords) {
-        latitude = coords.latitude;
-        longitude = coords.longitude;
-      }
-    }
-  } catch {
-    /* geocoding failure is non-fatal */
-  }
+  // Steps 1-3 run in parallel (all fail-safe)
+  const [geoResult, marketResult, socioResult, firstSim] = await Promise.all([
+    // Step 1: Geocoding
+    (async () => {
+      try {
+        const query = property.address || property.city;
+        if (query) return await forwardGeocode(query, property.city || undefined);
+      } catch { /* non-fatal */ }
+      return null;
+    })(),
+    // Step 2: Market data
+    (async () => {
+      try {
+        if (property.city) return await getMarketData(property.city, property.postal_code || undefined);
+      } catch { /* non-fatal */ }
+      return null;
+    })(),
+    // Step 3: Socio-economic data
+    (async () => {
+      try {
+        if (property.city) return await buildSocioDataFromLocality(property.city, property.postal_code || undefined);
+      } catch { /* non-fatal */ }
+      return null;
+    })(),
+    // Step 4: First simulation (needed for score)
+    getFirstSimulationForProperty(property.id),
+  ]);
 
-  // Step 2: Market data from locality database (fail-safe)
-  let marketData = null;
-  let marketDataJson = "";
-  try {
-    if (property.city) {
-      marketData = await getMarketData(property.city, property.postal_code || undefined);
-      marketDataJson = marketData ? JSON.stringify(marketData) : "";
-    }
-  } catch {
-    /* market data failure is non-fatal */
-  }
-
-  // Step 3: Socio-economic data from locality database (fail-safe)
-  let socioData = null;
-  let socioDataJson = "";
-  try {
-    if (property.city) {
-      socioData = await buildSocioDataFromLocality(property.city, property.postal_code || undefined);
-      socioDataJson = socioData ? JSON.stringify(socioData) : "";
-    }
-  } catch {
-    /* socio-economic failure is non-fatal */
-  }
-
-  // Step 4: Investment score (use first simulation if available)
-  const firstSim = await getFirstSimulationForProperty(property.id);
+  const latitude = geoResult?.latitude ?? null;
+  const longitude = geoResult?.longitude ?? null;
+  const marketData = marketResult;
+  const marketDataJson = marketData ? JSON.stringify(marketData) : "";
+  const socioDataJson = socioResult ? JSON.stringify(socioResult) : "";
   const calcs = firstSim ? calculateSimulation(property, firstSim) : calculateAll(property);
   const breakdown = computeInvestmentScore(
     {

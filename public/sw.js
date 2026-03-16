@@ -1,7 +1,21 @@
-const CACHE_NAME = "immo2025-v4";
-const PRECACHE_URLS = ["/dashboard", "/property/new"];
-// Ne jamais cacher les redirections de partage ni les API
-const NO_CACHE_PATTERNS = ["/share", "/api/"];
+const CACHE_NAME = "immo2025-v5";
+
+// Only precache truly static shell assets
+const PRECACHE_URLS = ["/manifest.json", "/favicon.png"];
+
+// Patterns that should NEVER be cached
+const NO_CACHE_PATTERNS = [
+  "/share",
+  "/api/",
+  "/_next/",        // Next.js bundles, RSC flight data, HMR — version-dependent
+];
+
+// Only cache static assets (images, fonts, icons)
+const CACHEABLE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".svg", ".ico", ".woff2", ".woff"];
+
+function isCacheableAsset(pathname) {
+  return CACHEABLE_EXTENSIONS.some((ext) => pathname.endsWith(ext));
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -33,18 +47,33 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
 
-  // Ne pas cacher /share et /api — toujours fetch réseau
+  // Never cache API, share, _next/* (RSC, bundles, HMR)
   if (NO_CACHE_PATTERNS.some((p) => url.pathname.startsWith(p))) {
     return;
   }
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return response;
+  // For navigation requests (HTML pages): always go to network, no cache
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match("/offline") || caches.match("/dashboard"))
+    );
+    return;
+  }
+
+  // Only cache static assets (images, fonts)
+  if (isCacheableAsset(url.pathname)) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        });
       })
-      .catch(() => caches.match(event.request))
-  );
+    );
+    return;
+  }
+
+  // Everything else: network only (no caching)
 });
