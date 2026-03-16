@@ -258,7 +258,7 @@ export function isFieldFilled(property: Property, key: keyof Property): boolean 
   if (val === null || val === undefined || val === "") return false;
   if (typeof val === "number" && val === 0) {
     // Some fields are valid at 0 (like notary_fees which means "auto")
-    const autoZeroFields: (keyof Property)[] = ["notary_fees", "loan_fees", "airbnb_charges", "renovation_cost"];
+    const autoZeroFields: (keyof Property)[] = ["loan_fees", "airbnb_charges", "renovation_cost"];
     return autoZeroFields.includes(key);
   }
   return true;

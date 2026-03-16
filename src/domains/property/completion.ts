@@ -1,6 +1,5 @@
 import { Property } from "./types";
 import {
-  FIELD_REGISTRY,
   CATEGORIES,
   CATEGORY_CONFIG,
   isFieldFilled,
