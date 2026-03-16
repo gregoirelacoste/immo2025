@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ReferenceItem, ReferenceItemType, ReferenceCondition } from "@/domains/reference/types";
+import type { ReferenceItem, ReferenceItemType } from "@/domains/reference/types";
 import {
   adminCreateReferenceItem,
   adminUpdateReferenceItem,
@@ -26,7 +26,6 @@ export interface ColumnDef {
 interface Props {
   type: ReferenceItemType;
   items: ReferenceItem[];
-  conditions?: ReferenceCondition[];
   columns: ColumnDef[];
   categories: { value: string; label: string }[];
   title: string;

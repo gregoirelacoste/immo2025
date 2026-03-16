@@ -202,48 +202,6 @@ export async function getDb(): Promise<Client> {
       try { await client.execute(stmt); } catch { /* already exists */ }
     }
 
-    // Equipments table (legacy — kept for migration, new code uses reference_items)
-    await client.executeMultiple(`
-      CREATE TABLE IF NOT EXISTS equipments (
-        id TEXT PRIMARY KEY,
-        key TEXT NOT NULL UNIQUE,
-        label TEXT NOT NULL,
-        icon TEXT NOT NULL DEFAULT '🏠',
-        category TEXT NOT NULL DEFAULT 'general',
-        is_default INTEGER NOT NULL DEFAULT 0,
-        value_impact_per_sqm REAL DEFAULT NULL,
-        created_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE INDEX IF NOT EXISTS idx_equipments_key ON equipments(key);
-    `);
-
-    // Seed default equipments (legacy table — needed for migration)
-    for (const eq of [
-      { key: "garage", label: "Garage", icon: "🚗", category: "exterieur" },
-      { key: "parking", label: "Place de parking", icon: "🅿️", category: "exterieur" },
-      { key: "cave", label: "Cave", icon: "🏚️", category: "exterieur" },
-      { key: "balcon", label: "Balcon", icon: "🌇", category: "exterieur" },
-      { key: "terrasse", label: "Terrasse", icon: "☀️", category: "exterieur" },
-      { key: "piscine", label: "Piscine", icon: "🏊", category: "exterieur" },
-      { key: "jardin", label: "Jardin", icon: "🌳", category: "exterieur" },
-      { key: "ascenseur", label: "Ascenseur", icon: "🛗", category: "securite" },
-      { key: "gardien", label: "Gardien / Concierge", icon: "👤", category: "securite" },
-      { key: "interphone", label: "Interphone / Digicode", icon: "🔔", category: "securite" },
-      { key: "meuble", label: "Meublé", icon: "🛋️", category: "confort" },
-      { key: "climatisation", label: "Climatisation", icon: "❄️", category: "confort" },
-      { key: "cheminee", label: "Cheminée", icon: "🔥", category: "confort" },
-      { key: "parquet", label: "Parquet", icon: "🪵", category: "confort" },
-      { key: "double_vitrage", label: "Double vitrage", icon: "🪟", category: "technique" },
-      { key: "fibre", label: "Fibre optique", icon: "📡", category: "technique" },
-    ]) {
-      try {
-        await client.execute({
-          sql: "INSERT OR IGNORE INTO equipments (id, key, label, icon, category, is_default) VALUES (?, ?, ?, ?, ?, 1)",
-          args: [`eq_${eq.key}`, eq.key, eq.label, eq.icon, eq.category],
-        });
-      } catch { /* already exists */ }
-    }
-
     // ─── Reference items (unified generic table) ─────
     await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS reference_items (
@@ -274,7 +232,7 @@ export async function getDb(): Promise<Client> {
       CREATE INDEX IF NOT EXISTS idx_reference_conditions_lookup ON reference_conditions(condition_type, condition_value);
     `);
 
-    // Migrate existing equipments → reference_items
+    // Migrate legacy equipments table → reference_items (for existing DBs only)
     try {
       const existingEqs = await client.execute("SELECT * FROM equipments");
       for (const eq of existingEqs.rows) {
@@ -293,13 +251,13 @@ export async function getDb(): Promise<Client> {
               eq.is_default as number,
             ],
           });
-        } catch { /* already exists */ }
+        } catch { /* already exists in reference_items */ }
       }
-    } catch { /* equipments table might not exist yet */ }
+    } catch { /* equipments table doesn't exist on fresh DBs — expected */ }
 
-    // Seed visit reference items (checklist, photo_tags, red_flags, seller_questions)
-    const { seedVisitReferenceItems } = await import("@/domains/reference/seed");
-    await seedVisitReferenceItems(client);
+    // Seed all reference items (equipments + visit config)
+    const { seedAllReferenceItems } = await import("@/domains/reference/seed");
+    await seedAllReferenceItems(client);
 
     // Localities tables
     await client.executeMultiple(`
