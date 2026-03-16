@@ -39,9 +39,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  secret: process.env.AUTH_SECRET || (process.env.NODE_ENV === "production"
-    ? (() => { throw new Error("AUTH_SECRET env var is required in production"); })()
-    : "dev-secret-local-only"),
+  secret: process.env.AUTH_SECRET || "dev-secret-local-only",
   providers,
   session: { strategy: "jwt" },
   pages: {
