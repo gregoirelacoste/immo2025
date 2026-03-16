@@ -202,7 +202,7 @@ export async function getDb(): Promise<Client> {
       try { await client.execute(stmt); } catch { /* already exists */ }
     }
 
-    // Equipments table
+    // Equipments table (legacy — kept for migration, new code uses reference_items)
     await client.executeMultiple(`
       CREATE TABLE IF NOT EXISTS equipments (
         id TEXT PRIMARY KEY,
@@ -217,7 +217,7 @@ export async function getDb(): Promise<Client> {
       CREATE INDEX IF NOT EXISTS idx_equipments_key ON equipments(key);
     `);
 
-    // Seed default equipments
+    // Seed default equipments (legacy table — needed for migration)
     for (const eq of [
       { key: "garage", label: "Garage", icon: "🚗", category: "exterieur" },
       { key: "parking", label: "Place de parking", icon: "🅿️", category: "exterieur" },
@@ -243,6 +243,63 @@ export async function getDb(): Promise<Client> {
         });
       } catch { /* already exists */ }
     }
+
+    // ─── Reference items (unified generic table) ─────
+    await client.executeMultiple(`
+      CREATE TABLE IF NOT EXISTS reference_items (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        key TEXT NOT NULL,
+        label TEXT NOT NULL,
+        icon TEXT NOT NULL DEFAULT '🏠',
+        category TEXT NOT NULL DEFAULT 'general',
+        config TEXT NOT NULL DEFAULT '{}',
+        is_default INTEGER NOT NULL DEFAULT 0,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(type, key)
+      );
+      CREATE INDEX IF NOT EXISTS idx_reference_items_type ON reference_items(type);
+      CREATE INDEX IF NOT EXISTS idx_reference_items_type_category ON reference_items(type, category);
+
+      CREATE TABLE IF NOT EXISTS reference_conditions (
+        id TEXT PRIMARY KEY,
+        item_id TEXT NOT NULL,
+        condition_type TEXT NOT NULL,
+        condition_value TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (item_id) REFERENCES reference_items(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_reference_conditions_item ON reference_conditions(item_id);
+      CREATE INDEX IF NOT EXISTS idx_reference_conditions_lookup ON reference_conditions(condition_type, condition_value);
+    `);
+
+    // Migrate existing equipments → reference_items
+    try {
+      const existingEqs = await client.execute("SELECT * FROM equipments");
+      for (const eq of existingEqs.rows) {
+        const cfg = JSON.stringify({ value_impact_per_sqm: eq.value_impact_per_sqm ?? null });
+        try {
+          await client.execute({
+            sql: `INSERT OR IGNORE INTO reference_items (id, type, key, label, icon, category, config, is_default, sort_order)
+                  VALUES (?, 'equipment', ?, ?, ?, ?, ?, ?, 0)`,
+            args: [
+              `ri_eq_${eq.key}`,
+              eq.key as string,
+              eq.label as string,
+              eq.icon as string,
+              eq.category as string,
+              cfg,
+              eq.is_default as number,
+            ],
+          });
+        } catch { /* already exists */ }
+      }
+    } catch { /* equipments table might not exist yet */ }
+
+    // Seed visit reference items (checklist, photo_tags, red_flags, seller_questions)
+    const { seedVisitReferenceItems } = await import("@/domains/reference/seed");
+    await seedVisitReferenceItems(client);
 
     // Localities tables
     await client.executeMultiple(`

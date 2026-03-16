@@ -2,15 +2,20 @@ import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth-actions";
 import { getItemsByType } from "@/domains/reference/service";
 import Navbar from "@/components/Navbar";
-import AdminEquipmentsClient from "@/components/admin/AdminEquipmentsClient";
+import AdminVisitConfigClient from "@/components/admin/AdminVisitConfigClient";
 import Link from "next/link";
 
-export default async function AdminEquipmentsPage() {
+export default async function AdminVisitConfigPage() {
   const { userId, isAdmin: admin } = await getAuthContext();
   if (!userId) redirect("/login");
   if (!admin) redirect("/dashboard");
 
-  const equipments = await getItemsByType("equipment");
+  const [checklist, photoTags, redFlags, sellerQuestions] = await Promise.all([
+    getItemsByType("checklist"),
+    getItemsByType("photo_tag"),
+    getItemsByType("red_flag"),
+    getItemsByType("seller_question"),
+  ]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -22,10 +27,15 @@ export default async function AdminEquipmentsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Equipements</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Configuration visite</h1>
           <span className="px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-700 rounded-full">Admin</span>
         </div>
-        <AdminEquipmentsClient equipments={equipments} />
+        <AdminVisitConfigClient
+          checklist={checklist}
+          photoTags={photoTags}
+          redFlags={redFlags}
+          sellerQuestions={sellerQuestions}
+        />
       </main>
     </div>
   );
