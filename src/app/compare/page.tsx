@@ -1,15 +1,12 @@
-import { auth } from "@/lib/auth";
+import { getAuthContext } from "@/lib/auth-actions";
 import { getVisibleProperties } from "@/domains/property/repository";
 import { getActiveSimulationsForProperties } from "@/domains/simulation/repository";
 import Navbar from "@/components/Navbar";
 import CompareView from "@/components/compare/CompareView";
 import type { Simulation } from "@/domains/simulation/types";
 
-export const dynamic = "force-dynamic";
-
 export default async function ComparePage() {
-  const session = await auth();
-  const userId = session?.user?.id;
+  const { userId } = await getAuthContext();
 
   const properties = await getVisibleProperties(userId);
   const simMap = await getActiveSimulationsForProperties(

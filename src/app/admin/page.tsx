@@ -1,24 +1,23 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { getUserById } from "@/domains/auth/repository";
+import { getAuthContext } from "@/lib/auth-actions";
 import { getAllLocalities, getLocalityDataHistory } from "@/domains/locality/repository";
 import type { LocalityData } from "@/domains/locality/types";
 import Navbar from "@/components/Navbar";
 import AdminLocalitiesClient from "@/components/admin/AdminLocalitiesClient";
 
-export const dynamic = "force-dynamic";
-
 export default async function AdminPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const user = await getUserById(session.user.id);
-  if (user?.role !== "admin") redirect("/dashboard");
+  const { userId, isAdmin: admin } = await getAuthContext();
+  if (!userId) redirect("/login");
+  if (!admin) redirect("/dashboard");
 
   const localities = await getAllLocalities();
+  // Fetch all locality data in parallel instead of sequentially
+  const dataEntries = await Promise.all(
+    localities.map(async (loc) => [loc.id, await getLocalityDataHistory(loc.id)] as const)
+  );
   const dataMap: Record<string, LocalityData[]> = {};
-  for (const loc of localities) {
-    dataMap[loc.id] = await getLocalityDataHistory(loc.id);
+  for (const [id, data] of dataEntries) {
+    dataMap[id] = data;
   }
 
   return (

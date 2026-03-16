@@ -1,18 +1,15 @@
 import { Suspense } from "react";
 import { redirect, notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
 import {
   getOwnPropertyById,
   getOrphanPropertyById,
   getPropertyByIdPublic,
 } from "@/domains/property/repository";
-import { isAdmin as checkIsAdmin } from "@/lib/auth-actions";
+import { getAuthContext } from "@/lib/auth-actions";
 import { getUserProfile } from "@/domains/auth/repository";
 import { DEFAULT_INPUTS, mergeDefaults } from "@/domains/auth/defaults";
 import Navbar from "@/components/Navbar";
 import PropertyForm from "@/components/property/form/PropertyForm";
-
-export const dynamic = "force-dynamic";
 
 export default async function EditPropertyPage({
   params,
@@ -20,12 +17,12 @@ export default async function EditPropertyPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await auth();
+  const { userId, isAdmin: admin } = await getAuthContext();
 
   // Load user defaults if authenticated
   let defaultInputs = DEFAULT_INPUTS;
-  if (session?.user?.id) {
-    const profile = await getUserProfile(session.user.id);
+  if (userId) {
+    const profile = await getUserProfile(userId);
     if (profile) {
       defaultInputs = mergeDefaults(DEFAULT_INPUTS, profile.default_inputs);
     }
@@ -50,12 +47,11 @@ export default async function EditPropertyPage({
   }
 
   // Owned property — require auth and verify ownership (admin can edit any).
-  if (!session?.user?.id) redirect("/login");
+  if (!userId) redirect("/login");
 
-  const admin = await checkIsAdmin();
   const property = admin
     ? await getPropertyByIdPublic(id)
-    : await getOwnPropertyById(id, session.user.id);
+    : await getOwnPropertyById(id, userId);
 
   if (!property) {
     notFound();

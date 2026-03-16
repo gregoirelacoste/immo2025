@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import { Property, PROPERTY_STATUSES, PROPERTY_STATUS_CONFIG, type PropertyStatus } from "@/domains/property/types";
 import { calculateAll, calculateSimulation } from "@/lib/calculations";
 import type { Simulation } from "@/domains/simulation/types";
@@ -18,14 +18,14 @@ interface Props {
   simulationsMap?: Record<string, Simulation>;
 }
 
-export default function DashboardClient({ properties, currentUserId, isAdmin, simulationsMap = {} }: Props) {
+export default function DashboardClient({ properties: initialProperties, currentUserId, isAdmin, simulationsMap = {} }: Props) {
+  const [properties, setProperties] = useState(initialProperties);
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortAsc, setSortAsc] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Set<PropertyStatus>>(new Set(PROPERTY_STATUSES));
   const [favoriteFilter, setFavoriteFilter] = useState(false);
   const [onlyMine, setOnlyMine] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "mine" | "fav">("all");
-  const router = useRouter();
 
   const allSelected = statusFilter.size === PROPERTY_STATUSES.length;
 
@@ -75,52 +75,58 @@ export default function DashboardClient({ properties, currentUserId, isAdmin, si
     ? statusFiltered.filter((p) => p.is_favorite)
     : statusFiltered;
 
-  const propertiesWithCalcs = filteredProperties.map((p) => {
-    const sim = simulationsMap[p.id];
-    return {
-      property: p,
-      calcs: sim ? calculateSimulation(p, sim) : calculateAll(p),
-    };
-  });
+  const propertiesWithCalcs = useMemo(
+    () =>
+      filteredProperties.map((p) => {
+        const sim = simulationsMap[p.id];
+        return {
+          property: p,
+          calcs: sim ? calculateSimulation(p, sim) : calculateAll(p),
+        };
+      }),
+    [filteredProperties, simulationsMap]
+  );
 
-  const sorted = [...propertiesWithCalcs].sort((a, b) => {
-    let aVal: number | string;
-    let bVal: number | string;
+  const sorted = useMemo(() => {
+    return [...propertiesWithCalcs].sort((a, b) => {
+      let aVal: number | string;
+      let bVal: number | string;
 
-    switch (sortKey) {
-      case "city":
-        aVal = a.property.city;
-        bVal = b.property.city;
-        break;
-      case "purchase_price":
-        aVal = a.property.purchase_price;
-        bVal = b.property.purchase_price;
-        break;
-      case "net_yield":
-        aVal = a.calcs.net_yield;
-        bVal = b.calcs.net_yield;
-        break;
-      case "monthly_cashflow":
-        aVal = a.calcs.monthly_cashflow;
-        bVal = b.calcs.monthly_cashflow;
-        break;
-      case "airbnb_net_yield":
-        aVal = a.calcs.airbnb_net_yield;
-        bVal = b.calcs.airbnb_net_yield;
-        break;
-      case "investment_score":
-        aVal = a.property.investment_score ?? -1;
-        bVal = b.property.investment_score ?? -1;
-        break;
-      default:
-        aVal = a.property.created_at;
-        bVal = b.property.created_at;
-    }
+      switch (sortKey) {
+        case "city":
+          aVal = a.property.city;
+          bVal = b.property.city;
+          break;
+        case "purchase_price":
+          aVal = a.property.purchase_price;
+          bVal = b.property.purchase_price;
+          break;
+        case "net_yield":
+          aVal = a.calcs.net_yield;
+          bVal = b.calcs.net_yield;
+          break;
+        case "monthly_cashflow":
+          aVal = a.calcs.monthly_cashflow;
+          bVal = b.calcs.monthly_cashflow;
+          break;
+        case "airbnb_net_yield":
+          aVal = a.calcs.airbnb_net_yield;
+          bVal = b.calcs.airbnb_net_yield;
+          break;
+        case "investment_score":
+          aVal = a.property.investment_score ?? -1;
+          bVal = b.property.investment_score ?? -1;
+          break;
+        default:
+          aVal = a.property.created_at;
+          bVal = b.property.created_at;
+      }
 
-    if (aVal < bVal) return sortAsc ? -1 : 1;
-    if (aVal > bVal) return sortAsc ? 1 : -1;
-    return 0;
-  });
+      if (aVal < bVal) return sortAsc ? -1 : 1;
+      if (aVal > bVal) return sortAsc ? 1 : -1;
+      return 0;
+    });
+  }, [propertiesWithCalcs, sortKey, sortAsc]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -134,20 +140,25 @@ export default function DashboardClient({ properties, currentUserId, isAdmin, si
   async function handleToggleFavorite(e: React.MouseEvent, id: string) {
     e.preventDefault();
     e.stopPropagation();
+    // Optimistic update
+    setProperties((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, is_favorite: p.is_favorite ? 0 : 1 } : p))
+    );
     await toggleFavorite(id);
-    router.refresh();
   }
 
   async function handleDelete(e: React.MouseEvent, id: string) {
     e.preventDefault();
     e.stopPropagation();
     if (!confirm("Supprimer ce bien ?")) return;
+    // Optimistic update
+    setProperties((prev) => prev.filter((p) => p.id !== id));
     const result = await removeProperty(id);
     if (!result.success) {
       alert(result.error ?? "Erreur lors de la suppression.");
-      return;
+      // Revert on failure
+      setProperties(initialProperties);
     }
-    router.refresh();
   }
 
   // Count per status (from owner-filtered list)

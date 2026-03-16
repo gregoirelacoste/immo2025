@@ -3,7 +3,7 @@
 import { signIn, auth } from "@/lib/auth";
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
-import { getUserByEmail, getUserById, createUser } from "@/domains/auth/repository";
+import { getUserByEmail, createUser } from "@/domains/auth/repository";
 import type { UserRole } from "@/domains/auth/types";
 
 export async function requireUserId(): Promise<string> {
@@ -20,20 +20,31 @@ export async function getOptionalUserId(): Promise<string> {
 export async function getUserRole(): Promise<UserRole> {
   const session = await auth();
   if (!session?.user?.id) return "user";
-  const user = await getUserById(session.user.id);
-  return user?.role || "user";
+  // Role is already stored in the JWT token and exposed via session callback
+  const role = (session.user as unknown as Record<string, unknown>).role as UserRole | undefined;
+  return role || "user";
 }
 
 export async function requireAdmin(): Promise<string> {
-  const userId = await requireUserId();
-  const user = await getUserById(userId);
-  if (user?.role !== "admin") throw new Error("Accès réservé aux administrateurs");
-  return userId;
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Non authentifié");
+  const role = (session.user as unknown as Record<string, unknown>).role as string | undefined;
+  if (role !== "admin") throw new Error("Accès réservé aux administrateurs");
+  return session.user.id;
 }
 
 export async function isAdmin(): Promise<boolean> {
   const role = await getUserRole();
   return role === "admin";
+}
+
+/** Returns userId and admin status from a single auth() call — avoids duplicate session lookups */
+export async function getAuthContext(): Promise<{ userId: string | undefined; isAdmin: boolean }> {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return { userId: undefined, isAdmin: false };
+  const role = (session.user as unknown as Record<string, unknown>).role as string | undefined;
+  return { userId, isAdmin: role === "admin" };
 }
 
 export async function loginWithCredentials(

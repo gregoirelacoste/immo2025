@@ -1,16 +1,11 @@
-import { auth } from "@/lib/auth";
 import { getVisibleProperties } from "@/domains/property/repository";
 import { getActiveSimulationsForProperties } from "@/domains/simulation/repository";
-import { isAdmin } from "@/lib/auth-actions";
+import { getAuthContext } from "@/lib/auth-actions";
 import Navbar from "@/components/Navbar";
 import DashboardClient from "@/components/property/dashboard/DashboardClient";
 
-export const dynamic = "force-dynamic";
-
 export default async function DashboardPage() {
-  const session = await auth();
-  const userId = session?.user?.id;
-  const admin = userId ? await isAdmin() : false;
+  const { userId, isAdmin: admin } = await getAuthContext();
 
   const properties = await getVisibleProperties(userId, admin);
 

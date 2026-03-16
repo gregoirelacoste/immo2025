@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import { getAuthContext } from "@/lib/auth-actions";
 import { getOwnPropertyById } from "@/domains/property/repository";
 import { getRentalEntries, getRentalSummary } from "@/domains/rental/repository";
 import { calculateAll, calculateSimulation } from "@/lib/calculations";
@@ -8,18 +8,16 @@ import { getFirstSimulationForProperty } from "@/domains/simulation/repository";
 import Navbar from "@/components/Navbar";
 import RentalTracker from "@/components/property/rental/RentalTracker";
 
-export const dynamic = "force-dynamic";
-
 export default async function RentalPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const { userId } = await getAuthContext();
+  if (!userId) redirect("/login");
 
   const { id } = await params;
-  const property = await getOwnPropertyById(id, session.user.id);
+  const property = await getOwnPropertyById(id, userId);
 
   if (!property) notFound();
 
