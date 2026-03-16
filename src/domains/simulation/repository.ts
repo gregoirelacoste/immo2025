@@ -37,16 +37,16 @@ export async function createSimulation(
       insurance_rate, loan_fees, notary_fees,
       monthly_rent, condo_charges, property_tax, vacancy_rate,
       airbnb_price_per_night, airbnb_occupancy_rate, airbnb_charges,
-      renovation_cost, fiscal_regime,
+      renovation_cost, fiscal_regime, maintenance_per_m2,
       holding_duration, annual_appreciation
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       id, propertyId, userId, data.name,
       data.loan_amount, data.interest_rate, data.loan_duration, data.personal_contribution,
       data.insurance_rate, data.loan_fees, data.notary_fees,
       data.monthly_rent, data.condo_charges, data.property_tax, data.vacancy_rate,
       data.airbnb_price_per_night, data.airbnb_occupancy_rate, data.airbnb_charges,
-      data.renovation_cost, data.fiscal_regime,
+      data.renovation_cost, data.fiscal_regime, data.maintenance_per_m2,
       data.holding_duration, data.annual_appreciation,
     ],
   });
@@ -164,6 +164,7 @@ function rowToSimulation(row: any): Simulation {
     airbnb_charges: Number(row.airbnb_charges),
     renovation_cost: Number(row.renovation_cost),
     fiscal_regime: String(row.fiscal_regime || "micro_bic"),
+    maintenance_per_m2: Number(row.maintenance_per_m2 ?? 12),
     holding_duration: Number(row.holding_duration ?? 0),
     annual_appreciation: Number(row.annual_appreciation ?? 1.5),
     created_at: String(row.created_at),

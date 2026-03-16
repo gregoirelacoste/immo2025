@@ -20,6 +20,8 @@ export interface Simulation {
   airbnb_charges: number;
   renovation_cost: number;
   fiscal_regime: string;
+  // Charges récurrentes
+  maintenance_per_m2: number; // provision entretien/réparation en €/m²/an
   // Bilan de sortie
   holding_duration: number; // durée de détention en années (0 = utiliser loan_duration)
   annual_appreciation: number; // % d'appréciation annuelle du bien
@@ -48,6 +50,7 @@ export const SIMULATION_FIELDS = [
   "airbnb_charges",
   "renovation_cost",
   "fiscal_regime",
+  "maintenance_per_m2",
   "holding_duration",
   "annual_appreciation",
 ] as const;

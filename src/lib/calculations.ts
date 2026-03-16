@@ -58,7 +58,7 @@ export function calculateFiscalImpact(
   };
 }
 
-export function calculateAll(property: Property): PropertyCalculations {
+export function calculateAll(property: Property, annualMaintenanceCost: number = 0): PropertyCalculations {
   const {
     purchase_price,
     property_type,
@@ -109,7 +109,8 @@ export function calculateAll(property: Property): PropertyCalculations {
   const annual_charges =
     condo_charges * 12 +
     property_tax +
-    monthly_insurance * 12;
+    monthly_insurance * 12 +
+    annualMaintenanceCost;
 
   const gross_yield =
     purchase_price > 0 ? ((monthly_rent * 12) / total_project_cost) * 100 : 0;
@@ -124,13 +125,14 @@ export function calculateAll(property: Property): PropertyCalculations {
     monthly_payment -
     monthly_insurance -
     condo_charges -
-    property_tax / 12;
+    property_tax / 12 -
+    annualMaintenanceCost / 12;
 
   // --- Airbnb ---
   const airbnb_annual_income =
     airbnb_price_per_night * 365 * (airbnb_occupancy_rate / 100);
 
-  const airbnb_annual_charges = airbnb_charges * 12 + property_tax + monthly_insurance * 12;
+  const airbnb_annual_charges = airbnb_charges * 12 + property_tax + monthly_insurance * 12 + annualMaintenanceCost;
 
   const airbnb_gross_yield =
     purchase_price > 0 ? (airbnb_annual_income / total_project_cost) * 100 : 0;
@@ -145,7 +147,8 @@ export function calculateAll(property: Property): PropertyCalculations {
     monthly_payment -
     monthly_insurance -
     airbnb_charges -
-    property_tax / 12;
+    property_tax / 12 -
+    annualMaintenanceCost / 12;
 
   // --- Fiscalité ---
   const fiscal = calculateFiscalImpact(
@@ -215,7 +218,8 @@ export function calculateSimulation(property: Property, simulation: Simulation):
     renovation_cost: simulation.renovation_cost,
     fiscal_regime: simulation.fiscal_regime,
   };
-  return calculateAll(merged);
+  const annualMaintenance = (simulation.maintenance_per_m2 || 0) * (property.surface || 0);
+  return calculateAll(merged, annualMaintenance);
 }
 
 /** Get the effective monthly rent for a simulation (handles 0 = fallback to property) */

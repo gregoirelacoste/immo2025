@@ -31,6 +31,7 @@ const EDITABLE_FIELDS: FieldConfig[] = [
   { field: "monthly_rent", label: "Loyer mensuel", step: 10, unit: "€" },
   { field: "vacancy_rate", label: "Taux de vacance", step: 1, unit: "%" },
   { field: "renovation_cost", label: "Travaux", step: 1000, unit: "€" },
+  { field: "maintenance_per_m2", label: "Entretien / m² / an", step: 1, unit: "€" },
 ];
 
 /** Compute loan_amount from property price, contribution, renovation, notary */
@@ -60,6 +61,7 @@ function simFormFromSimulation(sim: Simulation): SimulationFormData {
     airbnb_charges: sim.airbnb_charges,
     renovation_cost: sim.renovation_cost,
     fiscal_regime: sim.fiscal_regime,
+    maintenance_per_m2: sim.maintenance_per_m2,
     holding_duration: sim.holding_duration,
     annual_appreciation: sim.annual_appreciation,
   };
@@ -297,6 +299,11 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
               />
               {isRentFallback && (
                 <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">Valeur du bien · modifiable</p>
+              )}
+              {config.field === "maintenance_per_m2" && property.surface > 0 && (
+                <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">
+                  {formatCurrency((form.maintenance_per_m2 as number) * property.surface)}/an · {property.surface} m²
+                </p>
               )}
             </div>
           );
