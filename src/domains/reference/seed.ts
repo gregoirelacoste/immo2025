@@ -1,12 +1,45 @@
 import type { Client } from "@libsql/client";
 import { VISIT_CHECKLIST_CONFIG } from "@/domains/visit/constants";
 
+// ─── Default equipments ─────────────────────────────────
+
+const DEFAULT_EQUIPMENTS = [
+  { key: "garage", label: "Garage", icon: "🚗", category: "exterieur" },
+  { key: "parking", label: "Place de parking", icon: "🅿️", category: "exterieur" },
+  { key: "cave", label: "Cave", icon: "🏚️", category: "exterieur" },
+  { key: "balcon", label: "Balcon", icon: "🌇", category: "exterieur" },
+  { key: "terrasse", label: "Terrasse", icon: "☀️", category: "exterieur" },
+  { key: "piscine", label: "Piscine", icon: "🏊", category: "exterieur" },
+  { key: "jardin", label: "Jardin", icon: "🌳", category: "exterieur" },
+  { key: "ascenseur", label: "Ascenseur", icon: "🛗", category: "securite" },
+  { key: "gardien", label: "Gardien / Concierge", icon: "👤", category: "securite" },
+  { key: "interphone", label: "Interphone / Digicode", icon: "🔔", category: "securite" },
+  { key: "meuble", label: "Meublé", icon: "🛋️", category: "confort" },
+  { key: "climatisation", label: "Climatisation", icon: "❄️", category: "confort" },
+  { key: "cheminee", label: "Cheminée", icon: "🔥", category: "confort" },
+  { key: "parquet", label: "Parquet", icon: "🪵", category: "confort" },
+  { key: "double_vitrage", label: "Double vitrage", icon: "🪟", category: "technique" },
+  { key: "fibre", label: "Fibre optique", icon: "📡", category: "technique" },
+];
+
 /**
- * Seeds all default reference items from the visit checklist config.
+ * Seeds all default reference items: equipments + visit config.
  * Called once during DB initialization.
- * Equipment seeds are handled separately in client.ts (migrated from old table).
+ * Uses INSERT OR IGNORE so existing data is never overwritten.
  */
-export async function seedVisitReferenceItems(client: Client): Promise<void> {
+export async function seedAllReferenceItems(client: Client): Promise<void> {
+  // ─── 0. Default equipments ─────────────────────
+  for (const eq of DEFAULT_EQUIPMENTS) {
+    const cfg = JSON.stringify({ value_impact_per_sqm: null });
+    try {
+      await client.execute({
+        sql: `INSERT OR IGNORE INTO reference_items (id, type, key, label, icon, category, config, is_default, sort_order)
+              VALUES (?, 'equipment', ?, ?, ?, ?, ?, 1, 0)`,
+        args: [`ri_eq_${eq.key}`, eq.key, eq.label, eq.icon, eq.category, cfg],
+      });
+    } catch { /* already exists */ }
+  }
+
   const config = VISIT_CHECKLIST_CONFIG;
 
   // ─── 1. Checklist items (base) ───────────────────
