@@ -236,6 +236,9 @@ export async function scrapeAndSaveProperty(
       airbnb_charges: 0,
       renovation_cost: 0,
       fiscal_regime: "micro_bic",
+      maintenance_per_m2: 12,
+      holding_duration: 0,
+      annual_appreciation: 1.5,
     });
   } catch (simErr) {
     console.error("Failed to create default simulation:", simErr);
@@ -404,6 +407,9 @@ export async function createPropertyFromText(
         airbnb_charges: 0,
         renovation_cost: 0,
         fiscal_regime: "micro_bic",
+        maintenance_per_m2: 12,
+        holding_duration: 0,
+        annual_appreciation: 1.5,
       });
     } catch (simErr) {
       console.error("Failed to create default simulation:", simErr);

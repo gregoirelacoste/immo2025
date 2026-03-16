@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Property } from "@/domains/property/types";
 import { Simulation, SimulationFormData } from "@/domains/simulation/types";
-import { calculateSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent } from "@/lib/calculations";
+import { calculateSimulation, calculateExitSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent } from "@/lib/calculations";
 import { updateSimulationAction } from "@/domains/simulation/actions";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import FiscalSection from "@/components/property/form/FiscalSection";
+import ExitSimulationPanel from "./ExitSimulationPanel";
 
 interface Props {
   property: Property;
@@ -20,6 +21,7 @@ interface FieldConfig {
   step: number;
   unit: string;
   decimals?: number;
+  min?: number;
 }
 
 const EDITABLE_FIELDS: FieldConfig[] = [
@@ -29,6 +31,7 @@ const EDITABLE_FIELDS: FieldConfig[] = [
   { field: "monthly_rent", label: "Loyer mensuel", step: 10, unit: "€" },
   { field: "vacancy_rate", label: "Taux de vacance", step: 1, unit: "%" },
   { field: "renovation_cost", label: "Travaux", step: 1000, unit: "€" },
+  { field: "maintenance_per_m2", label: "Entretien / m² / an", step: 1, unit: "€" },
 ];
 
 /** Compute loan_amount from property price, contribution, renovation, notary */
@@ -58,6 +61,9 @@ function simFormFromSimulation(sim: Simulation): SimulationFormData {
     airbnb_charges: sim.airbnb_charges,
     renovation_cost: sim.renovation_cost,
     fiscal_regime: sim.fiscal_regime,
+    maintenance_per_m2: sim.maintenance_per_m2,
+    holding_duration: sim.holding_duration,
+    annual_appreciation: sim.annual_appreciation,
   };
 }
 
@@ -90,7 +96,8 @@ function StepperField({
 
   function commitText() {
     const parsed = parseFloat(textValue.replace(/\s/g, "").replace(",", "."));
-    if (!isNaN(parsed) && parsed >= 0) {
+    const minVal = config.min ?? 0;
+    if (!isNaN(parsed) && parsed >= minVal) {
       onChange(config.field, parsed);
       onCommit(config.field, parsed);
     }
@@ -98,7 +105,8 @@ function StepperField({
   }
 
   function step(dir: 1 | -1) {
-    const next = Math.max(0, +(value + dir * config.step).toFixed(config.decimals ?? 0));
+    const minVal = config.min ?? 0;
+    const next = Math.max(minVal, +(value + dir * config.step).toFixed(config.decimals ?? 0));
     onChange(config.field, next);
     onCommit(config.field, next);
   }
@@ -165,6 +173,7 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
   const currentLoan = computeLoanAmount(property, form);
   const mergedSim = { ...simulation, ...form, loan_amount: currentLoan } as Simulation;
   const calcs = calculateSimulation(property, mergedSim);
+  const exitSim = calculateExitSimulation(property, mergedSim, calcs);
   const effectiveRent = getEffectiveRent(property, mergedSim);
 
   // Save helper — always includes computed loan_amount
@@ -291,6 +300,11 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
               {isRentFallback && (
                 <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">Valeur du bien · modifiable</p>
               )}
+              {config.field === "maintenance_per_m2" && property.surface > 0 && (
+                <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">
+                  {formatCurrency((form.maintenance_per_m2 as number) * property.surface)}/an · {property.surface} m²
+                </p>
+              )}
             </div>
           );
         })}
@@ -348,6 +362,28 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
 
       {/* Fiscal details */}
       <FiscalSection calcs={calcs} fiscalRegime={form.fiscal_regime || "micro_bic"} />
+
+      {/* Exit simulation — Bilan de l'opération */}
+      <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
+        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Hypothèses de revente</h3>
+        <StepperField
+          config={{ field: "holding_duration" as keyof SimulationFormData, label: "Durée de détention", step: 1, unit: "ans" }}
+          value={exitSim.holdingDuration}
+          onChange={(_, v) => handleChange("holding_duration" as keyof SimulationFormData, v)}
+          onCommit={(_, v) => handleCommit("holding_duration" as keyof SimulationFormData, v)}
+        />
+        <StepperField
+          config={{ field: "annual_appreciation" as keyof SimulationFormData, label: "Appréciation annuelle", step: 0.5, unit: "%", decimals: 1, min: -5 }}
+          value={form.annual_appreciation as number}
+          onChange={(_, v) => handleChange("annual_appreciation" as keyof SimulationFormData, v)}
+          onCommit={(_, v) => handleCommit("annual_appreciation" as keyof SimulationFormData, v)}
+        />
+        {(form as SimulationFormData & { holding_duration: number }).holding_duration === 0 && (
+          <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">Par défaut : durée du crédit ({form.loan_duration} ans)</p>
+        )}
+      </section>
+
+      <ExitSimulationPanel exitSim={exitSim} />
 
       {/* Detailed results */}
       <CollapsibleSection title="Détail des résultats" defaultOpen>

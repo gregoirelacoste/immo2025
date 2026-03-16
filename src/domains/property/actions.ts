@@ -101,6 +101,9 @@ export async function saveProperty(
           airbnb_charges: payload.airbnb_charges,
           renovation_cost: payload.renovation_cost ?? 0,
           fiscal_regime: payload.fiscal_regime || "micro_bic",
+          maintenance_per_m2: payload.property_type === "neuf" ? 8 : 12,
+          holding_duration: 0,
+          annual_appreciation: 1.5,
         });
       } catch (simErr) {
         console.error("Failed to create default simulation:", simErr);
