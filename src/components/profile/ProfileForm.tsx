@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { UserProfile } from "@/domains/auth/types";
 import { DEFAULT_INPUTS, DEFAULT_SCORING_WEIGHTS, mergeDefaults } from "@/domains/auth/defaults";
 import type { DefaultInputs, ScoringWeights } from "@/domains/auth/defaults";
@@ -20,6 +20,8 @@ interface Props {
 export default function ProfileForm({ profile }: Props) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current); }, []);
 
   // Financial profile
   const [monthlyIncome, setMonthlyIncome] = useState(profile?.monthly_income ?? "");
@@ -84,7 +86,8 @@ export default function ProfileForm({ profile }: Props) {
 
     setSaving(false);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSaved(false), 2000);
   }
 
   const incomeNum = Number(monthlyIncome) || 0;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, ReactNode } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, PropertyFormData } from "@/domains/property/types";
 import {
@@ -186,20 +186,22 @@ export default function PropertyForm({ existingProperty, defaultInputs, equipmen
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fakeProperty = {
-    id: "", created_at: "", updated_at: "",
-    latitude: null, longitude: null, market_data: "",
-    investment_score: null, score_breakdown: "{}", socioeconomic_data: "",
-    enrichment_status: "pending", enrichment_error: "", enrichment_at: "",
-    collect_urls: "[]", collect_texts: "[]",
-    property_status: existingProperty?.property_status || "added",
-    ...form,
-  } as Property;
-  const calcs = calculateAll(fakeProperty);
-  const monthlyPaymentPreview = calculateMonthlyPayment(
-    form.loan_amount,
-    form.interest_rate,
-    form.loan_duration
+  const calcs = useMemo(() => {
+    const fakeProperty = {
+      id: "", created_at: "", updated_at: "",
+      latitude: null, longitude: null, market_data: "",
+      investment_score: null, score_breakdown: "{}", socioeconomic_data: "",
+      enrichment_status: "pending", enrichment_error: "", enrichment_at: "",
+      collect_urls: "[]", collect_texts: "[]",
+      property_status: existingProperty?.property_status || "added",
+      ...form,
+    } as Property;
+    return calculateAll(fakeProperty);
+  }, [form, existingProperty?.property_status]);
+
+  const monthlyPaymentPreview = useMemo(
+    () => calculateMonthlyPayment(form.loan_amount, form.interest_rate, form.loan_duration),
+    [form.loan_amount, form.interest_rate, form.loan_duration]
   );
 
   const showAirbnb = showAdvanced || form.airbnb_price_per_night > 0;

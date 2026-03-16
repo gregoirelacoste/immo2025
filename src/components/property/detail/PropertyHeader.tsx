@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Property } from "@/domains/property/types";
 import { formatCurrency } from "@/lib/calculations";
 
@@ -12,6 +12,8 @@ interface Props {
 
 export default function PropertyHeader({ property, isOwner, onDelete }: Props) {
   const [shared, setShared] = useState(false);
+  const sharedTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  useEffect(() => () => { if (sharedTimer.current) clearTimeout(sharedTimer.current); }, []);
 
   async function handleShare() {
     const title = property.city || "Bien immobilier";
@@ -32,7 +34,8 @@ export default function PropertyHeader({ property, isOwner, onDelete }: Props) {
     } else {
       await navigator.clipboard.writeText(url);
       setShared(true);
-      setTimeout(() => setShared(false), 2000);
+      if (sharedTimer.current) clearTimeout(sharedTimer.current);
+      sharedTimer.current = setTimeout(() => setShared(false), 2000);
     }
   }
 
