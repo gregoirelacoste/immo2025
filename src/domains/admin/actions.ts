@@ -26,10 +26,25 @@ export async function adminGetLocalities(): Promise<{
 }> {
   await requireAdmin();
   const localities = await getAllLocalities();
+
+  // Batch-fetch all locality data in one query instead of N+1
+  const localityIds = localities.map((l) => l.id);
   const dataMap: Record<string, LocalityData[]> = {};
-  for (const loc of localities) {
-    dataMap[loc.id] = await getLocalityDataHistory(loc.id);
+
+  if (localityIds.length > 0) {
+    const { getAllLocalityDataForIds } = await import("@/domains/locality/repository");
+    const allData = await getAllLocalityDataForIds(localityIds);
+    for (const entry of allData) {
+      if (!dataMap[entry.locality_id]) dataMap[entry.locality_id] = [];
+      dataMap[entry.locality_id].push(entry);
+    }
   }
+
+  // Ensure every locality has an entry (even if empty)
+  for (const loc of localities) {
+    if (!dataMap[loc.id]) dataMap[loc.id] = [];
+  }
+
   return { localities, dataMap };
 }
 

@@ -133,6 +133,18 @@ export async function deleteLocality(id: string): Promise<void> {
 
 // ─── Locality Data CRUD ───
 
+/** Batch-fetch all locality_data rows for multiple locality IDs in a single query */
+export async function getAllLocalityDataForIds(localityIds: string[]): Promise<LocalityData[]> {
+  if (localityIds.length === 0) return [];
+  const db = await getDb();
+  const placeholders = localityIds.map(() => "?").join(",");
+  const result = await db.execute({
+    sql: `SELECT * FROM locality_data WHERE locality_id IN (${placeholders}) ORDER BY valid_from DESC`,
+    args: localityIds,
+  });
+  return result.rows.map((r) => rowAs<LocalityData>(r));
+}
+
 export async function getLocalityDataHistory(localityId: string): Promise<LocalityData[]> {
   const db = await getDb();
   const result = await db.execute({

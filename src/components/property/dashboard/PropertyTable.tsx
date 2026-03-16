@@ -1,12 +1,16 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Property, PropertyCalculations, type PropertyStatus } from "@/domains/property/types";
 import { formatCurrency, formatPercent } from "@/lib/calculations";
 import InvestmentScoreBadge from "@/components/ui/InvestmentScoreBadge";
 import StatusBadge from "@/components/property/StatusBadge";
 import { getGrade, rentaColor, cashflowColor } from "@/lib/grade";
 import { SortKey } from "./SortBar";
+
+const PAGE_SIZE = 50;
 
 interface Props {
   sorted: Array<{ property: Property; calcs: PropertyCalculations }>;
@@ -20,6 +24,8 @@ interface Props {
 }
 
 export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, currentUserId, isAdmin, onDelete, onToggleFavorite }: Props) {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const visibleRows = useMemo(() => sorted.slice(0, visibleCount), [sorted, visibleCount]);
   const sortIcon = (key: SortKey) =>
     sortKey === key ? (sortAsc ? " \u2191" : " \u2193") : "";
 
@@ -58,7 +64,7 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
           </tr>
         </thead>
         <tbody className="divide-y divide-tiili-border">
-          {sorted.map(({ property: p, calcs: c }) => {
+          {visibleRows.map(({ property: p, calcs: c }) => {
             const grade = getGrade(p.investment_score);
             return (
               <tr key={p.id} className="hover:bg-tiili-surface/50">
@@ -81,9 +87,8 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
                         const imgs: string[] = JSON.parse(p.image_urls || "[]");
                         if (imgs.length === 0) return null;
                         return (
-                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={imgs[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0 relative">
+                            <Image src={imgs[0]} alt={p.city} fill className="object-cover" sizes="48px" unoptimized />
                           </div>
                         );
                       } catch { return null; }
@@ -144,6 +149,16 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
           })}
         </tbody>
       </table>
+      {sorted.length > visibleCount && (
+        <div className="text-center py-3 border-t border-tiili-border">
+          <button
+            onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+          >
+            Afficher {Math.min(PAGE_SIZE, sorted.length - visibleCount)} biens de plus ({sorted.length - visibleCount} restants)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -12,10 +12,10 @@ export default async function VisitPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { userId } = await getAuthContext();
+  const { userId, isAdmin: admin } = await getAuthContext();
 
   const { id } = await params;
-  const property = await getPropertyById(id, userId);
+  const property = await getPropertyById(id, userId, admin);
 
   if (!property) {
     notFound();

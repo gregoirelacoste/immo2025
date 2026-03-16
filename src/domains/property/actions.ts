@@ -77,7 +77,7 @@ export async function saveProperty(
             const newLoan = Math.max(0, payload.purchase_price + newNotary + sim.renovation_cost - sim.personal_contribution);
             await updateSimulation(sim.id, sim.user_id, { loan_amount: newLoan });
           }
-        } catch { /* simulation sync is non-fatal */ }
+        } catch (e) { console.error("Simulation sync failed (non-fatal):", e); }
       }
     } else {
       const userId = await getOptionalUserId();

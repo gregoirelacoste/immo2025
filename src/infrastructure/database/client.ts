@@ -1,7 +1,7 @@
 import { createClient, Client } from "@libsql/client";
 
 let _client: Client | null = null;
-let _initialized = false;
+let _initPromise: Promise<void> | null = null;
 
 export function getClient(): Client {
   if (!_client) {
@@ -13,285 +13,308 @@ export function getClient(): Client {
   return _client;
 }
 
+async function initializeDatabase(client: Client): Promise<void> {
+  // Enable foreign key constraints
+  await client.execute("PRAGMA foreign_keys = ON;");
+
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      name TEXT DEFAULT '',
+      password_hash TEXT DEFAULT '',
+      plan TEXT NOT NULL DEFAULT 'free',
+      stripe_customer_id TEXT DEFAULT '',
+      image TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS user_profile (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      monthly_income INTEGER DEFAULT NULL,
+      existing_credits INTEGER DEFAULT 0,
+      savings INTEGER DEFAULT NULL,
+      max_debt_ratio REAL DEFAULT 35,
+      target_cities TEXT DEFAULT '[]',
+      min_budget INTEGER DEFAULT NULL,
+      max_budget INTEGER DEFAULT NULL,
+      target_property_types TEXT DEFAULT '["ancien"]',
+      default_inputs TEXT NOT NULL DEFAULT '{}',
+      scoring_weights TEXT NOT NULL DEFAULT '{}',
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS properties (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT '',
+      visibility TEXT NOT NULL DEFAULT 'public' CHECK (visibility IN ('public', 'private')),
+      address TEXT DEFAULT '',
+      city TEXT NOT NULL,
+      postal_code TEXT DEFAULT '',
+      purchase_price REAL NOT NULL DEFAULT 0,
+      surface REAL NOT NULL DEFAULT 0,
+      property_type TEXT NOT NULL DEFAULT 'ancien' CHECK (property_type IN ('ancien', 'neuf')),
+      description TEXT DEFAULT '',
+      loan_amount REAL NOT NULL DEFAULT 0,
+      interest_rate REAL NOT NULL DEFAULT 3.5,
+      loan_duration INTEGER NOT NULL DEFAULT 20,
+      personal_contribution REAL DEFAULT 0,
+      insurance_rate REAL DEFAULT 0.34,
+      loan_fees REAL DEFAULT 0,
+      notary_fees REAL DEFAULT 0,
+      monthly_rent REAL DEFAULT 0,
+      condo_charges REAL DEFAULT 0,
+      property_tax REAL DEFAULT 0,
+      vacancy_rate REAL DEFAULT 5,
+      airbnb_price_per_night REAL DEFAULT 0,
+      airbnb_occupancy_rate REAL DEFAULT 60,
+      airbnb_charges REAL DEFAULT 0,
+      source_url TEXT DEFAULT '',
+      image_urls TEXT DEFAULT '[]',
+      prefill_sources TEXT DEFAULT '{}',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS scraping_manifests (
+      id TEXT PRIMARY KEY,
+      site_hostname TEXT NOT NULL,
+      page_pattern TEXT NOT NULL DEFAULT '*',
+      selectors TEXT NOT NULL,
+      version INTEGER NOT NULL DEFAULT 1,
+      success_count INTEGER NOT NULL DEFAULT 0,
+      failure_count INTEGER NOT NULL DEFAULT 0,
+      sample_url TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(site_hostname, page_pattern)
+    );
+    CREATE TABLE IF NOT EXISTS photos (
+      id TEXT PRIMARY KEY,
+      property_id TEXT NOT NULL,
+      user_id TEXT NOT NULL DEFAULT '',
+      url TEXT NOT NULL,
+      thumbnail_url TEXT NOT NULL DEFAULT '',
+      source TEXT NOT NULL DEFAULT 'upload',
+      tag TEXT DEFAULT '',
+      note TEXT DEFAULT '',
+      latitude REAL DEFAULT NULL,
+      longitude REAL DEFAULT NULL,
+      width INTEGER DEFAULT NULL,
+      height INTEGER DEFAULT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_photos_property_id ON photos(property_id);
+  `);
+
+  // Migrations: CREATE TABLE / INDEX statements can be batched
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS rental_entries (
+      id TEXT PRIMARY KEY,
+      property_id TEXT NOT NULL,
+      user_id TEXT NOT NULL DEFAULT '',
+      month TEXT NOT NULL,
+      rent_received REAL DEFAULT 0,
+      charges_paid REAL DEFAULT 0,
+      vacancy_days INTEGER DEFAULT 0,
+      notes TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
+      UNIQUE(property_id, month)
+    );
+    CREATE INDEX IF NOT EXISTS idx_rental_entries_property ON rental_entries(property_id);
+
+    CREATE TABLE IF NOT EXISTS simulations (
+      id TEXT PRIMARY KEY,
+      property_id TEXT NOT NULL,
+      user_id TEXT NOT NULL DEFAULT '',
+      name TEXT NOT NULL DEFAULT 'Simulation 1',
+      loan_amount REAL NOT NULL DEFAULT 0,
+      interest_rate REAL NOT NULL DEFAULT 3.5,
+      loan_duration INTEGER NOT NULL DEFAULT 20,
+      personal_contribution REAL DEFAULT 0,
+      insurance_rate REAL DEFAULT 0.34,
+      loan_fees REAL DEFAULT 0,
+      notary_fees REAL DEFAULT 0,
+      monthly_rent REAL DEFAULT 0,
+      condo_charges REAL DEFAULT 0,
+      property_tax REAL DEFAULT 0,
+      vacancy_rate REAL DEFAULT 5,
+      airbnb_price_per_night REAL DEFAULT 0,
+      airbnb_occupancy_rate REAL DEFAULT 60,
+      airbnb_charges REAL DEFAULT 0,
+      renovation_cost INTEGER DEFAULT 0,
+      fiscal_regime TEXT DEFAULT 'micro_bic',
+      maintenance_per_m2 REAL DEFAULT 12,
+      pno_insurance REAL DEFAULT 200,
+      gli_rate REAL DEFAULT 0,
+      holding_duration INTEGER DEFAULT 0,
+      annual_appreciation REAL DEFAULT 1.5,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_simulations_property ON simulations(property_id);
+    CREATE INDEX IF NOT EXISTS idx_properties_user_id ON properties(user_id);
+    CREATE INDEX IF NOT EXISTS idx_properties_visibility ON properties(visibility);
+    CREATE INDEX IF NOT EXISTS idx_photos_user_id ON photos(user_id);
+    CREATE INDEX IF NOT EXISTS idx_rental_entries_user_id ON rental_entries(user_id);
+    CREATE INDEX IF NOT EXISTS idx_properties_source_url ON properties(source_url);
+  `);
+
+  // ALTER TABLE migrations — run in parallel (each is idempotent)
+  const alterMigrations = [
+    "ALTER TABLE properties ADD COLUMN image_urls TEXT DEFAULT '[]'",
+    "ALTER TABLE properties ADD COLUMN postal_code TEXT DEFAULT ''",
+    "ALTER TABLE properties ADD COLUMN prefill_sources TEXT DEFAULT '{}'",
+    "ALTER TABLE properties ADD COLUMN user_id TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE properties ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'",
+    "ALTER TABLE properties ADD COLUMN latitude REAL DEFAULT NULL",
+    "ALTER TABLE properties ADD COLUMN longitude REAL DEFAULT NULL",
+    "ALTER TABLE properties ADD COLUMN market_data TEXT DEFAULT ''",
+    "ALTER TABLE properties ADD COLUMN investment_score REAL DEFAULT NULL",
+    "ALTER TABLE properties ADD COLUMN score_breakdown TEXT DEFAULT '{}'",
+    "ALTER TABLE properties ADD COLUMN enrichment_status TEXT NOT NULL DEFAULT 'pending'",
+    "ALTER TABLE properties ADD COLUMN enrichment_error TEXT DEFAULT ''",
+    "ALTER TABLE properties ADD COLUMN enrichment_at TEXT DEFAULT ''",
+    "ALTER TABLE properties ADD COLUMN socioeconomic_data TEXT DEFAULT ''",
+    "ALTER TABLE properties ADD COLUMN collect_urls TEXT DEFAULT '[]'",
+    "ALTER TABLE properties ADD COLUMN collect_texts TEXT DEFAULT '[]'",
+    "ALTER TABLE properties ADD COLUMN amenities TEXT DEFAULT '[]'",
+    "ALTER TABLE properties ADD COLUMN rent_per_m2 REAL DEFAULT 0",
+    "ALTER TABLE properties ADD COLUMN property_status TEXT NOT NULL DEFAULT 'added'",
+    "ALTER TABLE properties ADD COLUMN renovation_cost INTEGER DEFAULT 0",
+    "ALTER TABLE properties ADD COLUMN dpe_rating TEXT DEFAULT NULL",
+    "ALTER TABLE properties ADD COLUMN fiscal_regime TEXT DEFAULT 'micro_bic'",
+    "ALTER TABLE properties ADD COLUMN is_favorite INTEGER DEFAULT 0",
+    "ALTER TABLE properties ADD COLUMN status_changed_at TEXT DEFAULT ''",
+    "ALTER TABLE properties ADD COLUMN neighborhood TEXT DEFAULT ''",
+    "ALTER TABLE properties ADD COLUMN active_simulation_id TEXT DEFAULT ''",
+    "ALTER TABLE user_profile ADD COLUMN alert_thresholds TEXT DEFAULT '{}'",
+    "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
+    "ALTER TABLE simulations ADD COLUMN holding_duration INTEGER DEFAULT 0",
+    "ALTER TABLE simulations ADD COLUMN annual_appreciation REAL DEFAULT 1.5",
+    "ALTER TABLE simulations ADD COLUMN maintenance_per_m2 REAL DEFAULT 12",
+    "ALTER TABLE simulations ADD COLUMN pno_insurance REAL DEFAULT 200",
+    "ALTER TABLE simulations ADD COLUMN gli_rate REAL DEFAULT 0",
+  ];
+  const migrationErrors: Array<{ stmt: string; error: unknown }> = [];
+  await Promise.all(
+    alterMigrations.map(async (stmt) => {
+      try {
+        await client.execute(stmt);
+      } catch (e) {
+        // Only suppress "already exists" errors — log everything else
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!msg.includes("already exists") && !msg.includes("duplicate column")) {
+          migrationErrors.push({ stmt, error: e });
+        }
+      }
+    })
+  );
+  if (migrationErrors.length > 0) {
+    console.error("DB migration errors (non-duplicate):", migrationErrors);
+  }
+
+  // Set admin role (idempotent)
+  const adminEmail = process.env.ADMIN_EMAIL || "gregoire.lacoste@gmail.com";
+  await client.execute({
+    sql: "UPDATE users SET role = 'admin' WHERE LOWER(email) = ?",
+    args: [adminEmail.toLowerCase()],
+  });
+
+  // ─── Reference items (unified generic table) ─────
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS reference_items (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      key TEXT NOT NULL,
+      label TEXT NOT NULL,
+      icon TEXT NOT NULL DEFAULT '🏠',
+      category TEXT NOT NULL DEFAULT 'general',
+      config TEXT NOT NULL DEFAULT '{}',
+      is_default INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(type, key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_reference_items_type ON reference_items(type);
+    CREATE INDEX IF NOT EXISTS idx_reference_items_type_category ON reference_items(type, category);
+
+    CREATE TABLE IF NOT EXISTS reference_conditions (
+      id TEXT PRIMARY KEY,
+      item_id TEXT NOT NULL,
+      condition_type TEXT NOT NULL,
+      condition_value TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (item_id) REFERENCES reference_items(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_reference_conditions_item ON reference_conditions(item_id);
+    CREATE INDEX IF NOT EXISTS idx_reference_conditions_lookup ON reference_conditions(condition_type, condition_value);
+  `);
+
+  // Migrate legacy equipments table → reference_items (for existing DBs only)
+  try {
+    const existingEqs = await client.execute("SELECT * FROM equipments");
+    for (const eq of existingEqs.rows) {
+      const cfg = JSON.stringify({ value_impact_per_sqm: eq.value_impact_per_sqm ?? null });
+      try {
+        await client.execute({
+          sql: `INSERT OR IGNORE INTO reference_items (id, type, key, label, icon, category, config, is_default, sort_order)
+                VALUES (?, 'equipment', ?, ?, ?, ?, ?, ?, 0)`,
+          args: [
+            `ri_eq_${eq.key}`,
+            eq.key as string,
+            eq.label as string,
+            eq.icon as string,
+            eq.category as string,
+            cfg,
+            eq.is_default as number,
+          ],
+        });
+      } catch { /* already exists in reference_items */ }
+    }
+  } catch { /* equipments table doesn't exist on fresh DBs — expected */ }
+
+  // Seed all reference items (equipments + visit config)
+  const { seedAllReferenceItems } = await import("@/domains/reference/seed");
+  await seedAllReferenceItems(client);
+
+  // Localities tables
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS localities (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL CHECK (type IN ('pays','region','departement','canton','ville','quartier','rue')),
+      parent_id TEXT DEFAULT NULL,
+      code TEXT DEFAULT '',
+      postal_codes TEXT DEFAULT '[]',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_localities_type ON localities(type);
+    CREATE INDEX IF NOT EXISTS idx_localities_parent ON localities(parent_id);
+    CREATE INDEX IF NOT EXISTS idx_localities_code ON localities(code);
+
+    CREATE TABLE IF NOT EXISTS locality_data (
+      id TEXT PRIMARY KEY,
+      locality_id TEXT NOT NULL,
+      valid_from TEXT NOT NULL,
+      valid_to TEXT DEFAULT NULL,
+      data TEXT NOT NULL DEFAULT '{}',
+      created_by TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (locality_id) REFERENCES localities(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_locality_data_locality ON locality_data(locality_id);
+    CREATE INDEX IF NOT EXISTS idx_locality_data_valid ON locality_data(valid_from, valid_to);
+  `);
+}
+
 export async function getDb(): Promise<Client> {
   const client = getClient();
-  if (!_initialized) {
-    // Enable foreign key constraints
-    await client.execute("PRAGMA foreign_keys = ON;");
-
-    await client.executeMultiple(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        email TEXT NOT NULL UNIQUE,
-        name TEXT DEFAULT '',
-        password_hash TEXT DEFAULT '',
-        plan TEXT NOT NULL DEFAULT 'free',
-        stripe_customer_id TEXT DEFAULT '',
-        image TEXT DEFAULT '',
-        created_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE TABLE IF NOT EXISTS user_profile (
-        user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-        monthly_income INTEGER DEFAULT NULL,
-        existing_credits INTEGER DEFAULT 0,
-        savings INTEGER DEFAULT NULL,
-        max_debt_ratio REAL DEFAULT 35,
-        target_cities TEXT DEFAULT '[]',
-        min_budget INTEGER DEFAULT NULL,
-        max_budget INTEGER DEFAULT NULL,
-        target_property_types TEXT DEFAULT '["ancien"]',
-        default_inputs TEXT NOT NULL DEFAULT '{}',
-        scoring_weights TEXT NOT NULL DEFAULT '{}',
-        updated_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE TABLE IF NOT EXISTS properties (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL DEFAULT '',
-        visibility TEXT NOT NULL DEFAULT 'public' CHECK (visibility IN ('public', 'private')),
-        address TEXT DEFAULT '',
-        city TEXT NOT NULL,
-        postal_code TEXT DEFAULT '',
-        purchase_price REAL NOT NULL DEFAULT 0,
-        surface REAL NOT NULL DEFAULT 0,
-        property_type TEXT NOT NULL DEFAULT 'ancien' CHECK (property_type IN ('ancien', 'neuf')),
-        description TEXT DEFAULT '',
-        loan_amount REAL NOT NULL DEFAULT 0,
-        interest_rate REAL NOT NULL DEFAULT 3.5,
-        loan_duration INTEGER NOT NULL DEFAULT 20,
-        personal_contribution REAL DEFAULT 0,
-        insurance_rate REAL DEFAULT 0.34,
-        loan_fees REAL DEFAULT 0,
-        notary_fees REAL DEFAULT 0,
-        monthly_rent REAL DEFAULT 0,
-        condo_charges REAL DEFAULT 0,
-        property_tax REAL DEFAULT 0,
-        vacancy_rate REAL DEFAULT 5,
-        airbnb_price_per_night REAL DEFAULT 0,
-        airbnb_occupancy_rate REAL DEFAULT 60,
-        airbnb_charges REAL DEFAULT 0,
-        source_url TEXT DEFAULT '',
-        image_urls TEXT DEFAULT '[]',
-        prefill_sources TEXT DEFAULT '{}',
-        created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE TABLE IF NOT EXISTS scraping_manifests (
-        id TEXT PRIMARY KEY,
-        site_hostname TEXT NOT NULL,
-        page_pattern TEXT NOT NULL DEFAULT '*',
-        selectors TEXT NOT NULL,
-        version INTEGER NOT NULL DEFAULT 1,
-        success_count INTEGER NOT NULL DEFAULT 0,
-        failure_count INTEGER NOT NULL DEFAULT 0,
-        sample_url TEXT NOT NULL,
-        created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now')),
-        UNIQUE(site_hostname, page_pattern)
-      );
-      CREATE TABLE IF NOT EXISTS photos (
-        id TEXT PRIMARY KEY,
-        property_id TEXT NOT NULL,
-        user_id TEXT NOT NULL DEFAULT '',
-        url TEXT NOT NULL,
-        thumbnail_url TEXT NOT NULL DEFAULT '',
-        source TEXT NOT NULL DEFAULT 'upload',
-        tag TEXT DEFAULT '',
-        note TEXT DEFAULT '',
-        latitude REAL DEFAULT NULL,
-        longitude REAL DEFAULT NULL,
-        width INTEGER DEFAULT NULL,
-        height INTEGER DEFAULT NULL,
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
-      );
-      CREATE INDEX IF NOT EXISTS idx_photos_property_id ON photos(property_id);
-    `);
-
-    // Migrations: CREATE TABLE / INDEX statements can be batched
-    await client.executeMultiple(`
-      CREATE TABLE IF NOT EXISTS rental_entries (
-        id TEXT PRIMARY KEY,
-        property_id TEXT NOT NULL,
-        user_id TEXT NOT NULL DEFAULT '',
-        month TEXT NOT NULL,
-        rent_received REAL DEFAULT 0,
-        charges_paid REAL DEFAULT 0,
-        vacancy_days INTEGER DEFAULT 0,
-        notes TEXT DEFAULT '',
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
-        UNIQUE(property_id, month)
-      );
-      CREATE INDEX IF NOT EXISTS idx_rental_entries_property ON rental_entries(property_id);
-
-      CREATE TABLE IF NOT EXISTS simulations (
-        id TEXT PRIMARY KEY,
-        property_id TEXT NOT NULL,
-        user_id TEXT NOT NULL DEFAULT '',
-        name TEXT NOT NULL DEFAULT 'Simulation 1',
-        loan_amount REAL NOT NULL DEFAULT 0,
-        interest_rate REAL NOT NULL DEFAULT 3.5,
-        loan_duration INTEGER NOT NULL DEFAULT 20,
-        personal_contribution REAL DEFAULT 0,
-        insurance_rate REAL DEFAULT 0.34,
-        loan_fees REAL DEFAULT 0,
-        notary_fees REAL DEFAULT 0,
-        monthly_rent REAL DEFAULT 0,
-        condo_charges REAL DEFAULT 0,
-        property_tax REAL DEFAULT 0,
-        vacancy_rate REAL DEFAULT 5,
-        airbnb_price_per_night REAL DEFAULT 0,
-        airbnb_occupancy_rate REAL DEFAULT 60,
-        airbnb_charges REAL DEFAULT 0,
-        renovation_cost INTEGER DEFAULT 0,
-        fiscal_regime TEXT DEFAULT 'micro_bic',
-        maintenance_per_m2 REAL DEFAULT 12,
-        pno_insurance REAL DEFAULT 200,
-        gli_rate REAL DEFAULT 0,
-        holding_duration INTEGER DEFAULT 0,
-        annual_appreciation REAL DEFAULT 1.5,
-        created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
-      );
-      CREATE INDEX IF NOT EXISTS idx_simulations_property ON simulations(property_id);
-      CREATE INDEX IF NOT EXISTS idx_properties_user_id ON properties(user_id);
-      CREATE INDEX IF NOT EXISTS idx_properties_visibility ON properties(visibility);
-    `);
-
-    // ALTER TABLE migrations — run in parallel batches (each is idempotent, errors = column exists)
-    const alterMigrations = [
-      "ALTER TABLE properties ADD COLUMN image_urls TEXT DEFAULT '[]'",
-      "ALTER TABLE properties ADD COLUMN postal_code TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN prefill_sources TEXT DEFAULT '{}'",
-      "ALTER TABLE properties ADD COLUMN user_id TEXT NOT NULL DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'",
-      "ALTER TABLE properties ADD COLUMN latitude REAL DEFAULT NULL",
-      "ALTER TABLE properties ADD COLUMN longitude REAL DEFAULT NULL",
-      "ALTER TABLE properties ADD COLUMN market_data TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN investment_score REAL DEFAULT NULL",
-      "ALTER TABLE properties ADD COLUMN score_breakdown TEXT DEFAULT '{}'",
-      "ALTER TABLE properties ADD COLUMN enrichment_status TEXT NOT NULL DEFAULT 'pending'",
-      "ALTER TABLE properties ADD COLUMN enrichment_error TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN enrichment_at TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN socioeconomic_data TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN collect_urls TEXT DEFAULT '[]'",
-      "ALTER TABLE properties ADD COLUMN collect_texts TEXT DEFAULT '[]'",
-      "ALTER TABLE properties ADD COLUMN amenities TEXT DEFAULT '[]'",
-      "ALTER TABLE properties ADD COLUMN rent_per_m2 REAL DEFAULT 0",
-      "ALTER TABLE properties ADD COLUMN property_status TEXT NOT NULL DEFAULT 'added'",
-      "ALTER TABLE properties ADD COLUMN renovation_cost INTEGER DEFAULT 0",
-      "ALTER TABLE properties ADD COLUMN dpe_rating TEXT DEFAULT NULL",
-      "ALTER TABLE properties ADD COLUMN fiscal_regime TEXT DEFAULT 'micro_bic'",
-      "ALTER TABLE properties ADD COLUMN is_favorite INTEGER DEFAULT 0",
-      "ALTER TABLE properties ADD COLUMN status_changed_at TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN neighborhood TEXT DEFAULT ''",
-      "ALTER TABLE properties ADD COLUMN active_simulation_id TEXT DEFAULT ''",
-      "ALTER TABLE user_profile ADD COLUMN alert_thresholds TEXT DEFAULT '{}'",
-      "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
-      "ALTER TABLE simulations ADD COLUMN holding_duration INTEGER DEFAULT 0",
-      "ALTER TABLE simulations ADD COLUMN annual_appreciation REAL DEFAULT 1.5",
-      "ALTER TABLE simulations ADD COLUMN maintenance_per_m2 REAL DEFAULT 12",
-      "ALTER TABLE simulations ADD COLUMN pno_insurance REAL DEFAULT 200",
-      "ALTER TABLE simulations ADD COLUMN gli_rate REAL DEFAULT 0",
-    ];
-    await Promise.all(
-      alterMigrations.map((stmt) => client.execute(stmt).catch(() => { /* column already exists */ }))
-    );
-
-    // Set admin role (idempotent)
-    await client.execute(
-      "UPDATE users SET role = 'admin' WHERE LOWER(email) = 'gregoire.lacoste@gmail.com'"
-    );
-
-    // ─── Reference items (unified generic table) ─────
-    await client.executeMultiple(`
-      CREATE TABLE IF NOT EXISTS reference_items (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        key TEXT NOT NULL,
-        label TEXT NOT NULL,
-        icon TEXT NOT NULL DEFAULT '🏠',
-        category TEXT NOT NULL DEFAULT 'general',
-        config TEXT NOT NULL DEFAULT '{}',
-        is_default INTEGER NOT NULL DEFAULT 0,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT DEFAULT (datetime('now')),
-        UNIQUE(type, key)
-      );
-      CREATE INDEX IF NOT EXISTS idx_reference_items_type ON reference_items(type);
-      CREATE INDEX IF NOT EXISTS idx_reference_items_type_category ON reference_items(type, category);
-
-      CREATE TABLE IF NOT EXISTS reference_conditions (
-        id TEXT PRIMARY KEY,
-        item_id TEXT NOT NULL,
-        condition_type TEXT NOT NULL,
-        condition_value TEXT NOT NULL,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (item_id) REFERENCES reference_items(id) ON DELETE CASCADE
-      );
-      CREATE INDEX IF NOT EXISTS idx_reference_conditions_item ON reference_conditions(item_id);
-      CREATE INDEX IF NOT EXISTS idx_reference_conditions_lookup ON reference_conditions(condition_type, condition_value);
-    `);
-
-    // Migrate legacy equipments table → reference_items (for existing DBs only)
-    try {
-      const existingEqs = await client.execute("SELECT * FROM equipments");
-      for (const eq of existingEqs.rows) {
-        const cfg = JSON.stringify({ value_impact_per_sqm: eq.value_impact_per_sqm ?? null });
-        try {
-          await client.execute({
-            sql: `INSERT OR IGNORE INTO reference_items (id, type, key, label, icon, category, config, is_default, sort_order)
-                  VALUES (?, 'equipment', ?, ?, ?, ?, ?, ?, 0)`,
-            args: [
-              `ri_eq_${eq.key}`,
-              eq.key as string,
-              eq.label as string,
-              eq.icon as string,
-              eq.category as string,
-              cfg,
-              eq.is_default as number,
-            ],
-          });
-        } catch { /* already exists in reference_items */ }
-      }
-    } catch { /* equipments table doesn't exist on fresh DBs — expected */ }
-
-    // Seed all reference items (equipments + visit config)
-    const { seedAllReferenceItems } = await import("@/domains/reference/seed");
-    await seedAllReferenceItems(client);
-
-    // Localities tables
-    await client.executeMultiple(`
-      CREATE TABLE IF NOT EXISTS localities (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        type TEXT NOT NULL CHECK (type IN ('pays','region','departement','canton','ville','quartier','rue')),
-        parent_id TEXT DEFAULT NULL,
-        code TEXT DEFAULT '',
-        postal_codes TEXT DEFAULT '[]',
-        created_at TEXT DEFAULT (datetime('now')),
-        updated_at TEXT DEFAULT (datetime('now'))
-      );
-      CREATE INDEX IF NOT EXISTS idx_localities_type ON localities(type);
-      CREATE INDEX IF NOT EXISTS idx_localities_parent ON localities(parent_id);
-      CREATE INDEX IF NOT EXISTS idx_localities_code ON localities(code);
-
-      CREATE TABLE IF NOT EXISTS locality_data (
-        id TEXT PRIMARY KEY,
-        locality_id TEXT NOT NULL,
-        valid_from TEXT NOT NULL,
-        valid_to TEXT DEFAULT NULL,
-        data TEXT NOT NULL DEFAULT '{}',
-        created_by TEXT DEFAULT '',
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (locality_id) REFERENCES localities(id)
-      );
-      CREATE INDEX IF NOT EXISTS idx_locality_data_locality ON locality_data(locality_id);
-      CREATE INDEX IF NOT EXISTS idx_locality_data_valid ON locality_data(valid_from, valid_to);
-    `);
-
-    _initialized = true;
+  // Use promise lock to prevent concurrent initialization
+  if (!_initPromise) {
+    _initPromise = initializeDatabase(client);
   }
+  await _initPromise;
   return client;
 }

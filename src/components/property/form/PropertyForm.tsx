@@ -206,11 +206,22 @@ export default function PropertyForm({ existingProperty, defaultInputs, equipmen
 
   const showAirbnb = showAdvanced || form.airbnb_price_per_night > 0;
 
+  // Memoize JSON parsing for SmartCollector props (avoid new arrays every render)
+  const existingPhotosData = useMemo(() => {
+    try { return JSON.parse(existingProperty?.image_urls || "[]"); } catch { return []; }
+  }, [existingProperty?.image_urls]);
+  const existingCollectUrlsData = useMemo(() => {
+    try { return JSON.parse(existingProperty?.collect_urls || "[]"); } catch { return []; }
+  }, [existingProperty?.collect_urls]);
+  const existingCollectTextsData = useMemo(() => {
+    try { return JSON.parse(existingProperty?.collect_texts || "[]"); } catch { return []; }
+  }, [existingProperty?.collect_texts]);
+
   // Parse prefill sources pour afficher les hints
-  const prefillSources: Record<string, { source: string; value: number | string }> = (() => {
+  const prefillSources = useMemo<Record<string, { source: string; value: number | string }>>(() => {
     try { return JSON.parse(form.prefill_sources || "{}"); }
     catch { return {}; }
-  })();
+  }, [form.prefill_sources]);
 
   function prefillHint(field: string): ReactNode {
     const info = prefillSources[field];
@@ -263,9 +274,9 @@ export default function PropertyForm({ existingProperty, defaultInputs, equipmen
       {existingProperty ? (
         <SmartCollector
           existingPropertyId={existingProperty.id}
-          existingPhotos={(() => { try { return JSON.parse(existingProperty.image_urls || "[]"); } catch { return []; } })()}
-          existingCollectUrls={(() => { try { return JSON.parse(existingProperty.collect_urls || "[]"); } catch { return []; } })()}
-          existingCollectTexts={(() => { try { return JSON.parse(existingProperty.collect_texts || "[]"); } catch { return []; } })()}
+          existingPhotos={existingPhotosData}
+          existingCollectUrls={existingCollectUrlsData}
+          existingCollectTexts={existingCollectTextsData}
           sourceUrl={existingProperty.source_url}
           onSuccess={() => router.refresh()}
           onPhotoGeo={handlePhotoGeo}

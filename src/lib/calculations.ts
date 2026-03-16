@@ -66,26 +66,30 @@ interface SimulationCharges {
 
 const DEFAULT_CHARGES: SimulationCharges = { annualMaintenanceCost: 0, pnoInsurance: 0, gliRate: 0 };
 
-export function calculateAll(property: Property, charges: SimulationCharges = DEFAULT_CHARGES): PropertyCalculations {
-  const {
-    purchase_price,
-    property_type,
-    loan_amount,
-    interest_rate,
-    loan_duration,
-    insurance_rate,
-    loan_fees,
-    notary_fees,
-    monthly_rent,
-    condo_charges,
-    property_tax,
-    vacancy_rate,
-    airbnb_price_per_night,
-    airbnb_occupancy_rate,
-    airbnb_charges,
-  } = property;
+/** Sanitize a numeric value: NaN/Infinity/undefined → fallback */
+function safeNum(v: unknown, fallback = 0): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
 
-  const renovation_cost = property.renovation_cost || 0;
+export function calculateAll(property: Property, charges: SimulationCharges = DEFAULT_CHARGES): PropertyCalculations {
+  const purchase_price = safeNum(property.purchase_price);
+  const property_type = property.property_type;
+  const loan_amount = safeNum(property.loan_amount);
+  const interest_rate = safeNum(property.interest_rate, 3.5);
+  const loan_duration = safeNum(property.loan_duration, 20);
+  const insurance_rate = safeNum(property.insurance_rate, 0.34);
+  const loan_fees = safeNum(property.loan_fees);
+  const notary_fees = safeNum(property.notary_fees);
+  const monthly_rent = safeNum(property.monthly_rent);
+  const condo_charges = safeNum(property.condo_charges);
+  const property_tax = safeNum(property.property_tax);
+  const vacancy_rate = safeNum(property.vacancy_rate, 5);
+  const airbnb_price_per_night = safeNum(property.airbnb_price_per_night);
+  const airbnb_occupancy_rate = safeNum(property.airbnb_occupancy_rate, 60);
+  const airbnb_charges = safeNum(property.airbnb_charges);
+
+  const renovation_cost = safeNum(property.renovation_cost);
   const fiscal_regime = property.fiscal_regime || "micro_bic";
 
   // Frais de notaire

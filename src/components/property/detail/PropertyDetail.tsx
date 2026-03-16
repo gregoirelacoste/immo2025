@@ -58,11 +58,11 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
 
   const activeTab = (searchParams.get("tab") as TabId) || "bien";
 
-  const marketData = parseJson<MarketData | null>(property.market_data, null);
-  const scoreBreakdown = parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null);
-  const socioData = parseJson<SocioEconomicData | null>(property.socioeconomic_data, null);
-  const amenities = parseAmenities(property.amenities);
-  const eqMap = new Map(equipments.map((e) => [e.key, e]));
+  const marketData = useMemo(() => parseJson<MarketData | null>(property.market_data, null), [property.market_data]);
+  const scoreBreakdown = useMemo(() => parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null), [property.score_breakdown]);
+  const socioData = useMemo(() => parseJson<SocioEconomicData | null>(property.socioeconomic_data, null), [property.socioeconomic_data]);
+  const amenities = useMemo(() => parseAmenities(property.amenities), [property.amenities]);
+  const eqMap = useMemo(() => new Map(equipments.map((e) => [e.key, e])), [equipments]);
   const images: string[] = parseJson(property.image_urls, []);
 
   const pricePerM2 = property.surface > 0 ? property.purchase_price / property.surface : 0;

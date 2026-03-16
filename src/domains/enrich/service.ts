@@ -56,21 +56,21 @@ export async function runEnrichmentPipeline(
       try {
         const query = property.address || property.city;
         if (query) return await forwardGeocode(query, property.city || undefined);
-      } catch { /* non-fatal */ }
+      } catch (e) { console.warn(`Enrichment geocoding failed for "${property.city}":`, e); }
       return null;
     })(),
     // Step 2: Market data
     (async () => {
       try {
         if (property.city) return await getMarketData(property.city, property.postal_code || undefined);
-      } catch { /* non-fatal */ }
+      } catch (e) { console.warn(`Enrichment market data failed for "${property.city}":`, e); }
       return null;
     })(),
     // Step 3: Socio-economic data
     (async () => {
       try {
         if (property.city) return await buildSocioDataFromLocality(property.city, property.postal_code || undefined);
-      } catch { /* non-fatal */ }
+      } catch (e) { console.warn(`Enrichment socio data failed for "${property.city}":`, e); }
       return null;
     })(),
     // Step 4: First simulation (needed for score)
