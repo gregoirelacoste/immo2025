@@ -32,6 +32,8 @@ const EDITABLE_FIELDS: FieldConfig[] = [
   { field: "vacancy_rate", label: "Taux de vacance", step: 1, unit: "%" },
   { field: "renovation_cost", label: "Travaux", step: 1000, unit: "€" },
   { field: "maintenance_per_m2", label: "Entretien / m² / an", step: 1, unit: "€" },
+  { field: "pno_insurance", label: "Assurance PNO", step: 10, unit: "€/an" },
+  { field: "gli_rate", label: "GLI (loyers impayés)", step: 0.5, unit: "%", decimals: 1 },
 ];
 
 /** Compute loan_amount from property price, contribution, renovation, notary */
@@ -62,6 +64,8 @@ function simFormFromSimulation(sim: Simulation): SimulationFormData {
     renovation_cost: sim.renovation_cost,
     fiscal_regime: sim.fiscal_regime,
     maintenance_per_m2: sim.maintenance_per_m2,
+    pno_insurance: sim.pno_insurance,
+    gli_rate: sim.gli_rate,
     holding_duration: sim.holding_duration,
     annual_appreciation: sim.annual_appreciation,
   };
@@ -303,6 +307,11 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
               {config.field === "maintenance_per_m2" && property.surface > 0 && (
                 <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">
                   {formatCurrency((form.maintenance_per_m2 as number) * property.surface)}/an · {property.surface} m²
+                </p>
+              )}
+              {config.field === "gli_rate" && (form.gli_rate as number) > 0 && effectiveRent > 0 && (
+                <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">
+                  {formatCurrency(effectiveRent * 12 * (form.gli_rate as number) / 100)}/an
                 </p>
               )}
             </div>

@@ -219,6 +219,8 @@ export async function processShareAndCreate(
         renovation_cost: 0,
         fiscal_regime: "micro_bic",
         maintenance_per_m2: 12,
+        pno_insurance: 200,
+        gli_rate: 0,
         holding_duration: 0,
         annual_appreciation: 1.5,
       });

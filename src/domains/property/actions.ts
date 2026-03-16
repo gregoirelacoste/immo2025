@@ -102,6 +102,8 @@ export async function saveProperty(
           renovation_cost: payload.renovation_cost ?? 0,
           fiscal_regime: payload.fiscal_regime || "micro_bic",
           maintenance_per_m2: payload.property_type === "neuf" ? 8 : 12,
+          pno_insurance: 200,
+          gli_rate: 0,
           holding_duration: 0,
           annual_appreciation: 1.5,
         });

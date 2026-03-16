@@ -180,6 +180,8 @@ export async function getDb(): Promise<Client> {
         renovation_cost INTEGER DEFAULT 0,
         fiscal_regime TEXT DEFAULT 'micro_bic',
         maintenance_per_m2 REAL DEFAULT 12,
+        pno_insurance REAL DEFAULT 200,
+        gli_rate REAL DEFAULT 0,
         holding_duration INTEGER DEFAULT 0,
         annual_appreciation REAL DEFAULT 1.5,
         created_at TEXT DEFAULT (datetime('now')),
@@ -190,8 +192,10 @@ export async function getDb(): Promise<Client> {
       // Phase 8: Exit simulation
       "ALTER TABLE simulations ADD COLUMN holding_duration INTEGER DEFAULT 0",
       "ALTER TABLE simulations ADD COLUMN annual_appreciation REAL DEFAULT 1.5",
-      // Phase 8.1: Maintenance cost
+      // Phase 8.1: Maintenance cost + insurance
       "ALTER TABLE simulations ADD COLUMN maintenance_per_m2 REAL DEFAULT 12",
+      "ALTER TABLE simulations ADD COLUMN pno_insurance REAL DEFAULT 200",
+      "ALTER TABLE simulations ADD COLUMN gli_rate REAL DEFAULT 0",
     ]) {
       try { await client.execute(stmt); } catch { /* already exists */ }
     }

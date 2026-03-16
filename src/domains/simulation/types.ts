@@ -22,6 +22,8 @@ export interface Simulation {
   fiscal_regime: string;
   // Charges récurrentes
   maintenance_per_m2: number; // provision entretien/réparation en €/m²/an
+  pno_insurance: number; // assurance PNO en €/an
+  gli_rate: number; // taux GLI (garantie loyers impayés) en % du loyer annuel
   // Bilan de sortie
   holding_duration: number; // durée de détention en années (0 = utiliser loan_duration)
   annual_appreciation: number; // % d'appréciation annuelle du bien
@@ -51,6 +53,8 @@ export const SIMULATION_FIELDS = [
   "renovation_cost",
   "fiscal_regime",
   "maintenance_per_m2",
+  "pno_insurance",
+  "gli_rate",
   "holding_duration",
   "annual_appreciation",
 ] as const;
