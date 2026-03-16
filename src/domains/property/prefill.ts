@@ -2,7 +2,9 @@ import { ScrapedPropertyData, ScrapeResult } from "@/domains/scraping/types";
 import { MarketData } from "@/domains/market/types";
 import { PhotoExtractedListing } from "@/domains/collect/types";
 
-type PrefillRecord = Record<string, { source: string; value: number | string }>;
+export type Confidence = "estimated" | "declared" | "verified";
+
+type PrefillRecord = Record<string, { source: string; value: number | string; confidence?: Confidence }>;
 
 const METHOD_LABELS: Record<string, string> = {
   jsonld: "Scraping (JSON-LD)",

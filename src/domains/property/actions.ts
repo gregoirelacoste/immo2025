@@ -23,7 +23,7 @@ import { requireUserId, getOptionalUserId, isAdmin } from "@/lib/auth-actions";
 import { calculateNotaryFees } from "@/lib/calculations";
 import { scrapeUrl } from "@/domains/scraping/pipeline/orchestrator";
 import { Property, PropertyFormData, PROPERTY_STATUSES, type PropertyStatus } from "@/domains/property/types";
-import { mergeRescrapeIntoPrefill, parsePrefill } from "@/domains/property/prefill";
+import { mergeRescrapeIntoPrefill, parsePrefill, type Confidence } from "@/domains/property/prefill";
 import { enrichPropertyQuiet } from "@/domains/enrich/actions";
 import { createSimulation, getFirstSimulationForProperty, getSimulationsForProperty, updateSimulation } from "@/domains/simulation/repository";
 
@@ -301,6 +301,42 @@ export async function changePropertyStatus(
     } else {
       await updatePropertyStatus(propertyId, status, userId);
     }
+    revalidatePath(`/property/${propertyId}`);
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+/** Update a single property field inline (from CompletionTab) */
+export async function updatePropertyField(
+  propertyId: string,
+  fieldKey: string,
+  value: string | number,
+  source: string = "Saisie manuelle",
+  confidence: Confidence = "declared"
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { property, userId, adminAccess } = await getOwnerOrAllowOrphan(propertyId);
+    const baseData = stripMeta(property);
+
+    // Update the field value
+    const payload = { ...baseData, [fieldKey]: value };
+
+    // Update prefill_sources
+    const prefill = parsePrefill(property.prefill_sources);
+    prefill[fieldKey] = { source, value, confidence };
+    payload.prefill_sources = JSON.stringify(prefill);
+
+    if (userId === null) {
+      await updateOrphanProperty(propertyId, payload);
+    } else if (adminAccess) {
+      await updatePropertyAsAdmin(propertyId, payload);
+    } else {
+      await updateProperty(propertyId, userId, payload);
+    }
+
     revalidatePath(`/property/${propertyId}`);
     revalidatePath("/dashboard");
     return { success: true };
