@@ -36,6 +36,7 @@ export async function callGemini(
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(30_000),
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
@@ -88,6 +89,7 @@ export async function callGeminiVision(
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(30_000),
       body: JSON.stringify({
         contents: [
           {

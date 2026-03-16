@@ -204,6 +204,12 @@ export async function getActiveSimulationsForProperties(
   return map;
 }
 
+/** Convert a DB value to number, defaulting to fallback if NaN/null/undefined */
+function safeNum(v: unknown, fallback = 0): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rowToSimulation(row: any): Simulation {
   return {
@@ -211,27 +217,27 @@ function rowToSimulation(row: any): Simulation {
     property_id: String(row.property_id),
     user_id: String(row.user_id),
     name: String(row.name),
-    loan_amount: Number(row.loan_amount),
-    interest_rate: Number(row.interest_rate),
-    loan_duration: Number(row.loan_duration),
-    personal_contribution: Number(row.personal_contribution),
-    insurance_rate: Number(row.insurance_rate),
-    loan_fees: Number(row.loan_fees),
-    notary_fees: Number(row.notary_fees),
-    monthly_rent: Number(row.monthly_rent),
-    condo_charges: Number(row.condo_charges),
-    property_tax: Number(row.property_tax),
-    vacancy_rate: Number(row.vacancy_rate),
-    airbnb_price_per_night: Number(row.airbnb_price_per_night),
-    airbnb_occupancy_rate: Number(row.airbnb_occupancy_rate),
-    airbnb_charges: Number(row.airbnb_charges),
-    renovation_cost: Number(row.renovation_cost),
+    loan_amount: safeNum(row.loan_amount),
+    interest_rate: safeNum(row.interest_rate, 3.5),
+    loan_duration: safeNum(row.loan_duration, 20),
+    personal_contribution: safeNum(row.personal_contribution),
+    insurance_rate: safeNum(row.insurance_rate, 0.34),
+    loan_fees: safeNum(row.loan_fees),
+    notary_fees: safeNum(row.notary_fees),
+    monthly_rent: safeNum(row.monthly_rent),
+    condo_charges: safeNum(row.condo_charges),
+    property_tax: safeNum(row.property_tax),
+    vacancy_rate: safeNum(row.vacancy_rate, 5),
+    airbnb_price_per_night: safeNum(row.airbnb_price_per_night),
+    airbnb_occupancy_rate: safeNum(row.airbnb_occupancy_rate, 60),
+    airbnb_charges: safeNum(row.airbnb_charges),
+    renovation_cost: safeNum(row.renovation_cost),
     fiscal_regime: String(row.fiscal_regime || "micro_bic"),
-    maintenance_per_m2: Number(row.maintenance_per_m2 ?? 12),
-    pno_insurance: Number(row.pno_insurance ?? 200),
-    gli_rate: Number(row.gli_rate ?? 0),
-    holding_duration: Number(row.holding_duration ?? 0),
-    annual_appreciation: Number(row.annual_appreciation ?? 1.5),
+    maintenance_per_m2: safeNum(row.maintenance_per_m2, 12),
+    pno_insurance: safeNum(row.pno_insurance, 200),
+    gli_rate: safeNum(row.gli_rate),
+    holding_duration: safeNum(row.holding_duration),
+    annual_appreciation: safeNum(row.annual_appreciation, 1.5),
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
   };

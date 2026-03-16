@@ -25,7 +25,7 @@ function scorePriceVsMarket(
   surface: number,
   marketData: MarketData | null
 ): number {
-  if (!marketData?.medianPurchasePricePerM2 || surface <= 0) return 10; // neutral
+  if (!marketData?.medianPurchasePricePerM2 || surface <= 0 || purchasePrice <= 0) return 10; // neutral
 
   const propertyPricePerM2 = purchasePrice / surface;
   const ratio = propertyPricePerM2 / marketData.medianPurchasePricePerM2;
