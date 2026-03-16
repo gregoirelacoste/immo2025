@@ -196,6 +196,8 @@ export async function getDb(): Promise<Client> {
       "ALTER TABLE simulations ADD COLUMN maintenance_per_m2 REAL DEFAULT 12",
       "ALTER TABLE simulations ADD COLUMN pno_insurance REAL DEFAULT 200",
       "ALTER TABLE simulations ADD COLUMN gli_rate REAL DEFAULT 0",
+      // Phase 9: Active simulation per property
+      "ALTER TABLE properties ADD COLUMN active_simulation_id TEXT DEFAULT ''",
     ]) {
       try { await client.execute(stmt); } catch { /* already exists */ }
     }

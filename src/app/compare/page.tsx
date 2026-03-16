@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { getVisibleProperties } from "@/domains/property/repository";
-import { getFirstSimulationsForProperties } from "@/domains/simulation/repository";
+import { getActiveSimulationsForProperties } from "@/domains/simulation/repository";
 import Navbar from "@/components/Navbar";
 import CompareView from "@/components/compare/CompareView";
 import type { Simulation } from "@/domains/simulation/types";
@@ -12,10 +12,12 @@ export default async function ComparePage() {
   const userId = session?.user?.id;
 
   const properties = await getVisibleProperties(userId);
-  const simMap = await getFirstSimulationsForProperties(properties.map((p) => p.id));
+  const simMap = await getActiveSimulationsForProperties(
+    properties.map((p) => ({ id: p.id, active_simulation_id: p.active_simulation_id }))
+  );
   const simulationsMap: Record<string, Simulation> = {};
   for (const [pid, sim] of simMap) {
-    simulationsMap[pid] = sim;
+    if (sim) simulationsMap[pid] = sim;
   }
 
   return (

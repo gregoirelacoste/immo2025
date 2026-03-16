@@ -141,6 +141,69 @@ export async function getFirstSimulationsForProperties(
   return map;
 }
 
+/**
+ * Get the active simulation for each property in a batch.
+ * If active_simulation_id is set and valid, returns that simulation.
+ * Otherwise falls back to the first (oldest) simulation.
+ * Returns a map of property_id → Simulation (or undefined if no sim + active = system).
+ */
+export async function getActiveSimulationsForProperties(
+  properties: Array<{ id: string; active_simulation_id: string }>
+): Promise<Map<string, Simulation | null>> {
+  if (properties.length === 0) return new Map();
+
+  const propertyIds = properties.map((p) => p.id);
+  const activeIds = properties
+    .filter((p) => p.active_simulation_id && p.active_simulation_id !== "__system__")
+    .map((p) => p.active_simulation_id);
+
+  const db = await getDb();
+  const map = new Map<string, Simulation | null>();
+
+  // Batch-fetch active simulations by ID
+  if (activeIds.length > 0) {
+    const placeholders = activeIds.map(() => "?").join(",");
+    const result = await db.execute({
+      sql: `SELECT * FROM simulations WHERE id IN (${placeholders})`,
+      args: activeIds,
+    });
+    const simById = new Map<string, Simulation>();
+    for (const row of result.rows) {
+      const sim = rowToSimulation(row);
+      simById.set(sim.id, sim);
+    }
+    for (const p of properties) {
+      if (p.active_simulation_id && simById.has(p.active_simulation_id)) {
+        map.set(p.id, simById.get(p.active_simulation_id)!);
+      }
+    }
+  }
+
+  // For properties with active = "" or "__system__", mark as null (= system simulation)
+  for (const p of properties) {
+    if (map.has(p.id)) continue;
+    if (!p.active_simulation_id || p.active_simulation_id === "__system__") {
+      map.set(p.id, null); // null = system simulation
+      continue;
+    }
+  }
+
+  // Fallback: properties with active_simulation_id pointing to missing sim → first sim
+  const needFallback = propertyIds.filter((id) => !map.has(id));
+  if (needFallback.length > 0) {
+    const fallback = await getFirstSimulationsForProperties(needFallback);
+    for (const [pid, sim] of fallback) {
+      map.set(pid, sim);
+    }
+    // Properties with no simulations at all → null (system)
+    for (const pid of needFallback) {
+      if (!map.has(pid)) map.set(pid, null);
+    }
+  }
+
+  return map;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rowToSimulation(row: any): Simulation {
   return {

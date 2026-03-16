@@ -16,6 +16,8 @@ import {
   updatePropertyStatusAsAdmin,
   togglePropertyFavorite,
   togglePropertyFavoriteAsAdmin,
+  setActiveSimulation,
+  setActiveSimulationAsAdmin,
 } from "@/domains/property/repository";
 import { requireUserId, getOptionalUserId, isAdmin } from "@/lib/auth-actions";
 import { calculateNotaryFees } from "@/lib/calculations";
@@ -298,6 +300,27 @@ export async function changePropertyStatus(
       await updatePropertyStatusAsAdmin(propertyId, status);
     } else {
       await updatePropertyStatus(propertyId, status, userId);
+    }
+    revalidatePath(`/property/${propertyId}`);
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+/** Set the active (favorite) simulation for a property. "" = system simulation. */
+export async function setActiveSimulationAction(
+  propertyId: string,
+  simulationId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const userId = await requireUserId();
+    const admin = await isAdmin();
+    if (admin) {
+      await setActiveSimulationAsAdmin(propertyId, simulationId);
+    } else {
+      await setActiveSimulation(propertyId, userId, simulationId);
     }
     revalidatePath(`/property/${propertyId}`);
     revalidatePath("/dashboard");
