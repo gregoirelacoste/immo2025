@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { getVisibleProperties } from "@/domains/property/repository";
-import { getFirstSimulationsForProperties } from "@/domains/simulation/repository";
+import { getActiveSimulationsForProperties } from "@/domains/simulation/repository";
 import { isAdmin } from "@/lib/auth-actions";
 import Navbar from "@/components/Navbar";
 import DashboardClient from "@/components/property/dashboard/DashboardClient";
@@ -14,12 +14,15 @@ export default async function DashboardPage() {
 
   const properties = await getVisibleProperties(userId, admin);
 
-  // Load first simulation for each property (for KPI calculations)
-  const simMap = await getFirstSimulationsForProperties(properties.map((p) => p.id));
-  // Serialize as a plain object for the client component
+  // Load active simulation for each property (for KPI calculations)
+  // null = system simulation (computed client-side from property + locality data)
+  const simMap = await getActiveSimulationsForProperties(
+    properties.map((p) => ({ id: p.id, active_simulation_id: p.active_simulation_id }))
+  );
+  // Serialize as a plain object for the client component (null entries omitted = system sim)
   const simulationsMap: Record<string, import("@/domains/simulation/types").Simulation> = {};
   for (const [pid, sim] of simMap) {
-    simulationsMap[pid] = sim;
+    if (sim) simulationsMap[pid] = sim;
   }
 
   return (

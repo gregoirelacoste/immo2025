@@ -8,20 +8,26 @@ interface Props {
   property: Property;
   simulation: Simulation;
   isActive: boolean;
+  isFavorite?: boolean;
   onSelect: () => void;
+  onSetFavorite?: () => void;
   onDuplicate: () => void;
   onDelete?: () => void;
   canDelete: boolean;
+  isSystem?: boolean;
 }
 
 export default function SimulationCard({
   property,
   simulation,
   isActive,
+  isFavorite,
   onSelect,
+  onSetFavorite,
   onDuplicate,
   onDelete,
   canDelete,
+  isSystem,
 }: Props) {
   const calcs = calculateSimulation(property, simulation);
 
@@ -34,20 +40,51 @@ export default function SimulationCard({
           : "border-tiili-border bg-white hover:border-gray-300"
       }`}
     >
+      {/* Favorite badge */}
+      {isFavorite && (
+        <div className="absolute -top-2 -right-2 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center shadow-sm">
+          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-semibold text-[#1a1a2e] truncate">{simulation.name}</h4>
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
-            className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-            title="Dupliquer"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        <div className="flex items-center gap-1.5 min-w-0">
+          {isSystem && (
+            <svg className="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
             </svg>
-          </button>
+          )}
+          <h4 className="text-sm font-semibold text-[#1a1a2e] truncate">{simulation.name}</h4>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Favorite toggle */}
+          {onSetFavorite && !isFavorite && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onSetFavorite(); }}
+              className="p-1.5 text-gray-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
+              title="Utiliser pour le dashboard"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            </button>
+          )}
+          {!isSystem && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+              className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+              title="Dupliquer"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
+          )}
           {canDelete && onDelete && (
             <button
               type="button"

@@ -13,6 +13,7 @@ export function stripMeta(p: Property) {
     enrichment_error: _enrichment_error, enrichment_at: _enrichment_at,
     collect_urls: _collect_urls, collect_texts: _collect_texts,
     is_favorite: _is_favorite, status_changed_at: _status_changed_at,
+    active_simulation_id: _active_simulation_id,
     ...rest
   } = p;
   return rest;
@@ -167,7 +168,7 @@ export async function getRecentDuplicateProperty(
 }
 
 export async function createProperty(
-  property: Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at">
+  property: Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at" | "active_simulation_id">
 ): Promise<string> {
   const db = await getDb();
   const id = crypto.randomUUID();
@@ -236,7 +237,7 @@ export async function createProperty(
 export async function updateProperty(
   id: string,
   userId: string,
-  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at">
+  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at" | "active_simulation_id">
 ): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
@@ -301,7 +302,7 @@ export async function updateProperty(
 /** Update an orphaned property (no owner check — only for user_id = '' or NULL) */
 export async function updateOrphanProperty(
   id: string,
-  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at">
+  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at" | "active_simulation_id">
 ): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
@@ -471,7 +472,7 @@ export async function deleteProperty(id: string, userId: string): Promise<void> 
 /** Admin: update any property regardless of ownership */
 export async function updatePropertyAsAdmin(
   id: string,
-  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at">
+  property: Omit<Property, "id" | "user_id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at" | "active_simulation_id">
 ): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
@@ -553,5 +554,29 @@ export async function deletePropertyAsAdmin(id: string): Promise<void> {
   await db.execute({
     sql: "DELETE FROM properties WHERE id = ?",
     args: [id],
+  });
+}
+
+/** Set the active simulation for a property (owner or admin). "" = system simulation. */
+export async function setActiveSimulation(
+  propertyId: string,
+  userId: string,
+  simulationId: string
+): Promise<void> {
+  const db = await getDb();
+  await db.execute({
+    sql: "UPDATE properties SET active_simulation_id = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?",
+    args: [simulationId, propertyId, userId],
+  });
+}
+
+export async function setActiveSimulationAsAdmin(
+  propertyId: string,
+  simulationId: string
+): Promise<void> {
+  const db = await getDb();
+  await db.execute({
+    sql: "UPDATE properties SET active_simulation_id = ?, updated_at = datetime('now') WHERE id = ?",
+    args: [simulationId, propertyId],
   });
 }

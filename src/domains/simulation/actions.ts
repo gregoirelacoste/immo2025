@@ -67,12 +67,7 @@ export async function removeSimulation(
       return { success: false, error: "Non autorisé." };
     }
 
-    // Don't allow deleting the last simulation
-    const count = await countSimulationsForProperty(existing.property_id);
-    if (count <= 1) {
-      return { success: false, error: "Impossible de supprimer la dernière simulation." };
-    }
-
+    // No guard needed — system simulation always exists as baseline
     await deleteSimulation(simulationId, existing.user_id);
     revalidatePath(`/property/${existing.property_id}`);
     return { success: true };

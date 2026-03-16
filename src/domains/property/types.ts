@@ -54,6 +54,8 @@ export interface Property {
   collect_texts: string; // JSON: string[] — tous les textes collés
   // Équipements / commodités
   amenities: string; // JSON: string[] — clés d'équipements (garage, parking, cave, balcon, etc.)
+  // Simulation active (référence vers la simulation favorite pour dashboard/résumé)
+  active_simulation_id: string; // "" = utiliser la simulation système
   // Metadata
   source_url: string;    // URL active (= première de collect_urls, utilisée pour le scraping)
   image_urls: string;    // JSON array of image URLs
@@ -62,7 +64,7 @@ export interface Property {
   updated_at: string;
 }
 
-export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "socioeconomic_data" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at">;
+export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "socioeconomic_data" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at" | "active_simulation_id">;
 
 export type FiscalRegime = "micro_bic" | "lmnp_reel" | "micro_foncier" | "reel_foncier";
 
