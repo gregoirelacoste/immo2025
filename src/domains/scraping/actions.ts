@@ -156,7 +156,7 @@ export async function scrapeAndSaveProperty(
           prefill.condo_charges = { source: src, value: condoCharges };
         }
       }
-    } catch { /* locality data not available */ }
+    } catch (e) { console.warn("Locality data not available:", e); }
   }
 
   const loanAmount = Math.max(0, price + notary);
@@ -312,7 +312,7 @@ export async function createPropertyFromText(
           propertyTax = applied.propertyTax || propertyTax;
           condoCharges = applied.condoCharges || condoCharges;
         }
-      } catch { /* pas de données marché */ }
+      } catch (e) { console.warn("Market data not available:", e); }
     }
 
     // Locality data fallback for fields not filled by text extraction or market data
@@ -337,7 +337,7 @@ export async function createPropertyFromText(
             prefill.condo_charges = { source: src, value: condoCharges };
           }
         }
-      } catch { /* locality data not available */ }
+      } catch (e) { console.warn("Locality data not available:", e); }
     }
 
     const loanAmount = Math.max(0, price + notary);
@@ -462,7 +462,7 @@ export async function extractAndUpdateFromText(
           propertyTax = applied.propertyTax || propertyTax;
           condoCharges = applied.condoCharges || condoCharges;
         }
-      } catch { /* pas de données marché */ }
+      } catch (e) { console.warn("Market data not available:", e); }
     }
 
     const baseData = stripMeta(property);

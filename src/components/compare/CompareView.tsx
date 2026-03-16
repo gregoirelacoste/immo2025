@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import { Property } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
 import { calculateAll, calculateSimulation, formatCurrency, formatPercent } from "@/lib/calculations";
@@ -193,9 +194,8 @@ export default function CompareView({ properties, simulationsMap }: CompareViewP
                 return (
                   <th key={p.id} className="px-3 py-3 text-center min-w-[140px]">
                     {thumb && (
-                      <div className="w-full h-16 mb-1 rounded-lg overflow-hidden bg-gray-100 mx-auto max-w-[160px]">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={thumb} alt="" className="w-full h-full object-cover" />
+                      <div className="w-full h-16 mb-1 rounded-lg overflow-hidden bg-gray-100 mx-auto max-w-[160px] relative">
+                        <Image src={thumb} alt={p.city || ""} fill className="object-cover" sizes="160px" unoptimized />
                       </div>
                     )}
                     <p className="font-semibold text-sm text-[#1a1a2e] truncate">

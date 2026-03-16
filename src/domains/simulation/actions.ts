@@ -15,12 +15,35 @@ import { getPropertyById } from "@/domains/property/repository";
 import { isAdmin } from "@/lib/auth-actions";
 import { Property } from "@/domains/property/types";
 
+/** Validate simulation data — returns error message or null */
+function validateSimulationData(data: Partial<SimulationFormData>): string | null {
+  if (data.loan_amount !== undefined && (data.loan_amount < 0 || data.loan_amount > 50_000_000)) {
+    return "Montant du prêt invalide (0 – 50M€).";
+  }
+  if (data.interest_rate !== undefined && (data.interest_rate < 0 || data.interest_rate > 30)) {
+    return "Taux d'intérêt invalide (0 – 30%).";
+  }
+  if (data.loan_duration !== undefined && (data.loan_duration < 1 || data.loan_duration > 50)) {
+    return "Durée du prêt invalide (1 – 50 ans).";
+  }
+  if (data.vacancy_rate !== undefined && (data.vacancy_rate < 0 || data.vacancy_rate > 100)) {
+    return "Taux de vacance invalide (0 – 100%).";
+  }
+  if (data.monthly_rent !== undefined && data.monthly_rent < 0) {
+    return "Loyer mensuel invalide.";
+  }
+  return null;
+}
+
 /** Create a simulation with given data */
 export async function saveSimulation(
   propertyId: string,
   data: SimulationFormData
 ): Promise<{ success: boolean; simulationId?: string; error?: string }> {
   try {
+    const validationError = validateSimulationData(data);
+    if (validationError) return { success: false, error: validationError };
+
     const userId = await getOptionalUserId();
     const id = await createSimulation(propertyId, userId, data);
     revalidatePath(`/property/${propertyId}`);
@@ -44,6 +67,9 @@ export async function updateSimulationAction(
     if (!admin && existing.user_id !== userId) {
       return { success: false, error: "Non autorisé." };
     }
+
+    const validationError = validateSimulationData(data);
+    if (validationError) return { success: false, error: validationError };
 
     await updateSimulation(simulationId, existing.user_id, data);
     revalidatePath(`/property/${existing.property_id}`);
