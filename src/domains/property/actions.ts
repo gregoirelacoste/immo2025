@@ -309,7 +309,7 @@ export async function changePropertyStatus(
   }
 }
 
-/** Update a single property field inline (from CompletionTab) */
+/** Update a single property field inline (from TravauxTab / Bien tab) */
 export async function updatePropertyField(
   propertyId: string,
   fieldKey: string,

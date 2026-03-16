@@ -5,9 +5,9 @@ import Link from "next/link";
 
 const TABS = [
   { id: "bien", label: "Bien" },
+  { id: "travaux", label: "Travaux" },
   { id: "simulation", label: "Simulation" },
   { id: "score", label: "Score" },
-  { id: "donnees", label: "Données" },
   { id: "visite", label: "Visite" },
 ] as const;
 
