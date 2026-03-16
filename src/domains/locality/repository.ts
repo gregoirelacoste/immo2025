@@ -17,6 +17,48 @@ export async function getLocalityById(id: string): Promise<Locality | undefined>
   return result.rows[0] ? rowAs<Locality>(result.rows[0]) : undefined;
 }
 
+/** Batch-fetch multiple localities by IDs in a single query */
+export async function getLocalitiesByIds(ids: string[]): Promise<Locality[]> {
+  if (ids.length === 0) return [];
+  const db = await getDb();
+  const placeholders = ids.map(() => "?").join(",");
+  const result = await db.execute({
+    sql: `SELECT * FROM localities WHERE id IN (${placeholders})`,
+    args: ids,
+  });
+  return result.rows.map((r) => rowAs<Locality>(r));
+}
+
+/** Batch-fetch latest valid data for multiple localities in one query */
+export async function getLatestLocalityDataBatch(
+  localityIds: string[],
+  asOfDate?: string
+): Promise<Map<string, LocalityData>> {
+  if (localityIds.length === 0) return new Map();
+  const db = await getDb();
+  const date = asOfDate || new Date().toISOString().split("T")[0];
+  const placeholders = localityIds.map(() => "?").join(",");
+  // Use a subquery to get the latest valid_from per locality, then join
+  const result = await db.execute({
+    sql: `SELECT ld.* FROM locality_data ld
+          INNER JOIN (
+            SELECT locality_id, MAX(valid_from) as max_vf
+            FROM locality_data
+            WHERE locality_id IN (${placeholders})
+              AND valid_from <= ?
+              AND (valid_to IS NULL OR valid_to >= ?)
+            GROUP BY locality_id
+          ) latest ON ld.locality_id = latest.locality_id AND ld.valid_from = latest.max_vf`,
+    args: [...localityIds, date, date],
+  });
+  const map = new Map<string, LocalityData>();
+  for (const r of result.rows) {
+    const d = rowAs<LocalityData>(r);
+    map.set(d.locality_id, d);
+  }
+  return map;
+}
+
 export async function getLocalityChildren(parentId: string): Promise<Locality[]> {
   const db = await getDb();
   const result = await db.execute({

@@ -13,9 +13,24 @@ export function getClient(): Client {
   return _client;
 }
 
+// Bump this when adding new migrations so cold starts re-run them
+const SCHEMA_VERSION = 2;
+
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints
   await client.execute("PRAGMA foreign_keys = ON;");
+
+  // Schema version check — skip heavy migrations on warm starts
+  await client.execute(
+    "CREATE TABLE IF NOT EXISTS _schema_version (version INTEGER NOT NULL DEFAULT 0)"
+  );
+  const vResult = await client.execute("SELECT version FROM _schema_version LIMIT 1");
+  const currentVersion = vResult.rows[0] ? Number(vResult.rows[0].version) : 0;
+
+  if (currentVersion >= SCHEMA_VERSION) {
+    // Schema already up to date — skip all CREATE/ALTER migrations
+    return;
+  }
 
   await client.executeMultiple(`
     CREATE TABLE IF NOT EXISTS users (
@@ -153,8 +168,12 @@ async function initializeDatabase(client: Client): Promise<void> {
       FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_simulations_property ON simulations(property_id);
+    CREATE INDEX IF NOT EXISTS idx_simulations_user_property ON simulations(user_id, property_id);
     CREATE INDEX IF NOT EXISTS idx_properties_user_id ON properties(user_id);
     CREATE INDEX IF NOT EXISTS idx_properties_visibility ON properties(visibility);
+    CREATE INDEX IF NOT EXISTS idx_properties_city ON properties(city);
+    CREATE INDEX IF NOT EXISTS idx_properties_created_at ON properties(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_properties_visibility_user ON properties(visibility, user_id);
     CREATE INDEX IF NOT EXISTS idx_photos_user_id ON photos(user_id);
     CREATE INDEX IF NOT EXISTS idx_rental_entries_user_id ON rental_entries(user_id);
     CREATE INDEX IF NOT EXISTS idx_properties_source_url ON properties(source_url);
@@ -306,7 +325,13 @@ async function initializeDatabase(client: Client): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS idx_locality_data_locality ON locality_data(locality_id);
     CREATE INDEX IF NOT EXISTS idx_locality_data_valid ON locality_data(valid_from, valid_to);
+    CREATE INDEX IF NOT EXISTS idx_locality_data_lookup ON locality_data(locality_id, valid_from DESC);
+    CREATE INDEX IF NOT EXISTS idx_localities_name ON localities(name COLLATE NOCASE);
   `);
+
+  // Record schema version so subsequent cold starts skip migrations
+  await client.execute("DELETE FROM _schema_version");
+  await client.execute({ sql: "INSERT INTO _schema_version (version) VALUES (?)", args: [SCHEMA_VERSION] });
 }
 
 export async function getDb(): Promise<Client> {
