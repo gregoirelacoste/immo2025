@@ -112,6 +112,8 @@ export async function duplicateSimulation(
       renovation_cost: existing.renovation_cost,
       fiscal_regime: existing.fiscal_regime,
       maintenance_per_m2: existing.maintenance_per_m2,
+      pno_insurance: existing.pno_insurance,
+      gli_rate: existing.gli_rate,
       holding_duration: existing.holding_duration,
       annual_appreciation: existing.annual_appreciation,
     };
@@ -149,6 +151,8 @@ export async function createDefaultSimulation(property: Property): Promise<strin
     renovation_cost: property.renovation_cost,
     fiscal_regime: property.fiscal_regime || "micro_bic",
     maintenance_per_m2: property.property_type === "neuf" ? 8 : 12,
+    pno_insurance: 200,
+    gli_rate: 0,
     holding_duration: 0, // 0 = utiliser loan_duration
     annual_appreciation: 1.5,
   };

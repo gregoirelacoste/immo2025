@@ -58,7 +58,15 @@ export function calculateFiscalImpact(
   };
 }
 
-export function calculateAll(property: Property, annualMaintenanceCost: number = 0): PropertyCalculations {
+interface SimulationCharges {
+  annualMaintenanceCost: number;
+  pnoInsurance: number; // €/an
+  gliRate: number; // % du loyer annuel
+}
+
+const DEFAULT_CHARGES: SimulationCharges = { annualMaintenanceCost: 0, pnoInsurance: 0, gliRate: 0 };
+
+export function calculateAll(property: Property, charges: SimulationCharges = DEFAULT_CHARGES): PropertyCalculations {
   const {
     purchase_price,
     property_type,
@@ -94,7 +102,7 @@ export function calculateAll(property: Property, annualMaintenanceCost: number =
     loan_duration
   );
 
-  // Assurance emprunteur mensuelle
+  // Assurance emprunteur mensuelle (coût de financement, pas d'exploitation)
   const monthly_insurance = (loan_amount * (insurance_rate / 100)) / 12;
 
   // Coût total du crédit
@@ -106,11 +114,16 @@ export function calculateAll(property: Property, annualMaintenanceCost: number =
 
   // --- Location classique ---
   const annual_rent_income = monthly_rent * 12 * (1 - vacancy_rate / 100);
+  const gli_cost = annual_rent_income * (charges.gliRate / 100);
+
+  // Charges d'exploitation (hors financement)
+  // copro + taxe foncière + PNO + entretien + GLI
   const annual_charges =
     condo_charges * 12 +
     property_tax +
-    monthly_insurance * 12 +
-    annualMaintenanceCost;
+    charges.pnoInsurance +
+    charges.annualMaintenanceCost +
+    gli_cost;
 
   const gross_yield =
     purchase_price > 0 ? ((monthly_rent * 12) / total_project_cost) * 100 : 0;
@@ -120,19 +133,26 @@ export function calculateAll(property: Property, annualMaintenanceCost: number =
       ? ((annual_rent_income - annual_charges) / total_project_cost) * 100
       : 0;
 
+  // Cash-flow = tout compris (charges exploitation + financement)
   const monthly_cashflow =
     annual_rent_income / 12 -
     monthly_payment -
     monthly_insurance -
     condo_charges -
     property_tax / 12 -
-    annualMaintenanceCost / 12;
+    charges.pnoInsurance / 12 -
+    charges.annualMaintenanceCost / 12 -
+    gli_cost / 12;
 
-  // --- Airbnb ---
+  // --- Airbnb (pas de GLI en Airbnb) ---
   const airbnb_annual_income =
     airbnb_price_per_night * 365 * (airbnb_occupancy_rate / 100);
 
-  const airbnb_annual_charges = airbnb_charges * 12 + property_tax + monthly_insurance * 12 + annualMaintenanceCost;
+  const airbnb_annual_charges =
+    airbnb_charges * 12 +
+    property_tax +
+    charges.pnoInsurance +
+    charges.annualMaintenanceCost;
 
   const airbnb_gross_yield =
     purchase_price > 0 ? (airbnb_annual_income / total_project_cost) * 100 : 0;
@@ -148,7 +168,8 @@ export function calculateAll(property: Property, annualMaintenanceCost: number =
     monthly_insurance -
     airbnb_charges -
     property_tax / 12 -
-    annualMaintenanceCost / 12;
+    charges.pnoInsurance / 12 -
+    charges.annualMaintenanceCost / 12;
 
   // --- Fiscalité ---
   const fiscal = calculateFiscalImpact(
@@ -218,8 +239,12 @@ export function calculateSimulation(property: Property, simulation: Simulation):
     renovation_cost: simulation.renovation_cost,
     fiscal_regime: simulation.fiscal_regime,
   };
-  const annualMaintenance = (simulation.maintenance_per_m2 || 0) * (property.surface || 0);
-  return calculateAll(merged, annualMaintenance);
+  const simCharges: SimulationCharges = {
+    annualMaintenanceCost: (simulation.maintenance_per_m2 || 0) * (property.surface || 0),
+    pnoInsurance: simulation.pno_insurance || 0,
+    gliRate: simulation.gli_rate || 0,
+  };
+  return calculateAll(merged, simCharges);
 }
 
 /** Get the effective monthly rent for a simulation (handles 0 = fallback to property) */
