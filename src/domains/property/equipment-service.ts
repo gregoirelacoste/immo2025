@@ -1,4 +1,5 @@
 import { getDb } from "@/infrastructure/database/client";
+import type { InValue } from "@libsql/client";
 
 export interface Equipment {
   id: string;
@@ -28,6 +29,37 @@ export async function getEquipmentByKey(key: string): Promise<Equipment | null> 
     args: [key],
   });
   return (result.rows[0] as unknown as Equipment) ?? null;
+}
+
+/** Met à jour un équipement */
+export async function updateEquipment(
+  id: string,
+  data: { label?: string; icon?: string; category?: string; value_impact_per_sqm?: number | null }
+): Promise<void> {
+  const db = await getDb();
+  const sets: string[] = [];
+  const args: InValue[] = [];
+
+  if (data.label !== undefined) { sets.push("label = ?"); args.push(data.label); }
+  if (data.icon !== undefined) { sets.push("icon = ?"); args.push(data.icon); }
+  if (data.category !== undefined) { sets.push("category = ?"); args.push(data.category); }
+  if (data.value_impact_per_sqm !== undefined) {
+    sets.push("value_impact_per_sqm = ?");
+    args.push(data.value_impact_per_sqm);
+  }
+
+  if (sets.length === 0) return;
+  args.push(id);
+  await db.execute({ sql: `UPDATE equipments SET ${sets.join(", ")} WHERE id = ?`, args });
+}
+
+/** Supprime un équipement (seulement les non-default) */
+export async function deleteEquipment(id: string): Promise<void> {
+  const db = await getDb();
+  await db.execute({
+    sql: "DELETE FROM equipments WHERE id = ? AND is_default = 0",
+    args: [id],
+  });
 }
 
 /** Crée les équipements manquants (utilisé par l'IA lors de la découverte) */
