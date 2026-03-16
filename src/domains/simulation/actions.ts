@@ -111,6 +111,8 @@ export async function duplicateSimulation(
       airbnb_charges: existing.airbnb_charges,
       renovation_cost: existing.renovation_cost,
       fiscal_regime: existing.fiscal_regime,
+      holding_duration: existing.holding_duration,
+      annual_appreciation: existing.annual_appreciation,
     };
 
     const id = await createSimulation(existing.property_id, userId, data);
@@ -145,6 +147,8 @@ export async function createDefaultSimulation(property: Property): Promise<strin
     airbnb_charges: property.airbnb_charges,
     renovation_cost: property.renovation_cost,
     fiscal_regime: property.fiscal_regime || "micro_bic",
+    holding_duration: 0, // 0 = utiliser loan_duration
+    annual_appreciation: 1.5,
   };
   return createSimulation(property.id, userId, data);
 }

@@ -106,6 +106,29 @@ export interface FiscalImpact {
   net_net_income_reel: number;  // revenu après impôts LMNP réel
 }
 
+export interface CapitalGainsTax {
+  plusValueBrute: number;
+  abattementIR: number; // % d'abattement IR
+  abattementPS: number; // % d'abattement PS
+  taxeIR: number;
+  taxePS: number;
+  taxeTotale: number;
+  plusValueNette: number;
+}
+
+export interface ExitSimulation {
+  holdingDuration: number;
+  salePrice: number;
+  remainingCapital: number;
+  totalRentCollected: number;
+  totalLoanPaid: number;
+  totalChargesPaid: number;
+  capitalGainsTax: CapitalGainsTax;
+  netProfit: number;
+  roi: number; // en %
+  totalInvested: number;
+}
+
 export interface PropertyCalculations {
   // Prêt
   monthly_payment: number;

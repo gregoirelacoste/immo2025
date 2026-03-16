@@ -20,6 +20,9 @@ export interface Simulation {
   airbnb_charges: number;
   renovation_cost: number;
   fiscal_regime: string;
+  // Bilan de sortie
+  holding_duration: number; // durée de détention en années (0 = utiliser loan_duration)
+  annual_appreciation: number; // % d'appréciation annuelle du bien
   created_at: string;
   updated_at: string;
 }
@@ -45,6 +48,8 @@ export const SIMULATION_FIELDS = [
   "airbnb_charges",
   "renovation_cost",
   "fiscal_regime",
+  "holding_duration",
+  "annual_appreciation",
 ] as const;
 
 export type SimulationField = typeof SIMULATION_FIELDS[number];

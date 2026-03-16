@@ -179,11 +179,16 @@ export async function getDb(): Promise<Client> {
         airbnb_charges REAL DEFAULT 0,
         renovation_cost INTEGER DEFAULT 0,
         fiscal_regime TEXT DEFAULT 'micro_bic',
+        holding_duration INTEGER DEFAULT 0,
+        annual_appreciation REAL DEFAULT 1.5,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
         FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
       )`,
       "CREATE INDEX IF NOT EXISTS idx_simulations_property ON simulations(property_id)",
+      // Phase 8: Exit simulation
+      "ALTER TABLE simulations ADD COLUMN holding_duration INTEGER DEFAULT 0",
+      "ALTER TABLE simulations ADD COLUMN annual_appreciation REAL DEFAULT 1.5",
     ]) {
       try { await client.execute(stmt); } catch { /* already exists */ }
     }

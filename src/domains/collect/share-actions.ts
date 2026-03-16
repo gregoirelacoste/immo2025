@@ -218,6 +218,8 @@ export async function processShareAndCreate(
         airbnb_charges: 0,
         renovation_cost: 0,
         fiscal_regime: "micro_bic",
+        holding_duration: 0,
+        annual_appreciation: 1.5,
       });
     } catch (simErr) {
       console.error("Failed to create default simulation:", simErr);
