@@ -1,5 +1,3 @@
-import { AmenityKey } from "@/domains/property/amenities";
-
 // ─────────────────────────────────────────────
 // Checklist item types
 // ─────────────────────────────────────────────

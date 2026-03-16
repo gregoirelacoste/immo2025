@@ -8,6 +8,7 @@ import {
 import { getAuthContext } from "@/lib/auth-actions";
 import { getUserProfile } from "@/domains/auth/repository";
 import { DEFAULT_INPUTS, mergeDefaults } from "@/domains/auth/defaults";
+import { getAllEquipments } from "@/domains/property/equipment-service";
 import Navbar from "@/components/Navbar";
 import PropertyForm from "@/components/property/form/PropertyForm";
 
@@ -28,6 +29,8 @@ export default async function EditPropertyPage({
     }
   }
 
+  const equipments = await getAllEquipments();
+
   // Orphaned property (no owner) — anyone may edit it.
   const orphan = await getOrphanPropertyById(id);
   if (orphan) {
@@ -39,7 +42,7 @@ export default async function EditPropertyPage({
             Modifier le bien
           </h1>
           <Suspense fallback={<div className="text-gray-400">Chargement...</div>}>
-            <PropertyForm existingProperty={orphan} defaultInputs={defaultInputs} />
+            <PropertyForm existingProperty={orphan} defaultInputs={defaultInputs} equipments={equipments} />
           </Suspense>
         </main>
       </div>
@@ -65,7 +68,7 @@ export default async function EditPropertyPage({
           Modifier le bien
         </h1>
         <Suspense fallback={<div className="text-gray-400">Chargement...</div>}>
-          <PropertyForm existingProperty={property} defaultInputs={defaultInputs} />
+          <PropertyForm existingProperty={property} defaultInputs={defaultInputs} equipments={equipments} />
         </Suspense>
       </main>
     </div>

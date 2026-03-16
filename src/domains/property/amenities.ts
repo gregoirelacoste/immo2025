@@ -58,12 +58,12 @@ export const AMENITY_ICONS: Record<AmenityKey, string> = {
   fibre: "📡",
 };
 
-/** Parse le JSON amenities d'une Property */
-export function parseAmenities(json: string): AmenityKey[] {
+/** Parse le JSON amenities d'une Property — accepte toutes les clés string (DB-driven) */
+export function parseAmenities(json: string): string[] {
   try {
     const arr = JSON.parse(json || "[]");
     if (!Array.isArray(arr)) return [];
-    return arr.filter((k: string) => AMENITY_KEYS.includes(k as AmenityKey)) as AmenityKey[];
+    return arr.filter((k: unknown) => typeof k === "string" && k.length > 0) as string[];
   } catch {
     return [];
   }

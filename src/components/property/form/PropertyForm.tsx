@@ -21,7 +21,8 @@ import AirbnbSection from "./AirbnbSection";
 import RenovationSection from "./RenovationSection";
 import FiscalSection from "./FiscalSection";
 import AmenitiesSection from "./AmenitiesSection";
-import { parseAmenities, type AmenityKey } from "@/domains/property/amenities";
+import { parseAmenities } from "@/domains/property/amenities";
+import type { Equipment } from "@/domains/property/equipment-service";
 import ResultsSummarySection from "./ResultsSummarySection";
 import InvestmentScorePreview from "./InvestmentScorePreview";
 import Alert from "@/components/ui/Alert";
@@ -85,9 +86,10 @@ function stripToFormData(p: Property): PropertyFormData {
 interface Props {
   existingProperty?: Property;
   defaultInputs?: DefaultInputs;
+  equipments?: Equipment[];
 }
 
-export default function PropertyForm({ existingProperty, defaultInputs }: Props) {
+export default function PropertyForm({ existingProperty, defaultInputs, equipments = [] }: Props) {
   const isEditing = !!existingProperty;
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -279,7 +281,8 @@ export default function PropertyForm({ existingProperty, defaultInputs }: Props)
       <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} />
       <AmenitiesSection
         selected={parseAmenities(form.amenities)}
-        onChange={(keys: AmenityKey[]) => updateField("amenities", JSON.stringify(keys))}
+        onChange={(keys: string[]) => updateField("amenities", JSON.stringify(keys))}
+        equipments={equipments}
       />
 
       {/* Financial sections: full set when creating, key property data when editing */}
