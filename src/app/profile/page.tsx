@@ -1,19 +1,17 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getAuthContext } from "@/lib/auth-actions";
 import { getUserProfile, getUserById } from "@/domains/auth/repository";
 import Navbar from "@/components/Navbar";
 import ProfileForm from "@/components/profile/ProfileForm";
 import AccountCard from "@/components/profile/AccountCard";
 
-export const dynamic = "force-dynamic";
-
 export default async function ProfilePage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const { userId } = await getAuthContext();
+  if (!userId) redirect("/login");
 
   const [user, profile] = await Promise.all([
-    getUserById(session.user.id),
-    getUserProfile(session.user.id),
+    getUserById(userId),
+    getUserProfile(userId),
   ]);
 
   if (!user) redirect("/login");

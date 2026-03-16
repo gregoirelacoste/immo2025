@@ -1,24 +1,19 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { getPropertyById } from "@/domains/property/repository";
-import { isAdmin as checkIsAdmin } from "@/lib/auth-actions";
+import { getAuthContext } from "@/lib/auth-actions";
 import { getUserProfile } from "@/domains/auth/repository";
 import { getPhotosForProperty } from "@/domains/photo/repository";
 import { getSimulationsForProperty } from "@/domains/simulation/repository";
 import Navbar from "@/components/Navbar";
 import PropertyDetail from "@/components/property/detail/PropertyDetail";
 
-export const dynamic = "force-dynamic";
-
 export default async function PropertyPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await auth();
-  const userId = session?.user?.id;
-  const admin = userId ? await checkIsAdmin() : false;
+  const { userId, isAdmin: admin } = await getAuthContext();
 
   const { id } = await params;
   const property = await getPropertyById(id, userId, admin);

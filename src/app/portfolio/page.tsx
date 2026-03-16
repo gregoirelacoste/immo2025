@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getAuthContext } from "@/lib/auth-actions";
 import { getVisibleProperties } from "@/domains/property/repository";
 import { getFirstSimulationsForProperties } from "@/domains/simulation/repository";
 import { getRentalSummary } from "@/domains/rental/repository";
@@ -9,18 +9,16 @@ import { RentalSummary } from "@/domains/rental/types";
 import Navbar from "@/components/Navbar";
 import PortfolioView from "@/components/portfolio/PortfolioView";
 
-export const dynamic = "force-dynamic";
-
 export default async function PortfolioPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const { userId } = await getAuthContext();
+  if (!userId) redirect("/login");
 
-  const allProperties = await getVisibleProperties(session.user.id);
+  const allProperties = await getVisibleProperties(userId);
 
   // Filter to purchased/managed properties owned by user
   const ownedProperties = allProperties.filter(
     (p) =>
-      p.user_id === session.user!.id &&
+      p.user_id === userId &&
       (p.property_status === "purchased" || p.property_status === "managed")
   );
 
