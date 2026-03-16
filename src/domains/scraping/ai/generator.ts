@@ -1,11 +1,11 @@
 import { FieldSelector, ScrapedPropertyData } from "@/domains/scraping/types";
 import { cleanHtmlForAi } from "@/domains/scraping/pipeline/html-cleaner";
 import { callGemini } from "@/infrastructure/ai/gemini";
-import { AMENITY_KEYS } from "@/domains/property/amenities";
+import { getAllEquipments, ensureEquipmentsExist } from "@/domains/property/equipment-service";
 
-const VALID_AMENITIES = new Set<string>(AMENITY_KEYS);
-
-const GENERATE_PROMPT = `Tu es un expert en web scraping immobilier. Analyse ce HTML d'une annonce immobilière.
+function buildGeneratePrompt(knownKeys: string[]): string {
+  const keysList = knownKeys.map((k) => `"${k}"`).join(", ");
+  return `Tu es un expert en web scraping immobilier. Analyse ce HTML d'une annonce immobilière.
 
 TÂCHE 1 — Génère un manifest JSON de sélecteurs CSS pour extraire les champs suivants.
 TÂCHE 2 — Extrais directement les valeurs que tu trouves dans le HTML.
@@ -30,16 +30,18 @@ Champs à extraire :
 - monthly_rent : le loyer mensuel en euros si mentionné (ex: "loyer estimé", "loyer", "revenus locatifs", "loyer HC", "loyer charges comprises"). Nombre entier. Omets si non trouvé.
 - condo_charges : les charges de copropriété mensuelles en euros (ex: "charges", "charges de copropriété", "charges mensuelles", "provisions sur charges"). Nombre entier. Omets si non trouvé.
 - property_tax : la taxe foncière annuelle en euros (ex: "taxe foncière", "impôt foncier"). Nombre entier. Omets si non trouvé.
-- amenities : tableau de clés d'équipements détectés parmi EXACTEMENT ces valeurs : "garage", "parking", "cave", "balcon", "terrasse", "piscine", "jardin", "ascenseur", "gardien", "interphone", "meuble", "climatisation", "cheminee", "parquet", "double_vitrage", "fibre". Cherche dans la description, les caractéristiques, les pictogrammes, les listes de prestations, les critères. Attention : les termes varient selon les sites (ex: "stationnement"="parking", "cellier"="cave", "véranda"="terrasse", "résidence sécurisée"="interphone"+"gardien", "plancher bois"="parquet", "climatiseur/clim"="climatisation", "DV"="double_vitrage", "FTTH"="fibre", "furnished"="meuble"). Pour amenities, le champ "css" n'est pas nécessaire, mets null. Retourne directement la liste dans "extracted_value".
+- amenities : tableau de clés d'équipements détectés parmi ces valeurs connues : ${keysList}. Cherche dans la description, les caractéristiques, les pictogrammes, les listes de prestations, les critères. Attention : les termes varient selon les sites (ex: "stationnement"="parking", "cellier"="cave", "véranda"="terrasse", "résidence sécurisée"="interphone"+"gardien", "plancher bois"="parquet", "climatiseur/clim"="climatisation", "DV"="double_vitrage", "FTTH"="fibre", "furnished"="meuble"). Pour amenities, le champ "css" n'est pas nécessaire, mets null. Retourne directement la liste dans "extracted_value".
+- amenities_new : tableau d'équipements détectés qui NE SONT PAS dans la liste connue ci-dessus. Pour chaque nouvel équipement, retourne un objet { "key": "identifiant_snake_case", "label": "Label en français", "icon": "emoji" }. Exemples : buanderie, local_velo, store_banne, volet_roulant, videophone, portail_electrique, alarme, VMC, chauffage_sol, etc. Ne duplique pas un équipement déjà dans la liste connue sous un autre nom. Pour amenities_new, le champ "css" n'est pas nécessaire, mets null. Retourne directement la liste dans "extracted_value".
 
 Pour monthly_rent, condo_charges et property_tax, le champ "css" n'est pas nécessaire, mets null. Retourne directement la valeur numérique dans "extracted_value".
 
 Retourne UNIQUEMENT un objet JSON valide. Pas de commentaires, pas de virgule après le dernier élément.
 `;
+}
 
-function buildRetryPrompt(previousErrors: string[]): string {
+function buildRetryPrompt(basePrompt: string, previousErrors: string[]): string {
   return (
-    GENERATE_PROMPT +
+    basePrompt +
     `\nATTENTION — Les tentatives précédentes ont échoué avec ces erreurs :\n` +
     previousErrors.map((e, i) => `- Tentative ${i + 1}: ${e}`).join("\n") +
     `\nCorrige les sélecteurs et les valeurs en tenant compte de ces erreurs.\n`
@@ -61,11 +63,16 @@ export async function generateWithAi(
   html: string,
   previousErrors: string[] = []
 ): Promise<AiGenerationResult> {
+  // Charger les équipements connus depuis la BDD
+  const equipments = await getAllEquipments();
+  const knownKeys = new Set(equipments.map((e) => e.key));
+  const generatePrompt = buildGeneratePrompt([...knownKeys]);
+
   const cleanedHtml = cleanHtmlForAi(html);
   const basePrompt =
     previousErrors.length > 0
-      ? buildRetryPrompt(previousErrors)
-      : GENERATE_PROMPT;
+      ? buildRetryPrompt(generatePrompt, previousErrors)
+      : generatePrompt;
   const prompt = basePrompt + "\nHTML à analyser :\n" + cleanedHtml;
 
   const text = await callGemini(prompt, {
@@ -140,12 +147,26 @@ export async function generateWithAi(
   } else if (extractedValues.property_type === "ancien") {
     data.property_type = "ancien";
   }
+  // Traiter les équipements connus
+  const allAmenities: string[] = [];
   if (Array.isArray(extractedValues.amenities)) {
-    const valid = (extractedValues.amenities as string[]).filter((k) =>
-      VALID_AMENITIES.has(k)
-    );
-    if (valid.length > 0) data.amenities = valid;
+    const valid = (extractedValues.amenities as string[]).filter((k) => knownKeys.has(k));
+    allAmenities.push(...valid);
   }
+
+  // Traiter les nouveaux équipements découverts par l'IA
+  if (Array.isArray(extractedValues.amenities_new)) {
+    const rawNew = extractedValues.amenities_new as unknown;
+    if (Array.isArray(rawNew)) {
+      const newItems = (rawNew as Array<{ key: string; label: string; icon: string }>)
+        .filter((item) => item && item.key && !knownKeys.has(item.key));
+      if (newItems.length > 0) {
+        const createdKeys = await ensureEquipmentsExist(newItems);
+        allAmenities.push(...createdKeys);
+      }
+    }
+  }
+  if (allAmenities.length > 0) data.amenities = allAmenities;
   if (extractedValues.monthly_rent != null) {
     const n = parseInt(String(extractedValues.monthly_rent).replace(/[^\d]/g, ""), 10);
     if (n > 0) data.monthly_rent = n;

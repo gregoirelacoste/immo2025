@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { getUserProfile } from "@/domains/auth/repository";
 import { DEFAULT_INPUTS, mergeDefaults } from "@/domains/auth/defaults";
+import { getAllEquipments } from "@/domains/property/equipment-service";
 import Navbar from "@/components/Navbar";
 import PropertyForm from "@/components/property/form/PropertyForm";
 
@@ -16,6 +17,8 @@ export default async function NewPropertyPage() {
     }
   }
 
+  const equipments = await getAllEquipments();
+
   return (
     <div className="min-h-screen bg-[#f4f3ef]">
       <Navbar />
@@ -24,7 +27,7 @@ export default async function NewPropertyPage() {
           Ajouter un bien
         </h1>
         <Suspense fallback={<div className="text-gray-400">Chargement...</div>}>
-          <PropertyForm defaultInputs={defaultInputs} />
+          <PropertyForm defaultInputs={defaultInputs} equipments={equipments} />
         </Suspense>
       </main>
     </div>

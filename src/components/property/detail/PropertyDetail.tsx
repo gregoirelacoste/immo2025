@@ -10,7 +10,8 @@ import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
 import type { SocioEconomicData } from "@/domains/enrich/socioeconomic-types";
 import type { InvestmentScoreBreakdown } from "@/domains/enrich/types";
-import { parseAmenities, AMENITY_LABELS, AMENITY_ICONS } from "@/domains/property/amenities";
+import { parseAmenities } from "@/domains/property/amenities";
+import type { Equipment } from "@/domains/property/equipment-service";
 import { getGrade, rentaColor, cashflowColor, getVerdict, verdictColor } from "@/lib/grade";
 import Link from "next/link";
 import PropertyHeader from "./PropertyHeader";
@@ -36,6 +37,7 @@ interface Props {
   userProfile?: UserProfile | null;
   photos?: Photo[];
   simulations?: Simulation[];
+  equipments?: Equipment[];
 }
 
 function parseJson<T>(json: string, fallback: T): T {
@@ -43,7 +45,7 @@ function parseJson<T>(json: string, fallback: T): T {
   catch { return fallback; }
 }
 
-export default function PropertyDetail({ property, isOwner = false, userProfile, photos = [], simulations = [] }: Props) {
+export default function PropertyDetail({ property, isOwner = false, userProfile, photos = [], simulations = [], equipments = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Use first simulation's data for KPIs if available, otherwise fall back to property data
@@ -57,6 +59,7 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
   const scoreBreakdown = parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null);
   const socioData = parseJson<SocioEconomicData | null>(property.socioeconomic_data, null);
   const amenities = parseAmenities(property.amenities);
+  const eqMap = new Map(equipments.map((e) => [e.key, e]));
   const images: string[] = parseJson(property.image_urls, []);
 
   const pricePerM2 = property.surface > 0 ? property.purchase_price / property.surface : 0;
@@ -235,12 +238,15 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
             {amenities.length > 0 && (
               <div className="mt-4 pt-3 border-t border-gray-100">
                 <div className="flex flex-wrap gap-1.5">
-                  {amenities.map((key) => (
-                    <span key={key} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-100">
-                      <span>{AMENITY_ICONS[key]}</span>
-                      <span>{AMENITY_LABELS[key]}</span>
-                    </span>
-                  ))}
+                  {amenities.map((key) => {
+                    const eq = eqMap.get(key);
+                    return (
+                      <span key={key} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-100">
+                        <span>{eq?.icon ?? "🏠"}</span>
+                        <span>{eq?.label ?? key}</span>
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             )}

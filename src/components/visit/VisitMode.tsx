@@ -4,7 +4,8 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Property } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
-import { parseAmenities, AMENITY_LABELS } from "@/domains/property/amenities";
+import { parseAmenities } from "@/domains/property/amenities";
+import type { Equipment } from "@/domains/property/equipment-service";
 import { calculateAll, calculateSimulation, formatCurrency, formatPercent } from "@/lib/calculations";
 import { resolveVisitConfig } from "@/domains/visit/constants";
 import { changePropertyStatus } from "@/domains/property/actions";
@@ -25,9 +26,10 @@ import PhotoGuidedMode from "./PhotoGuidedMode";
 interface Props {
   property: Property;
   simulation?: Simulation | null;
+  equipments?: Equipment[];
 }
 
-export default function VisitMode({ property, simulation }: Props) {
+export default function VisitMode({ property, simulation, equipments = [] }: Props) {
   const router = useRouter();
   const calculations = useMemo(
     () => simulation ? calculateSimulation(property, simulation) : calculateAll(property),
@@ -199,7 +201,7 @@ export default function VisitMode({ property, simulation }: Props) {
                   key={key}
                   className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-full"
                 >
-                  {AMENITY_LABELS[key]}
+                  {equipments.find((e) => e.key === key)?.label ?? key}
                 </span>
               ))}
             </div>

@@ -466,7 +466,6 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
 // Helper: build the full config for a given property
 // ─────────────────────────────────────────────
 
-import type { AmenityKey } from "@/domains/property/amenities";
 import type {
   ChecklistCategory,
   PhotoTag,
@@ -486,7 +485,7 @@ export interface ResolvedVisitConfig {
  * merging base items with conditional items based on amenities and type.
  */
 export function resolveVisitConfig(
-  amenities: AmenityKey[],
+  amenities: string[],
   propertyType: "ancien" | "neuf",
 ): ResolvedVisitConfig {
   const config = VISIT_CHECKLIST_CONFIG;

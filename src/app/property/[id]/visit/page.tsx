@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getAuthContext } from "@/lib/auth-actions";
 import { getPropertyById } from "@/domains/property/repository";
 import { getFirstSimulationForProperty } from "@/domains/simulation/repository";
+import { getAllEquipments } from "@/domains/property/equipment-service";
 import VisitMode from "@/components/visit/VisitMode";
 
 export default async function VisitPage({
@@ -18,7 +19,10 @@ export default async function VisitPage({
     notFound();
   }
 
-  const firstSim = await getFirstSimulationForProperty(id);
+  const [firstSim, equipments] = await Promise.all([
+    getFirstSimulationForProperty(id),
+    getAllEquipments(),
+  ]);
 
-  return <VisitMode property={property} simulation={firstSim} />;
+  return <VisitMode property={property} simulation={firstSim} equipments={equipments} />;
 }
