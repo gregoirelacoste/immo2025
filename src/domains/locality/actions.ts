@@ -63,6 +63,7 @@ export async function addLocality(data: {
     });
 
     revalidatePath("/localities");
+    revalidatePath("/guide", "layout");
     return { success: true, id };
   } catch (e) {
     return { success: false, error: (e as Error).message };
@@ -93,6 +94,7 @@ export async function editLocality(
     });
 
     revalidatePath("/localities");
+    revalidatePath("/guide", "layout");
     return { success: true };
   } catch (e) {
     return { success: false, error: (e as Error).message };
@@ -104,6 +106,7 @@ export async function removeLocality(id: string): Promise<{ success: boolean; er
     await requireUserId();
     await repoDeleteLocality(id);
     revalidatePath("/localities");
+    revalidatePath("/guide", "layout");
     return { success: true };
   } catch (e) {
     return { success: false, error: (e as Error).message };
@@ -162,6 +165,7 @@ export async function importLocalityData(
     });
 
     revalidatePath("/localities");
+    revalidatePath("/guide", "layout");
     return { success: true, id };
   } catch (e) {
     return { success: false, error: (e as Error).message };
@@ -173,6 +177,7 @@ export async function removeLocalityData(id: string): Promise<{ success: boolean
     await requireUserId();
     await repoDeleteLocalityData(id);
     revalidatePath("/localities");
+    revalidatePath("/guide", "layout");
     return { success: true };
   } catch (e) {
     return { success: false, error: (e as Error).message };
