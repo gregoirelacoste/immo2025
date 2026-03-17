@@ -63,21 +63,13 @@ jobs:
       - name: Génération automatique (cron)
         if: github.event_name == 'schedule'
         run: npx tsx scripts/blog-generate.ts --category guide_ville --city auto --publish
-        env:
-          BLOG_AUTO_SELECT: 'true'
 
       # ── Manual dispatch ──
       - name: Génération manuelle (dispatch)
         if: github.event_name == 'workflow_dispatch'
-        run: |
-          ARGS="--category ${{ inputs.category }}"
-          if [ -n "${{ inputs.city }}" ]; then
-            ARGS="$ARGS --city \"${{ inputs.city }}\""
-          fi
-          if [ "${{ inputs.publish }}" = "true" ]; then
-            ARGS="$ARGS --publish"
-          fi
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            ARGS="$ARGS --dry-run"
-          fi
-          eval npx tsx scripts/blog-generate.ts $ARGS
+        run: >-
+          npx tsx scripts/blog-generate.ts
+          --category "${{ inputs.category }}"
+          ${{ inputs.city && format('--city "{0}"', inputs.city) }}
+          ${{ inputs.publish == true && '--publish' || '' }}
+          ${{ inputs.dry_run == true && '--dry-run' || '' }}

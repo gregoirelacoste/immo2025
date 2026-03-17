@@ -12,7 +12,7 @@ import {
   getArticleStats,
 } from "./repository";
 import { injectArticleData } from "./data-injector";
-import { ArticleCategory, GeneratedArticle } from "./types";
+import { ArticleCategory, BlogArticle, GeneratedArticle } from "./types";
 
 async function requireAdmin() {
   const { userId, isAdmin } = await getAuthContext();
@@ -36,17 +36,17 @@ export async function generateArticleAction(
       triggeredBy: "admin",
     });
 
-    if (!result.success) {
-      return { success: false, error: result.error };
+    if (!result.success || !result.article) {
+      return { success: false, error: result.error || "Article non généré" };
     }
 
     revalidatePath("/admin/blog");
     revalidatePath("/blog");
     if (autoPublish) {
-      revalidatePath(`/blog/${result.article!.slug}`);
+      revalidatePath(`/blog/${result.article.slug}`);
     }
 
-    return { success: true, articleId: result.article!.id };
+    return { success: true, articleId: result.article.id };
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }
@@ -151,13 +151,22 @@ export async function updateArticleContentAction(
   }
 }
 
-export async function getArticleDashboardAction() {
-  await requireAdmin();
+export async function getArticleDashboardAction(): Promise<{
+  success: boolean;
+  error?: string;
+  stats?: Awaited<ReturnType<typeof getArticleStats>>;
+  articles?: BlogArticle[];
+}> {
+  try {
+    await requireAdmin();
 
-  const [stats, { articles }] = await Promise.all([
-    getArticleStats(),
-    listArticles({ limit: 20 }),
-  ]);
+    const [stats, { articles }] = await Promise.all([
+      getArticleStats(),
+      listArticles({ limit: 20 }),
+    ]);
 
-  return { stats, articles };
+    return { success: true, stats, articles };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
 }

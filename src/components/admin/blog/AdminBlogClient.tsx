@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   generateArticleAction,
   publishArticleAction,
@@ -33,6 +34,7 @@ const CATEGORY_LABELS: Record<ArticleCategory, string> = {
 };
 
 export default function AdminBlogClient({ stats, initialArticles }: Props) {
+  const router = useRouter();
   const [articles, setArticles] = useState(initialArticles);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,8 +68,7 @@ export default function AdminBlogClient({ stats, initialArticles }: Props) {
     if (result.success) {
       setSuccess(`Article généré avec succès (ID: ${result.articleId})`);
       setCity("");
-      // Refresh — in a real app we'd use router.refresh()
-      window.location.reload();
+      router.refresh();
     } else {
       setError(result.error || "Erreur inconnue");
     }
