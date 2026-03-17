@@ -11,6 +11,8 @@
 | 5 | [Re-scraping intelligent](./phase-5-rescraping.md) | A faire | - |
 | 6 | [Partage PWA ameliore](./phase-6-pwa-share.md) | A faire | Phase 3 (analyse image) |
 | 7 | [Capacitor + CI/CD stores automatise](./phase-7-capacitor-cicd.md) | A faire | Aucune (parallele) |
+| 8 | [Extraction webview](./phase-8-webview-extraction.md) | A faire | Phase 7 |
+| 9 | [Blog SEO/GEO + enrichissement données](./phase-9-seo-blog-pipeline.md) | A faire | Aucune (parallele) |
 
 ## Architecture cible
 
