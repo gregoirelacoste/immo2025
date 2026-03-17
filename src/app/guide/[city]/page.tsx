@@ -193,25 +193,32 @@ export default async function CityGuidePage({ params }: Props) {
         )}
 
         {/* Risques */}
-        {(f.risk_level || (f.natural_risks && f.natural_risks.length > 0)) && (
-          <Section title="Risques">
-            <div className="bg-gray-50 rounded-lg p-4">
-              {f.risk_level && (
-                <DataRow label="Niveau de risque global" value={f.risk_level} />
-              )}
-              {f.natural_risks && f.natural_risks.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-sm text-gray-600 mb-1">Risques identifiés :</p>
-                  <ul className="text-sm text-gray-700 list-disc list-inside">
-                    {f.natural_risks.map((r, i) => (
-                      <li key={i}>{r.type} ({r.level})</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </Section>
-        )}
+        {(() => {
+          const risks: Array<{ type: string; level: string }> = Array.isArray(f.natural_risks)
+            ? f.natural_risks
+            : typeof f.natural_risks === "string"
+              ? (() => { try { const p = JSON.parse(f.natural_risks); return Array.isArray(p) ? p : []; } catch { return []; } })()
+              : [];
+          return (f.risk_level || risks.length > 0) ? (
+            <Section title="Risques">
+              <div className="bg-gray-50 rounded-lg p-4">
+                {f.risk_level && (
+                  <DataRow label="Niveau de risque global" value={f.risk_level} />
+                )}
+                {risks.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600 mb-1">Risques identifiés :</p>
+                    <ul className="text-sm text-gray-700 list-disc list-inside">
+                      {risks.map((r, i) => (
+                        <li key={i}>{r.type} ({r.level})</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </Section>
+          ) : null;
+        })()}
 
         {/* CTA */}
         <div className="mt-12 rounded-xl bg-amber-50 border border-amber-200 p-6 text-center">
