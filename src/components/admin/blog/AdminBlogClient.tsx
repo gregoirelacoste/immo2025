@@ -7,7 +7,6 @@ import {
   publishArticleAction,
   unpublishArticleAction,
   deleteArticleAction,
-  injectDataAction,
 } from "@/domains/blog/actions";
 import { BlogArticle, ARTICLE_CATEGORIES, ArticleCategory } from "@/domains/blog/types";
 
@@ -106,26 +105,13 @@ export default function AdminBlogClient({ stats, initialArticles }: Props) {
     }
   }
 
-  async function handleInjectData(id: string) {
-    const result = await injectDataAction(id);
-    if (result.success) {
-      setSuccess(`Données injectées : ${result.injected} localité(s)`);
-      setArticles((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, data_injected: 1 } : a))
-      );
-    } else {
-      setError(result.error || "Erreur injection");
-    }
-  }
-
   return (
     <div className="space-y-8">
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard label="Total" value={stats.total} />
         <KpiCard label="Publiés" value={stats.published} color="text-green-600" />
         <KpiCard label="Brouillons" value={stats.draft} color="text-amber-600" />
-        <KpiCard label="Données injectées" value={stats.dataInjected} color="text-blue-600" />
         <KpiCard label="Cette semaine" value={stats.thisWeek} />
       </div>
 
@@ -246,14 +232,6 @@ export default function AdminBlogClient({ stats, initialArticles }: Props) {
                       className="px-3 py-1.5 text-xs rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"
                     >
                       Dépublier
-                    </button>
-                  )}
-                  {article.data_injected === 0 && article.extracted_data !== "{}" && (
-                    <button
-                      onClick={() => handleInjectData(article.id)}
-                      className="px-3 py-1.5 text-xs rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
-                    >
-                      Injecter données
                     </button>
                   )}
                   {article.status === "published" && (

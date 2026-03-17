@@ -28,29 +28,63 @@ RÈGLES D'ÉCRITURE :
 - Voix active, phrases courtes (max 3 lignes par paragraphe)
 - Chaque affirmation chiffrée doit indiquer sa source et sa date
 - Commence par les données, pas par une question rhétorique
-- Section FAQ obligatoire (3-5 questions avec réponses directes)
+- Section FAQ obligatoire en fin d'article
 - CTA final vers tiili.io (naturel, pas commercial)
 - Pas de superlatifs vagues, pas de promesses de rendement garanti
 - Pas de conseil fiscal personnalisé
-
-FORMAT HTML — Utilise des éléments sémantiques variés pour améliorer la lisibilité :
-- <h2> pour les sections principales — descriptifs avec données ("Prix à Lyon : 4 200 €/m²", pas "Le marché lyonnais")
-- <h3> pour les sous-sections
-- <p> pour les paragraphes courts (max 3 lignes)
-- <ul><li> pour les listes à puces (avantages, critères, points de vigilance)
-- <ol><li> pour les classements et étapes ordonnées
-- <table> avec <thead>/<tbody>/<th>/<td> pour les comparaisons chiffrées de 3+ éléments
-- <strong> pour mettre en valeur les chiffres clés et conclusions importantes dans un paragraphe
-- <blockquote> pour les citations de sources ou les points à retenir
-- Alterne les formats (paragraphe → liste → tableau → paragraphe) pour éviter la monotonie
-- Chaque section doit contenir au moins 2 types d'éléments différents (pas que des <p>)
 
 OPTIMISATION GEO (pour être cité par les IA) :
 - Phrases assertives avec chiffres : "Le rendement brut moyen à Lyon est de 5,2 %"
 - Chaque phrase doit être compréhensible hors contexte
 - Inclure ville + chiffre + source dans la même phrase
 
-FORMAT DE SORTIE — UTILISE EXACTEMENT CES DÉLIMITEURS :
+═══ FORMAT HTML OBLIGATOIRE ═══
+
+Tu produis du HTML sémantique riche. Respecte EXACTEMENT cette structure :
+
+HIÉRARCHIE DES TITRES :
+- <h2> = section principale. Toujours descriptif avec un chiffre clé.
+  BON : <h2>Marché immobilier à Lyon : 4 200 €/m² en 2025</h2>
+  MAUVAIS : <h2>Le marché lyonnais</h2>
+- <h3> = sous-section à l'intérieur d'un <h2>.
+  BON : <h3>Quartier Part-Dieu : 3 800 €/m², rendement 5,8 %</h3>
+- Ne saute JAMAIS de niveau (pas de <h3> sans <h2> parent).
+
+CORPS DE CHAQUE SECTION — alterne obligatoirement entre au moins 2 de ces éléments :
+- <p> : paragraphes courts (2-3 phrases max). Utilise <strong> pour les chiffres clés.
+- <ul>/<ol> : listes à puces ou numérotées. Chaque <li> fait 1-2 lignes.
+- <table> : pour comparer 3+ éléments avec des chiffres. Structure complète :
+  <table><thead><tr><th>...</th></tr></thead><tbody><tr><td>...</td></tr></tbody></table>
+- <blockquote> : pour un point à retenir ou une conclusion intermédiaire.
+
+RÈGLE ANTI-MONOTONIE : ne fais JAMAIS plus de 2 <p> consécutifs. Insère une liste, un tableau ou une blockquote entre eux.
+
+FAQ : utilise <h3> pour chaque question et <p> pour la réponse.
+
+EXEMPLE DE SECTION BIEN FORMATÉE :
+
+<h2>Marché locatif à Lyon : 14 €/m² en moyenne (2025)</h2>
+<p>Le loyer moyen à Lyon atteint <strong>14 €/m²</strong> pour un appartement nu, selon l'Observatoire des loyers (T1 2025). C'est <strong>12 % au-dessus</strong> de la moyenne régionale.</p>
+<table>
+<thead><tr><th>Type</th><th>Loyer moyen/m²</th><th>Rendement brut</th></tr></thead>
+<tbody>
+<tr><td>Studio</td><td>18,5 €</td><td>5,8 %</td></tr>
+<tr><td>T2</td><td>14,2 €</td><td>5,1 %</td></tr>
+<tr><td>T3</td><td>12,1 €</td><td>4,5 %</td></tr>
+</tbody>
+</table>
+<p>Le T2 reste le <strong>meilleur compromis rendement/liquidité</strong> pour un investisseur débutant.</p>
+<h3>Quartiers les plus rentables</h3>
+<ul>
+<li><strong>Guillotière</strong> — 12 €/m², rendement brut 6,2 %. Forte demande étudiante.</li>
+<li><strong>Villeurbanne Gratte-Ciel</strong> — 13 €/m², rendement 5,5 %. Métro direct.</li>
+<li><strong>Part-Dieu</strong> — 14,5 €/m², rendement 5,1 %. Secteur tertiaire.</li>
+</ul>
+<blockquote>À retenir : vise un T2 en zone étudiante pour maximiser le rendement locatif à Lyon.</blockquote>
+
+═══ FORMAT DE SORTIE ═══
+
+Utilise EXACTEMENT ces 3 délimiteurs :
 
 ---ARTICLE_META---
 {
@@ -61,9 +95,7 @@ FORMAT DE SORTIE — UTILISE EXACTEMENT CES DÉLIMITEURS :
   "tags": ["tag1", "tag2"]
 }
 ---ARTICLE_CONTENT---
-<h2>Premier titre</h2>
-<p>Contenu HTML complet ici...</p>
-(tout le HTML de l'article, aussi long que nécessaire)
+(tout le HTML de l'article ici, aussi long que nécessaire)
 ---EXTRACTED_DATA---
 {
   "localities": [
@@ -76,11 +108,11 @@ FORMAT DE SORTIE — UTILISE EXACTEMENT CES DÉLIMITEURS :
   "global": {}
 }
 
-IMPORTANT :
-- Les 3 délimiteurs (---ARTICLE_META---, ---ARTICLE_CONTENT---, ---EXTRACTED_DATA---) sont OBLIGATOIRES
-- Le contenu HTML est entre ---ARTICLE_CONTENT--- et ---EXTRACTED_DATA--- (pas dans du JSON)
+CONTRAINTES TECHNIQUES :
+- Les 3 délimiteurs sont OBLIGATOIRES
+- Le HTML est entre ---ARTICLE_CONTENT--- et ---EXTRACTED_DATA---
 - Les blocs META et EXTRACTED_DATA sont du JSON valide
-- Dans extracted_data.localities[].fields, utilise les noms de champs snake_case suivants :
+- Dans extracted_data.localities[].fields, utilise ces noms snake_case :
   avg_purchase_price_per_m2, median_purchase_price_per_m2, transaction_count,
   avg_rent_per_m2, avg_rent_furnished_per_m2, vacancy_rate,
   avg_condo_charges_per_m2, avg_property_tax_per_m2,

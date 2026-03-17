@@ -59,10 +59,26 @@ jobs:
 
       - run: npm ci
 
-      # ── Scheduled run : sélection automatique ──
+      # ── Scheduled run : rotation catégorie + ville ──
+      # Lun-Mer-Ven : guide_ville (rotation villes)
+      # Mar : actu_marche
+      # Jeu : conseil_investissement
+      # Sam : fiscalite ou financement (alternance)
       - name: Génération automatique (cron)
         if: github.event_name == 'schedule'
-        run: npx tsx scripts/blog-generate.ts --category guide_ville --city auto --publish
+        run: |
+          DOW=$(date +%u)  # 1=lundi ... 6=samedi
+          case $DOW in
+            1|3|5) npx tsx scripts/blog-generate.ts --category guide_ville --city auto --publish ;;
+            2)     npx tsx scripts/blog-generate.ts --category actu_marche --publish ;;
+            4)     npx tsx scripts/blog-generate.ts --category conseil_investissement --publish ;;
+            6)     WEEK=$(date +%V)
+                   if [ $((WEEK % 2)) -eq 0 ]; then
+                     npx tsx scripts/blog-generate.ts --category fiscalite --publish
+                   else
+                     npx tsx scripts/blog-generate.ts --category financement --publish
+                   fi ;;
+          esac
 
       # ── Manual dispatch ──
       - name: Génération manuelle (dispatch)
