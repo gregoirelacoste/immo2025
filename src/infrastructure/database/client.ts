@@ -14,7 +14,7 @@ export function getClient(): Client {
 }
 
 // Bump this when adding new migrations so cold starts re-run them
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints
@@ -214,6 +214,9 @@ async function initializeDatabase(client: Client): Promise<void> {
     "ALTER TABLE simulations ADD COLUMN maintenance_per_m2 REAL DEFAULT 12",
     "ALTER TABLE simulations ADD COLUMN pno_insurance REAL DEFAULT 200",
     "ALTER TABLE simulations ADD COLUMN gli_rate REAL DEFAULT 0",
+    "ALTER TABLE properties ADD COLUMN travaux_ratings TEXT DEFAULT '{}'",
+    "ALTER TABLE properties ADD COLUMN travaux_overrides TEXT DEFAULT '{}'",
+    "ALTER TABLE properties ADD COLUMN equipment_costs TEXT DEFAULT '{}'",
   ];
   const migrationErrors: Array<{ stmt: string; error: unknown }> = [];
   await Promise.all(

@@ -25,6 +25,7 @@ import StickyHeader from "./StickyHeader";
 import BudgetIndicator from "@/components/property/BudgetIndicator";
 import SimulationTab from "./SimulationTab";
 import TravauxTab from "./TravauxTab";
+import EquipementsTab from "./EquipementsTab";
 import CompletionBadge from "./CompletionBadge";
 import { getCompletionSummary } from "@/domains/property/completion";
 import { getFieldsByCategory, isFieldFilled } from "@/domains/property/field-registry";
@@ -370,25 +371,9 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
         <TravauxTab property={property} />
       )}
 
-      {/* ═══════════════════ ONGLET VISITE ═══════════════════ */}
-      {activeTab === "visite" && (
-        <div className="space-y-4 mt-4">
-          <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6 text-center">
-            <Link
-              href={`/property/${property.id}/visit`}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors min-h-[48px]"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
-              </svg>
-              Démarrer le mode visite
-            </Link>
-            <p className="text-sm text-gray-500 mt-3">
-              Le mode visite vous guide pour photographier chaque pièce et noter vos observations.
-            </p>
-          </section>
-        </div>
+      {/* ═══════════════════ ONGLET ÉQUIPEMENTS ═══════════════════ */}
+      {activeTab === "equipements" && (
+        <EquipementsTab property={property} marketData={marketData} />
       )}
     </div>
   );

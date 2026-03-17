@@ -168,7 +168,7 @@ export async function getRecentDuplicateProperty(
 }
 
 export async function createProperty(
-  property: Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at" | "active_simulation_id">
+  property: Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "socioeconomic_data" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at" | "active_simulation_id" | "travaux_ratings" | "travaux_overrides" | "equipment_costs"> & Partial<Pick<Property, "travaux_ratings" | "travaux_overrides" | "equipment_costs">>
 ): Promise<string> {
   const db = await getDb();
   const id = crypto.randomUUID();
@@ -182,14 +182,16 @@ export async function createProperty(
         insurance_rate, loan_fees, notary_fees, rent_per_m2, monthly_rent, condo_charges,
         property_tax, vacancy_rate, airbnb_price_per_night, airbnb_occupancy_rate,
         airbnb_charges, renovation_cost, dpe_rating, fiscal_regime,
-        amenities, source_url, image_urls, prefill_sources, created_at, updated_at
+        amenities, travaux_ratings, travaux_overrides, equipment_costs,
+        source_url, image_urls, prefill_sources, created_at, updated_at
       ) VALUES (
         $id, $user_id, $visibility, $address, $city, $postal_code, $purchase_price, $surface, $property_type, $description, $neighborhood,
         $loan_amount, $interest_rate, $loan_duration, $personal_contribution,
         $insurance_rate, $loan_fees, $notary_fees, $rent_per_m2, $monthly_rent, $condo_charges,
         $property_tax, $vacancy_rate, $airbnb_price_per_night, $airbnb_occupancy_rate,
         $airbnb_charges, $renovation_cost, $dpe_rating, $fiscal_regime,
-        $amenities, $source_url, $image_urls, $prefill_sources, $created_at, $updated_at
+        $amenities, $travaux_ratings, $travaux_overrides, $equipment_costs,
+        $source_url, $image_urls, $prefill_sources, $created_at, $updated_at
       )
     `,
     args: {
@@ -223,6 +225,9 @@ export async function createProperty(
       dpe_rating: property.dpe_rating,
       fiscal_regime: property.fiscal_regime,
       amenities: property.amenities,
+      travaux_ratings: property.travaux_ratings ?? "{}",
+      travaux_overrides: property.travaux_overrides ?? "{}",
+      equipment_costs: property.equipment_costs ?? "{}",
       source_url: property.source_url,
       image_urls: property.image_urls,
       prefill_sources: property.prefill_sources,
@@ -256,7 +261,8 @@ export async function updateProperty(
         vacancy_rate = $vacancy_rate, airbnb_price_per_night = $airbnb_price_per_night,
         airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
         renovation_cost = $renovation_cost, dpe_rating = $dpe_rating, fiscal_regime = $fiscal_regime,
-        amenities = $amenities, source_url = $source_url, image_urls = $image_urls,
+        amenities = $amenities, travaux_ratings = $travaux_ratings, travaux_overrides = $travaux_overrides, equipment_costs = $equipment_costs,
+        source_url = $source_url, image_urls = $image_urls,
         prefill_sources = $prefill_sources, updated_at = $updated_at
       WHERE id = $id AND user_id = $user_id
     `,
@@ -291,6 +297,9 @@ export async function updateProperty(
       dpe_rating: property.dpe_rating,
       fiscal_regime: property.fiscal_regime,
       amenities: property.amenities,
+      travaux_ratings: property.travaux_ratings ?? "{}",
+      travaux_overrides: property.travaux_overrides ?? "{}",
+      equipment_costs: property.equipment_costs ?? "{}",
       source_url: property.source_url,
       image_urls: property.image_urls,
       prefill_sources: property.prefill_sources,
@@ -321,7 +330,8 @@ export async function updateOrphanProperty(
         vacancy_rate = $vacancy_rate, airbnb_price_per_night = $airbnb_price_per_night,
         airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
         renovation_cost = $renovation_cost, dpe_rating = $dpe_rating, fiscal_regime = $fiscal_regime,
-        amenities = $amenities, source_url = $source_url, image_urls = $image_urls,
+        amenities = $amenities, travaux_ratings = $travaux_ratings, travaux_overrides = $travaux_overrides, equipment_costs = $equipment_costs,
+        source_url = $source_url, image_urls = $image_urls,
         prefill_sources = $prefill_sources, updated_at = $updated_at
       WHERE id = $id AND (user_id = '' OR user_id IS NULL)
     `,
@@ -355,6 +365,9 @@ export async function updateOrphanProperty(
       dpe_rating: property.dpe_rating,
       fiscal_regime: property.fiscal_regime,
       amenities: property.amenities,
+      travaux_ratings: property.travaux_ratings ?? "{}",
+      travaux_overrides: property.travaux_overrides ?? "{}",
+      equipment_costs: property.equipment_costs ?? "{}",
       source_url: property.source_url,
       image_urls: property.image_urls,
       prefill_sources: property.prefill_sources,
@@ -491,7 +504,8 @@ export async function updatePropertyAsAdmin(
         vacancy_rate = $vacancy_rate, airbnb_price_per_night = $airbnb_price_per_night,
         airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
         renovation_cost = $renovation_cost, dpe_rating = $dpe_rating, fiscal_regime = $fiscal_regime,
-        amenities = $amenities, source_url = $source_url, image_urls = $image_urls,
+        amenities = $amenities, travaux_ratings = $travaux_ratings, travaux_overrides = $travaux_overrides, equipment_costs = $equipment_costs,
+        source_url = $source_url, image_urls = $image_urls,
         prefill_sources = $prefill_sources, updated_at = $updated_at
       WHERE id = $id
     `,
@@ -525,6 +539,9 @@ export async function updatePropertyAsAdmin(
       dpe_rating: property.dpe_rating,
       fiscal_regime: property.fiscal_regime,
       amenities: property.amenities,
+      travaux_ratings: property.travaux_ratings ?? "{}",
+      travaux_overrides: property.travaux_overrides ?? "{}",
+      equipment_costs: property.equipment_costs ?? "{}",
       source_url: property.source_url,
       image_urls: property.image_urls,
       prefill_sources: property.prefill_sources,

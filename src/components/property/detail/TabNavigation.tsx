@@ -6,9 +6,9 @@ import Link from "next/link";
 const TABS = [
   { id: "bien", label: "Bien" },
   { id: "travaux", label: "Travaux" },
+  { id: "equipements", label: "Équip." },
   { id: "simulation", label: "Simulation" },
   { id: "score", label: "Score" },
-  { id: "visite", label: "Visite" },
 ] as const;
 
 export type TabId = typeof TABS[number]["id"];

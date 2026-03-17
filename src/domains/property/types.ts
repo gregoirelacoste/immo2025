@@ -54,6 +54,10 @@ export interface Property {
   collect_texts: string; // JSON: string[] — tous les textes collés
   // Équipements / commodités
   amenities: string; // JSON: string[] — clés d'équipements (garage, parking, cave, balcon, etc.)
+  // Travaux — ratings et overrides
+  travaux_ratings: string;   // JSON: { "reno_floors": 3, "reno_walls": 2, ... }
+  travaux_overrides: string; // JSON: { "reno_floors": 2500, ... }
+  equipment_costs: string;   // JSON: { "eq_cuisine_equipee": 5000, ... }
   // Simulation active (référence vers la simulation favorite pour dashboard/résumé)
   active_simulation_id: string; // "" = utiliser la simulation système
   // Metadata
