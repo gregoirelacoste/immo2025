@@ -84,6 +84,7 @@ export async function createPropertyFromPhoto(
       insurance_rate: 0.34,
       loan_fees: 0,
       notary_fees: 0,
+      rent_mode: "auto",
       rent_per_m2: 0,
       monthly_rent: 0,
       condo_charges: 0,

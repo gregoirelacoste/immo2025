@@ -1,7 +1,7 @@
 # Referentiel complet des champs LocalityDataFields
 
 > Version 1.0 — 17 mars 2026
-> Document de reference pour le pipeline blog -> donnees -> app (tiili.fr)
+> Document de reference pour le pipeline blog -> donnees -> app (tiili.io)
 
 ---
 
@@ -20,7 +20,7 @@
 ### Objectif
 
 Collecter ~90 champs structures par localite francaise pour alimenter :
-- **L'app tiili.fr** : simulations precises (rendement, cashflow, fiscalite)
+- **L'app tiili.io** : simulations precises (rendement, cashflow, fiscalite)
 - **Le blog** : articles data-driven uniques (SEO/GEO)
 - **Les guides villes** : pages reference autogenerees
 

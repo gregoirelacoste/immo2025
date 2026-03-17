@@ -324,6 +324,12 @@ export async function updatePropertyField(
     // Update the field value
     const payload = { ...baseData, [fieldKey]: value };
 
+    // Auto-set rent_mode to "manual" when user explicitly sets monthly_rent
+    // (but not when the auto-rent system updates it via equipment/locality calc)
+    if (fieldKey === "monthly_rent" && Number(value) > 0 && source !== "Loyer auto (localité + équipements)") {
+      payload.rent_mode = "manual";
+    }
+
     // Update prefill_sources
     const prefill = parsePrefill(property.prefill_sources);
     prefill[fieldKey] = { source, value, confidence };

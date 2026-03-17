@@ -54,7 +54,7 @@ export async function fetchDvfData(
   url.searchParams.set("nature_mutation", "Vente");
 
   const response = await fetch(url.toString(), {
-    headers: { "User-Agent": "tiili.fr/news-fetcher/1.0" },
+    headers: { "User-Agent": "tiili.io/news-fetcher/1.0" },
     signal: AbortSignal.timeout(15_000),
   });
 

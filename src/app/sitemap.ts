@@ -3,7 +3,7 @@ import { getAllPublishedSlugs } from "@/domains/blog/repository";
 import { getAllLocalities } from "@/domains/locality/repository";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io";
   const now = new Date().toISOString();
 
   const entries: MetadataRoute.Sitemap = [

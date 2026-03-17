@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = await getArticleBySlug(slug);
   if (!article) return { title: "Article non trouvé" };
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io";
 
   return {
     title: article.title,
@@ -110,7 +110,7 @@ export default async function BlogArticlePage({ params }: Props) {
         {/* CTA */}
         <div className="mt-10 rounded-xl bg-amber-50 border border-amber-200 p-6 text-center">
           <p className="text-lg font-semibold text-gray-900">
-            Simulez votre investissement sur tiili.fr
+            Simulez votre investissement sur tiili.io
           </p>
           <p className="text-sm text-gray-600 mt-1 mb-4">
             Calculez rendement, cashflow et mensualités en quelques clics.

@@ -105,7 +105,7 @@ Structure type d'un guide ville :
 - "Faut-il investir en meublé ou en nu à [Ville] ?"
 
 ## CTA
-→ Simulez votre investissement à [Ville] sur tiili.fr
+→ Simulez votre investissement à [Ville] sur tiili.io
 ```
 
 ### 1.2 — Route `/guide` (index)

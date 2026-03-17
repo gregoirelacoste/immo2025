@@ -1,10 +1,10 @@
-# Strategie editoriale — Blog tiili.fr
+# Strategie editoriale — Blog tiili.io
 
 ## 1. Positionnement editorial
 
 ### Qui sommes-nous
 
-tiili.fr est un **outil de simulation d'investissement locatif**, pas un media immobilier generaliste. Le blog est une extension naturelle de l'outil : il fournit le contexte, les donnees et l'analyse que l'investisseur a besoin de comprendre **avant et pendant** sa simulation.
+tiili.io est un **outil de simulation d'investissement locatif**, pas un media immobilier generaliste. Le blog est une extension naturelle de l'outil : il fournit le contexte, les donnees et l'analyse que l'investisseur a besoin de comprendre **avant et pendant** sa simulation.
 
 Notre avantage competitif editorial :
 - **Donnees proprietaires** : base `locality_data` avec ~90 champs par ville (prix segmentes, loyers, qualite de vie, fiscalite, risques), alimentee en continu
@@ -85,7 +85,7 @@ Notre avantage competitif editorial :
   - Rendement brut : X%
   - Cashflow mensuel estime : X EUR (avec emprunt 25 ans a X%)
 - Comparaison moyenne nationale (X%)
-- > Simulez ce scenario sur tiili.fr [lien]
+- > Simulez ce scenario sur tiili.io [lien]
 
 ## Location courte duree (Airbnb)
 - Prix moyen nuitee : X EUR
@@ -145,7 +145,7 @@ Notre avantage competitif editorial :
 - [Ville] est-elle eligible au dispositif Pinel ?
 
 ## Simulez votre investissement a [Ville]
-> Retrouvez ces donnees dans le simulateur tiili.fr.
+> Retrouvez ces donnees dans le simulateur tiili.io.
 > Creez une simulation personnalisee avec vos parametres.
 > [Bouton CTA]
 ```
@@ -192,7 +192,7 @@ Notre avantage competitif editorial :
 ## Rendement et simulation
 - Rendement brut estime : X%
 - Simulation type [bien specifique au quartier]
-- > Simulez sur tiili.fr
+- > Simulez sur tiili.io
 
 ## Atouts pour l'investisseur
 - [Atout 1 : proximite universite, bassin emploi, etc.]
@@ -260,7 +260,7 @@ Notre avantage competitif editorial :
 - [1-2 questions d'actualite]
 
 ## CTA
-> Evaluez l'impact sur votre projet : simulez sur tiili.fr
+> Evaluez l'impact sur votre projet : simulez sur tiili.io
 ```
 
 **Donnees extraites** : tendances prix/loyers, mises a jour `price_trend_1y_pct`, `rent_trend_1y_pct`
@@ -283,7 +283,7 @@ Notre avantage competitif editorial :
 # [Ville A] vs [Ville B] : ou investir en [annee] ?
 # OU : Top [N] des villes ou investir en [annee] selon [critere]
 
-> Derniere mise a jour : [date]. Donnees tiili.fr, DVF, INSEE.
+> Derniere mise a jour : [date]. Donnees tiili.io, DVF, INSEE.
 
 ## Criteres de comparaison
 - [Explication de la methode et des sources]
@@ -324,7 +324,7 @@ Notre avantage competitif editorial :
 - [2-3 questions comparatives]
 
 ## CTA
-> Comparez par vous-meme : simulez un investissement dans chaque ville sur tiili.fr
+> Comparez par vous-meme : simulez un investissement dans chaque ville sur tiili.io
 ```
 
 **Donnees extraites** : mises a jour croisees sur les villes comparees
@@ -356,7 +356,7 @@ Notre avantage competitif editorial :
 
 ### [Sous-theme 1]
 - Explication avec exemples chiffres
-- Simulation type sur tiili.fr
+- Simulation type sur tiili.io
 
 ### [Sous-theme 2]
 - ...
@@ -367,7 +367,7 @@ Notre avantage competitif editorial :
 ## Cas pratique
 - Situation concrete avec des chiffres reels
 - Simulation detaillee (emprunt, loyer, cashflow)
-- > Reproduisez cette simulation sur tiili.fr
+- > Reproduisez cette simulation sur tiili.io
 
 ## Les erreurs a eviter
 - [Erreur 1 avec explication]
@@ -422,7 +422,7 @@ Notre avantage competitif editorial :
 - Simulation chiffree : investissement type X EUR
   - Sans le dispositif : rendement X%, impot X EUR
   - Avec le dispositif : rendement X%, impot X EUR, gain net X EUR
-- > Integrez ce parametre dans votre simulation tiili.fr
+- > Integrez ce parametre dans votre simulation tiili.io
 
 ## Villes / zones eligibles
 - [Liste ou carte des zones concernees]
@@ -487,7 +487,7 @@ Notre avantage competitif editorial :
   - A X% : mensualite X EUR, cout total X EUR
   - A X% (il y a 6 mois) : mensualite X EUR, cout total X EUR
   - Difference : X EUR/mois, X EUR sur la duree
-- > Testez avec votre taux sur tiili.fr
+- > Testez avec votre taux sur tiili.io
 
 ## Strategies pour obtenir le meilleur taux
 - [Conseil 1]
@@ -529,7 +529,7 @@ Notre avantage competitif editorial :
 ```markdown
 # Etude de cas : [description du bien] a [Ville] — [rendement ou resultat cle]
 
-> Publie le [date]. Simulation realisee sur tiili.fr.
+> Publie le [date]. Simulation realisee sur tiili.io.
 
 ## Le bien
 - Type : [T2 / studio / maison...]
@@ -579,7 +579,7 @@ Notre avantage competitif editorial :
 - [3 enseignements generalisables]
 
 ## CTA
-> Reproduisez cette simulation avec vos propres parametres sur tiili.fr
+> Reproduisez cette simulation avec vos propres parametres sur tiili.io
 > [Screenshot ou lien vers la simulation]
 ```
 
@@ -727,7 +727,7 @@ Le week-end est le pic de lecture pour le persona investisseur (temps libre). Le
 - ANIL — reglementation logement
 - BOFiP — textes fiscaux officiels
 - Notaires de France — indices des prix
-- tiili.fr (nos propres donnees) — toujours preciser "donnees tiili.fr" ou "base de donnees tiili.fr"
+- tiili.io (nos propres donnees) — toujours preciser "donnees tiili.io" ou "base de donnees tiili.io"
 
 **Sources a utiliser avec precaution (citer la source primaire si possible)** :
 - Etudes de SeLoger, MeilleursAgents, PAP (donnees propriétaires, methodologies opaques)

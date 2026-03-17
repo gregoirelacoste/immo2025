@@ -1,6 +1,6 @@
 # Trigger manuel — Interface admin blog
 
-Specification technique de l'interface d'administration du blog tiili.fr, permettant la generation manuelle d'articles et le monitoring de la pipeline automatisee.
+Specification technique de l'interface d'administration du blog tiili.io, permettant la generation manuelle d'articles et le monitoring de la pipeline automatisee.
 
 ---
 

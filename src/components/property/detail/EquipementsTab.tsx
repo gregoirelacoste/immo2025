@@ -43,6 +43,12 @@ export default function EquipementsTab({ property, marketData }: Props) {
 
     startTransition(async () => {
       await updatePropertyField(property.id, "amenities", JSON.stringify(next), "Saisie manuelle", "declared");
+      // In auto rent mode, recalculate and persist monthly_rent from equipment impact
+      if (property.rent_mode !== "manual" && marketRentPerM2 > 0 && property.surface > 0) {
+        const newSummary = calculateEquipmentImpact(marketRentPerM2, next);
+        const autoRent = Math.round(newSummary.adjustedRentPerM2 * property.surface);
+        await updatePropertyField(property.id, "monthly_rent", autoRent, "Loyer auto (localité + équipements)", "estimated");
+      }
     });
   }
 

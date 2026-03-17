@@ -13,6 +13,7 @@ interface Props {
   property: Property;
   simulation: Simulation;
   onUpdated: () => void;
+  readOnly?: boolean;
 }
 
 interface FieldConfig {
@@ -161,7 +162,7 @@ function StepperField({
   );
 }
 
-export default function SimulationEditor({ property, simulation, onUpdated }: Props) {
+export default function SimulationEditor({ property, simulation, onUpdated, readOnly = false }: Props) {
   const [form, setForm] = useState<SimulationFormData>(() => simFormFromSimulation(simulation));
   const [saving, setSaving] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -217,7 +218,7 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
     <div className="space-y-4">
       {/* Simulation name */}
       <div className="flex items-center gap-2 mb-2">
-        {editingName ? (
+        {!readOnly && editingName ? (
           <input
             type="text"
             value={nameValue}
@@ -227,6 +228,13 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
             className="text-lg font-bold text-[#1a1a2e] bg-transparent border-b-2 border-amber-400 focus:outline-none px-0"
             autoFocus
           />
+        ) : readOnly ? (
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+            </svg>
+            <span className="text-lg font-bold text-[#1a1a2e]">{form.name}</span>
+          </div>
         ) : (
           <button
             onClick={() => setEditingName(true)}
@@ -242,6 +250,11 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
           <span className="text-xs text-amber-500 animate-pulse">Sauvegarde...</span>
         )}
       </div>
+      {readOnly && (
+        <p className="text-xs text-gray-500 -mt-2 mb-2">
+          Calculée automatiquement à partir des données du bien et de la localité. Non modifiable.
+        </p>
+      )}
 
       {/* Live KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
@@ -275,9 +288,11 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
         </div>
       </div>
 
-      {/* Editable parameters */}
-      <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
-        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Paramètres ajustables</h3>
+      {/* Parameters */}
+      <section className={`bg-white rounded-xl border border-tiili-border p-4 md:p-6 ${readOnly ? "opacity-80" : ""}`}>
+        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">
+          {readOnly ? "Paramètres" : "Paramètres ajustables"}
+        </h3>
 
         {/* Loan amount (read-only, computed) */}
         <div className="flex items-center justify-between py-3 border-b border-gray-50">
@@ -293,6 +308,18 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
             ? property.monthly_rent
             : form[config.field] as number;
           const isRentFallback = config.field === "monthly_rent" && (form.monthly_rent === 0 || form.monthly_rent == null);
+
+          if (readOnly) {
+            return (
+              <div key={config.field} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-b-0">
+                <span className="text-sm text-gray-600 font-medium">{config.label}</span>
+                <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)] py-1 px-2">
+                  {formatFieldValue(displayValue, config)}{"\u202f"}{config.unit}
+                </span>
+              </div>
+            );
+          }
+
           return (
             <div key={config.field}>
               <StepperField
@@ -356,12 +383,13 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
             <button
               key={value}
               type="button"
-              onClick={() => handleFiscalChange(value)}
+              onClick={readOnly ? undefined : () => handleFiscalChange(value)}
+              disabled={readOnly}
               className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors ${
                 form.fiscal_regime === value
                   ? "bg-amber-600 text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
+              } ${readOnly ? "cursor-default" : ""}`}
             >
               {label}
             </button>
@@ -373,22 +401,41 @@ export default function SimulationEditor({ property, simulation, onUpdated }: Pr
       <FiscalSection calcs={calcs} fiscalRegime={form.fiscal_regime || "micro_bic"} />
 
       {/* Exit simulation — Bilan de l'opération */}
-      <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
+      <section className={`bg-white rounded-xl border border-tiili-border p-4 md:p-6 ${readOnly ? "opacity-80" : ""}`}>
         <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Hypothèses de revente</h3>
-        <StepperField
-          config={{ field: "holding_duration" as keyof SimulationFormData, label: "Durée de détention", step: 1, unit: "ans" }}
-          value={exitSim.holdingDuration}
-          onChange={(_, v) => handleChange("holding_duration" as keyof SimulationFormData, v)}
-          onCommit={(_, v) => handleCommit("holding_duration" as keyof SimulationFormData, v)}
-        />
-        <StepperField
-          config={{ field: "annual_appreciation" as keyof SimulationFormData, label: "Appréciation annuelle", step: 0.5, unit: "%", decimals: 1, min: -5 }}
-          value={form.annual_appreciation as number}
-          onChange={(_, v) => handleChange("annual_appreciation" as keyof SimulationFormData, v)}
-          onCommit={(_, v) => handleCommit("annual_appreciation" as keyof SimulationFormData, v)}
-        />
-        {(form as SimulationFormData & { holding_duration: number }).holding_duration === 0 && (
-          <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">Par défaut : durée du crédit ({form.loan_duration} ans)</p>
+        {readOnly ? (
+          <div className="space-y-0">
+            <div className="flex items-center justify-between py-3 border-b border-gray-50">
+              <span className="text-sm text-gray-600 font-medium">Durée de détention</span>
+              <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)] py-1 px-2">
+                {exitSim.holdingDuration}{"\u202f"}ans
+              </span>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <span className="text-sm text-gray-600 font-medium">Appréciation annuelle</span>
+              <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)] py-1 px-2">
+                {(form.annual_appreciation as number).toFixed(1)}{"\u202f"}%
+              </span>
+            </div>
+          </div>
+        ) : (
+          <>
+            <StepperField
+              config={{ field: "holding_duration" as keyof SimulationFormData, label: "Durée de détention", step: 1, unit: "ans" }}
+              value={exitSim.holdingDuration}
+              onChange={(_, v) => handleChange("holding_duration" as keyof SimulationFormData, v)}
+              onCommit={(_, v) => handleCommit("holding_duration" as keyof SimulationFormData, v)}
+            />
+            <StepperField
+              config={{ field: "annual_appreciation" as keyof SimulationFormData, label: "Appréciation annuelle", step: 0.5, unit: "%", decimals: 1, min: -5 }}
+              value={form.annual_appreciation as number}
+              onChange={(_, v) => handleChange("annual_appreciation" as keyof SimulationFormData, v)}
+              onCommit={(_, v) => handleCommit("annual_appreciation" as keyof SimulationFormData, v)}
+            />
+            {(form as SimulationFormData & { holding_duration: number }).holding_duration === 0 && (
+              <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">Par défaut : durée du crédit ({form.loan_duration} ans)</p>
+            )}
+          </>
         )}
       </section>
 

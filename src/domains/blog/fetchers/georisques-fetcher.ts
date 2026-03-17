@@ -36,7 +36,7 @@ async function fetchEndpoint<T>(
   try {
     const url = `${BASE}${path}?code_insee=${codeInsee}&page=1&page_size=50`;
     const res = await fetch(url, {
-      headers: { "User-Agent": "tiili.fr/news-fetcher/1.0" },
+      headers: { "User-Agent": "tiili.io/news-fetcher/1.0" },
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) return [];

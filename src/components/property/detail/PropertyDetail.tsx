@@ -1,28 +1,25 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
 import { calculateSimulation, calculateAll, formatCurrency } from "@/lib/calculations";
-import { removeProperty } from "@/domains/property/actions";
+import { removeProperty, updatePropertyField } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
 import type { SocioEconomicData } from "@/domains/enrich/socioeconomic-types";
 import type { InvestmentScoreBreakdown } from "@/domains/enrich/types";
 import { parseAmenities } from "@/domains/property/amenities";
-import type { Equipment } from "@/domains/property/equipment-service";
-import { getGrade, rentaColor, cashflowColor, getVerdict, verdictColor } from "@/lib/grade";
+import { calculateEquipmentImpact } from "@/domains/property/equipment-calculator";
+import { getGrade } from "@/lib/grade";
 import Link from "next/link";
 import PropertyHeader from "./PropertyHeader";
 import InvestmentScorePanel from "./InvestmentScorePanel";
-import MarketDataPanel from "./MarketDataPanel";
-import SocioEconomicPanel from "./SocioEconomicPanel";
 import StatusSelector from "@/components/property/StatusSelector";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import TabNavigation, { type TabId } from "./TabNavigation";
 import StickyHeader from "./StickyHeader";
-import BudgetIndicator from "@/components/property/BudgetIndicator";
 import SimulationTab from "./SimulationTab";
 import TravauxTab from "./TravauxTab";
 import EquipementsTab from "./EquipementsTab";
@@ -30,20 +27,123 @@ import CompletionBadge from "./CompletionBadge";
 import { getCompletionSummary } from "@/domains/property/completion";
 import { getFieldsByCategory, isFieldFilled } from "@/domains/property/field-registry";
 import InlineFieldEditor from "./InlineFieldEditor";
-import type { UserProfile } from "@/domains/auth/types";
 import type { Photo } from "@/domains/photo/types";
 import type { Simulation } from "@/domains/simulation/types";
 import PhotoGallery from "./PhotoGallery";
+import LocaliteTab from "./LocaliteTab";
 
 const PropertyMap = dynamic(() => import("./PropertyMap"), { ssr: false });
+
+const SCORE_COLORS: Record<string, { bg: string; text: string }> = {
+  A: { bg: "#0d9488", text: "#f0fdfa" },
+  B: { bg: "#2563eb", text: "#eff6ff" },
+  C: { bg: "#d97706", text: "#fffbeb" },
+  D: { bg: "#dc2626", text: "#fef2f2" },
+  "?": { bg: "#9ca3af", text: "#f9fafb" },
+};
+
+function ScoreBrick({ score, grade }: { score: number | null; grade: ReturnType<typeof getGrade> }) {
+  const colors = SCORE_COLORS[grade.letter] || SCORE_COLORS["?"];
+  return (
+    <div
+      className="w-[54px] h-[62px] rounded-md flex flex-col items-center justify-center shrink-0 relative overflow-hidden cursor-pointer"
+      style={{ background: colors.bg }}
+    >
+      <div
+        className="absolute inset-0"
+        style={{
+          opacity: 0.1,
+          background: `repeating-linear-gradient(0deg, transparent, transparent 19px, ${colors.text} 19px, ${colors.text} 20px)`,
+        }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          opacity: 0.07,
+          background: `repeating-linear-gradient(90deg, transparent, transparent 25px, ${colors.text} 25px, ${colors.text} 26px)`,
+        }}
+      />
+      <span className="text-[11px] font-bold leading-none z-10" style={{ color: colors.text, opacity: 0.8 }}>
+        {grade.letter}
+      </span>
+      <span className="text-[20px] font-extrabold leading-tight z-10" style={{ color: colors.text }}>
+        {score ?? 0}
+      </span>
+    </div>
+  );
+}
+
+/** Rent section with auto/manual toggle */
+function RentSection({ property, marketData, amenities }: { property: Property; marketData: MarketData | null; amenities: string[] }) {
+  const router = useRouter();
+  const isManual = property.rent_mode === "manual";
+  const marketRentPerM2 = marketData?.avgRentPerM2 ?? (property.rent_per_m2 > 0 ? property.rent_per_m2 : 0);
+
+  // Calculate auto rent = market × surface × (1 + equipment impact)
+  const eqSummary = useMemo(
+    () => marketRentPerM2 > 0 ? calculateEquipmentImpact(marketRentPerM2, amenities) : null,
+    [marketRentPerM2, amenities]
+  );
+  const autoRent = eqSummary && property.surface > 0
+    ? Math.round(eqSummary.adjustedRentPerM2 * property.surface)
+    : 0;
+
+  const displayRent = isManual ? property.monthly_rent : autoRent;
+
+  async function toggleRentMode() {
+    const newMode = isManual ? "auto" : "manual";
+    await updatePropertyField(property.id, "rent_mode", newMode, "Saisie manuelle", "declared");
+    // If switching to auto, also update monthly_rent to the auto value
+    if (newMode === "auto" && autoRent > 0) {
+      await updatePropertyField(property.id, "monthly_rent", autoRent, "Loyer auto (localité + équipements)", "estimated");
+    }
+    router.refresh();
+  }
+
+  return (
+    <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-base font-semibold text-gray-900">Location classique</h3>
+        <button
+          onClick={toggleRentMode}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+            isManual
+              ? "bg-amber-50 text-amber-700 border border-amber-200"
+              : "bg-blue-50 text-blue-700 border border-blue-200"
+          }`}
+        >
+          {isManual ? "Manuel" : "Auto"}
+        </button>
+      </div>
+
+      <div className="p-3 bg-tiili-surface rounded-xl mb-3">
+        <div className="text-2xl font-extrabold text-[#1a1a2e]">
+          {displayRent > 0 ? `${formatCurrency(displayRent)}/mois` : "—"}
+        </div>
+        <div className="text-xs text-gray-500 mt-0.5">
+          {isManual
+            ? "Loyer renseigné manuellement"
+            : autoRent > 0
+              ? `Calculé : ${marketRentPerM2.toFixed(1)} €/m² × ${property.surface} m²${eqSummary && eqSummary.totalImpactPercent !== 0 ? ` × (1${eqSummary.totalImpactPercent > 0 ? "+" : ""}${Math.round(eqSummary.totalImpactPercent * 100)}% équip.)` : ""}`
+              : "Données de localité insuffisantes"
+          }
+        </div>
+      </div>
+
+      {property.vacancy_rate > 0 && (
+        <div className="text-xs text-gray-500">
+          Vacance locative : {property.vacancy_rate}%
+        </div>
+      )}
+    </section>
+  );
+}
 
 interface Props {
   property: Property;
   isOwner?: boolean;
-  userProfile?: UserProfile | null;
   photos?: Photo[];
   simulations?: Simulation[];
-  equipments?: Equipment[];
 }
 
 function parseJson<T>(json: string, fallback: T): T {
@@ -51,7 +151,7 @@ function parseJson<T>(json: string, fallback: T): T {
   catch { return fallback; }
 }
 
-export default function PropertyDetail({ property, isOwner = false, userProfile, photos = [], simulations = [], equipments = [] }: Props) {
+export default function PropertyDetail({ property, isOwner = false, photos = [], simulations = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Use first simulation's data for KPIs if available, otherwise fall back to property data
@@ -61,14 +161,30 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
     [property, firstSim]
   );
   const [refreshing, setRefreshing] = useState(false);
+  const [scoreModalOpen, setScoreModalOpen] = useState(false);
+  const [heroHidden, setHeroHidden] = useState(false);
+  const heroRef = useRef<HTMLElement>(null);
 
-  const activeTab = (searchParams.get("tab") as TabId) || "bien";
+  // Show sticky header only when hero section scrolls out of view
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeroHidden(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const VALID_TABS: TabId[] = ["bien", "travaux", "equipements", "simulation", "localite"];
+  const rawTab = searchParams.get("tab") as TabId;
+  const activeTab = VALID_TABS.includes(rawTab) ? rawTab : "bien";
 
   const marketData = useMemo(() => parseJson<MarketData | null>(property.market_data, null), [property.market_data]);
   const scoreBreakdown = useMemo(() => parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null), [property.score_breakdown]);
   const socioData = useMemo(() => parseJson<SocioEconomicData | null>(property.socioeconomic_data, null), [property.socioeconomic_data]);
   const amenities = useMemo(() => parseAmenities(property.amenities), [property.amenities]);
-  const eqMap = useMemo(() => new Map(equipments.map((e) => [e.key, e])), [equipments]);
   const images: string[] = parseJson(property.image_urls, []);
 
   const completionSummary = useMemo(() => getCompletionSummary(property), [property]);
@@ -108,10 +224,10 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
     <div className="space-y-0 pb-safe">
       <PropertyHeader property={property} isOwner={isOwner} onDelete={handleDelete} />
 
-      {/* Hero KPIs — tiili style */}
-      <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6 mb-4">
-              {/* Header: City + Score circle */}
-              <div className="flex justify-between items-start mb-4">
+      {/* Hero — tiili style */}
+      <section ref={heroRef} className="bg-white rounded-xl border border-tiili-border p-4 md:p-6 mb-4">
+              {/* Header: City + Score brick */}
+              <div className="flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
                     <h2 className="text-2xl font-extrabold text-[#1a1a2e] tracking-tight">{property.city}</h2>
@@ -124,69 +240,17 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
                   {property.address && (
                     <p className="text-xs text-[#b0b0b8] mt-0.5">{property.address}</p>
                   )}
-                  <BudgetIndicator monthlyPayment={calcs.monthly_payment} monthlyInsurance={calcs.monthly_insurance} userProfile={userProfile} />
+                  <CompletionBadge percent={completionSummary.globalPercent} />
                 </div>
-                {/* Score circle + completion badge */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <CompletionBadge percent={completionSummary.globalPercent} size="sm" />
-                  <div
-                    className={`w-[52px] h-[52px] rounded-full ${grade.bg} flex flex-col items-center justify-center`}
-                    style={{ border: `2.5px solid ${grade.hex}` }}
-                  >
-                    <span className={`text-[8px] font-bold ${grade.color} leading-none mb-0.5`}>{grade.letter}</span>
-                    <span className={`text-lg font-extrabold ${grade.color} leading-none`}>
-                      {property.investment_score ?? "?"}
-                    </span>
-                  </div>
+                {/* Score brick (same style as dashboard) — click opens score modal */}
+                <div onClick={() => setScoreModalOpen(true)}>
+                  <ScoreBrick score={property.investment_score} grade={grade} />
                 </div>
-              </div>
-
-              {/* Metrics grid 2x2 */}
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                <div className="p-3 bg-tiili-surface rounded-xl">
-                  <div className="text-xl font-extrabold text-[#1a1a2e] tracking-tight leading-tight mb-0.5">
-                    {formatCurrency(property.purchase_price)}
-                  </div>
-                  <div className="text-[10px] text-[#9ca3af] font-semibold uppercase tracking-wider">Prix</div>
-                </div>
-                <div className="p-3 bg-tiili-surface rounded-xl">
-                  <div className={`text-[22px] font-extrabold font-[family-name:var(--font-mono)] tracking-tighter leading-tight mb-0.5 ${rentaColor(calcs.net_yield)}`}>
-                    {calcs.net_yield.toFixed(2)}%
-                  </div>
-                  <div className="text-[10px] text-[#9ca3af] font-semibold uppercase tracking-wider">Renta nette</div>
-                </div>
-                <div className="p-3 bg-tiili-surface rounded-xl">
-                  <div className={`text-[22px] font-extrabold font-[family-name:var(--font-mono)] tracking-tighter leading-tight mb-0.5 ${cashflowColor(calcs.monthly_cashflow)}`}>
-                    {calcs.monthly_cashflow > 0 ? "+" : ""}{Math.round(calcs.monthly_cashflow)}{"\u202f"}€
-                  </div>
-                  <div className="text-[10px] text-[#9ca3af] font-semibold uppercase tracking-wider">Cashflow /mois</div>
-                </div>
-                <div className="p-3 bg-tiili-surface rounded-xl">
-                  <div className="text-xl font-extrabold text-gray-700 tracking-tight leading-tight mb-0.5">
-                    {pricePerM2 > 0 ? `${Math.round(pricePerM2).toLocaleString("fr-FR")}\u202f€` : "\u2014"}
-                  </div>
-                  <div className="text-[10px] text-[#9ca3af] font-semibold uppercase tracking-wider">Prix /m²</div>
-                </div>
-              </div>
-
-              {/* Quick verdict bar */}
-              <div className="flex gap-1">
-                {getVerdict(property.purchase_price, calcs.net_yield, calcs.monthly_cashflow, property.investment_score).map(({ label, val }) => {
-                  const vc = verdictColor(val);
-                  return (
-                    <div key={label} className={`flex-1 text-center py-1.5 rounded-lg ${vc.bg}`}>
-                      <div className={`text-xs font-bold ${vc.text}`}>
-                        {val === 1 ? "\u2713" : val === 0 ? "~" : "\u2717"}
-                      </div>
-                      <div className="text-[8px] font-semibold text-[#9ca3af] uppercase tracking-wide mt-0.5">{label}</div>
-                    </div>
-                  );
-                })}
               </div>
       </section>
 
-      {/* Sticky header (visible on scroll) */}
-      <StickyHeader property={property} calcs={calcs} />
+      {/* Sticky header (visible only on scroll past hero) */}
+      <StickyHeader property={property} calcs={calcs} visible={heroHidden} />
 
       {/* Tab navigation */}
       <TabNavigation />
@@ -233,26 +297,12 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
                   <p className="font-semibold text-orange-600">{formatCurrency(firstSim?.renovation_cost ?? property.renovation_cost)}</p>
                 </div>
               )}
-              {property.dpe_rating && (
-                <div>
-                  <span className="text-gray-500">DPE</span>
-                  <p className={`font-semibold ${property.dpe_rating === "F" || property.dpe_rating === "G" ? "text-red-600" : ""}`}>
-                    {property.dpe_rating}
-                  </p>
-                </div>
-              )}
             </div>
 
-            {/* Données financières du bien */}
-            {(property.monthly_rent > 0 || property.condo_charges > 0 || property.property_tax > 0) && (
+            {/* Charges du bien */}
+            {(property.condo_charges > 0 || property.property_tax > 0) && (
               <div className="mt-4 pt-3 border-t border-gray-100">
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  {property.monthly_rent > 0 && (
-                    <div>
-                      <span className="text-gray-500">Loyer</span>
-                      <p className="font-semibold">{formatCurrency(property.monthly_rent)}/mois</p>
-                    </div>
-                  )}
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   {property.condo_charges > 0 && (
                     <div>
                       <span className="text-gray-500">Charges copro</span>
@@ -268,23 +318,10 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
                 </div>
               </div>
             )}
-
-            {amenities.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-gray-100">
-                <div className="flex flex-wrap gap-1.5">
-                  {amenities.map((key) => {
-                    const eq = eqMap.get(key);
-                    return (
-                      <span key={key} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-100">
-                        <span>{eq?.icon ?? "🏠"}</span>
-                        <span>{eq?.label ?? key}</span>
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </section>
+
+          {/* Section Loyer — auto/manual toggle */}
+          <RentSection property={property} marketData={marketData} amenities={amenities} />
 
           {/* Description */}
           {property.description && (
@@ -342,17 +379,6 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
             </CollapsibleSection>
           )}
 
-          {/* Données marché */}
-          <CollapsibleSection title="Données du marché" variant="emerald" defaultOpen={!!marketData}>
-            <MarketDataPanel property={property} marketData={marketData} loading={property.enrichment_status === "running"} monthlyRent={firstSim?.monthly_rent} />
-          </CollapsibleSection>
-
-          {/* Données socio-éco */}
-          {socioData && (
-            <CollapsibleSection title="Données socio-économiques" variant="violet" defaultOpen>
-              <SocioEconomicPanel data={socioData} />
-            </CollapsibleSection>
-          )}
         </div>
       )}
 
@@ -365,20 +391,6 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
         />
       )}
 
-      {/* ═══════════════════ ONGLET SCORE ═══════════════════ */}
-      {activeTab === "score" && (
-        <div className="space-y-4 mt-4">
-          <InvestmentScorePanel
-            score={property.investment_score}
-            breakdown={scoreBreakdown}
-            status={property.enrichment_status}
-            error={property.enrichment_error}
-            onRefresh={handleRefreshEnrichment}
-            refreshing={refreshing}
-          />
-        </div>
-      )}
-
       {/* ═══════════════════ ONGLET TRAVAUX ═══════════════════ */}
       {activeTab === "travaux" && (
         <TravauxTab property={property} />
@@ -387,6 +399,47 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
       {/* ═══════════════════ ONGLET ÉQUIPEMENTS ═══════════════════ */}
       {activeTab === "equipements" && (
         <EquipementsTab property={property} marketData={marketData} />
+      )}
+
+      {/* ═══════════════════ ONGLET LOCALITÉ ═══════════════════ */}
+      {activeTab === "localite" && (
+        <LocaliteTab
+          property={property}
+          marketData={marketData}
+          socioData={socioData}
+          monthlyRent={firstSim?.monthly_rent}
+        />
+      )}
+
+      {/* Score modal — opens on ScoreBrick click */}
+      {scoreModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={() => setScoreModalOpen(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="relative bg-white rounded-t-2xl md:rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-4 md:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-[#1a1a2e]">Score d'investissement</h3>
+              <button
+                onClick={() => setScoreModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <InvestmentScorePanel
+              score={property.investment_score}
+              breakdown={scoreBreakdown}
+              status={property.enrichment_status}
+              error={property.enrichment_error}
+              onRefresh={handleRefreshEnrichment}
+              refreshing={refreshing}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

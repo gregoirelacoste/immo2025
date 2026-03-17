@@ -2,10 +2,8 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getPropertyById } from "@/domains/property/repository";
 import { getAuthContext } from "@/lib/auth-actions";
-import { getUserProfile } from "@/domains/auth/repository";
 import { getPhotosForProperty } from "@/domains/photo/repository";
 import { getSimulationsForProperty } from "@/domains/simulation/repository";
-import { getAllEquipments } from "@/domains/property/equipment-service";
 import Navbar from "@/components/Navbar";
 import PropertyDetail from "@/components/property/detail/PropertyDetail";
 
@@ -24,11 +22,9 @@ export default async function PropertyPage({
   }
 
   const isOwner = admin || (!!userId && property.user_id === userId);
-  const [userProfile, photos, simulations, equipments] = await Promise.all([
-    userId ? getUserProfile(userId) : null,
+  const [photos, simulations] = await Promise.all([
     getPhotosForProperty(id),
     getSimulationsForProperty(id),
-    getAllEquipments(),
   ]);
 
   return (
@@ -39,10 +35,8 @@ export default async function PropertyPage({
           <PropertyDetail
             property={property}
             isOwner={isOwner}
-            userProfile={userProfile}
             photos={photos}
             simulations={simulations}
-            equipments={equipments}
           />
         </Suspense>
       </main>

@@ -184,7 +184,7 @@ Tu es un rédacteur expert en investissement immobilier locatif en France.
    - Titre accrocheur, angle investisseur
    - Données chiffrées intégrées naturellement dans le texte
    - Maillage : liens vers [liste des guides villes existants]
-   - CTA : "Simulez cet investissement sur tiili.fr"
+   - CTA : "Simulez cet investissement sur tiili.io"
    - Longueur : 800-1500 mots
    - Ton : expert accessible, pas commercial
 

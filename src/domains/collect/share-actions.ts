@@ -171,6 +171,7 @@ export async function processShareAndCreate(
       insurance_rate: 0.34,
       loan_fees: 0,
       notary_fees: 0,
+      rent_mode: extracted.monthly_rent ? "manual" : "auto",
       rent_per_m2: rentPerM2,
       monthly_rent: monthlyRent,
       condo_charges: condoCharges,

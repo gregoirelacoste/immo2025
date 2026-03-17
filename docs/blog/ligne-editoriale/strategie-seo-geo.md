@@ -1,6 +1,6 @@
-# Strategie SEO/GEO — Blog tiili.fr
+# Strategie SEO/GEO — Blog tiili.io
 
-> Document de reference pour l'optimisation moteurs de recherche (SEO) et moteurs generatifs (GEO) du blog immobilier tiili.fr.
+> Document de reference pour l'optimisation moteurs de recherche (SEO) et moteurs generatifs (GEO) du blog immobilier tiili.io.
 > Derniere mise a jour : mars 2026.
 
 ---
@@ -21,7 +21,7 @@
 ### 1.1 Structure URL complete
 
 ```
-tiili.fr/
+tiili.io/
   |
   |-- /guide/                         # Index des guides (hub principal)
   |     |-- /guide/lyon               # Guide ville (slug = nom normalisé)
@@ -148,8 +148,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const pageNum = parseInt(page);
   return {
     title: pageNum === 1
-      ? "Blog immobilier investissement | tiili.fr"
-      : `Blog immobilier - Page ${pageNum} | tiili.fr`,
+      ? "Blog immobilier investissement | tiili.io"
+      : `Blog immobilier - Page ${pageNum} | tiili.io`,
     alternates: {
       canonical: pageNum === 1 ? "/blog" : `/blog/page/${pageNum}`,
     },
@@ -166,10 +166,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 | Situation | Canonical |
 |-----------|-----------|
-| `/guide/lyon` | `https://tiili.fr/guide/lyon` |
-| `/guide/lyon?tab=rendement` | `https://tiili.fr/guide/lyon` (sans parametres) |
-| `/blog/page/1` | `https://tiili.fr/blog` |
-| `/blog/categorie/actu-marche` | `https://tiili.fr/blog/categorie/actu-marche` |
+| `/guide/lyon` | `https://tiili.io/guide/lyon` |
+| `/guide/lyon?tab=rendement` | `https://tiili.io/guide/lyon` (sans parametres) |
+| `/blog/page/1` | `https://tiili.io/blog` |
+| `/blog/categorie/actu-marche` | `https://tiili.io/blog/categorie/actu-marche` |
 
 **Implementation :**
 ```tsx
@@ -177,7 +177,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export async function generateMetadata(): Promise<Metadata> {
   return {
     alternates: {
-      canonical: "https://tiili.fr/guide/lyon",
+      canonical: "https://tiili.io/guide/lyon",
     },
   };
 }
@@ -192,8 +192,8 @@ Site monolingue francais pour l'instant. Preparer l'attribut pour extension futu
 export const metadata: Metadata = {
   alternates: {
     languages: {
-      "fr": "https://tiili.fr",
-      // Future : "en": "https://tiili.fr/en"
+      "fr": "https://tiili.io",
+      // Future : "en": "https://tiili.io/en"
     },
   },
 };
@@ -238,9 +238,9 @@ Titre : [Titre article] | tiili
     "Prix immobilier Lyon : +3.2% au T1 2026, analyse complete | tiili"
     "Les 10 villes ou investir en 2026 pour un rendement > 6% | tiili"
 
-Meta description : [Phrase accrocheuse avec chiffre cle]. Analyse [source] avec donnees exclusives tiili.fr.
+Meta description : [Phrase accrocheuse avec chiffre cle]. Analyse [source] avec donnees exclusives tiili.io.
   - Exemple :
-    "Lyon affiche +3.2% de hausse au T1 2026. Analyse DVF quartier par quartier avec simulation de rendement. Donnees exclusives tiili.fr."
+    "Lyon affiche +3.2% de hausse au T1 2026. Analyse DVF quartier par quartier avec simulation de rendement. Donnees exclusives tiili.io."
 ```
 
 #### Index guide (`/guide`)
@@ -334,7 +334,7 @@ Meta description : Qu'est-ce que le [terme] en immobilier ? Definition, formule 
 | URL / slug | Oui | `/guide/lyon` |
 | Alt d'au moins une image | Oui | "Prix immobilier Lyon evolution 2020-2026" |
 | Au moins un `<h2>` | Oui | "Rendement locatif a Lyon" |
-| Dernier paragraphe | Recommande | "Simulez votre investissement a Lyon sur tiili.fr" |
+| Dernier paragraphe | Recommande | "Simulez votre investissement a Lyon sur tiili.io" |
 
 #### Mots-cles secondaires et LSI
 
@@ -367,26 +367,26 @@ NON (vague, conditionnel) :
     "@type": "Article",
     "headline": "Investir a Lyon en 2026 : prix, rendement et guide complet",
     "description": "Guide complet pour investir dans l'immobilier locatif a Lyon. Prix au m2, rendement brut, loyers, quartiers, fiscalite.",
-    "image": "https://tiili.fr/og/guide/lyon.png",
+    "image": "https://tiili.io/og/guide/lyon.png",
     "datePublished": "2026-01-15",
     "dateModified": "2026-03-17",
     "author": {
       "@type": "Organization",
-      "name": "tiili.fr",
-      "url": "https://tiili.fr"
+      "name": "tiili.io",
+      "url": "https://tiili.io"
     },
     "publisher": {
       "@type": "Organization",
-      "name": "tiili.fr",
-      "url": "https://tiili.fr",
+      "name": "tiili.io",
+      "url": "https://tiili.io",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://tiili.fr/logo.png"
+        "url": "https://tiili.io/logo.png"
       }
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": "https://tiili.fr/guide/lyon"
+      "@id": "https://tiili.io/guide/lyon"
     },
     "about": {
       "@type": "Place",
@@ -450,19 +450,19 @@ NON (vague, conditionnel) :
         "@type": "ListItem",
         "position": 1,
         "name": "Guide investissement",
-        "item": "https://tiili.fr/guide"
+        "item": "https://tiili.io/guide"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Auvergne-Rhone-Alpes",
-        "item": "https://tiili.fr/guide/region/auvergne-rhone-alpes"
+        "item": "https://tiili.io/guide/region/auvergne-rhone-alpes"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": "Lyon",
-        "item": "https://tiili.fr/guide/lyon"
+        "item": "https://tiili.io/guide/lyon"
       }
     ]
   }
@@ -478,26 +478,26 @@ NON (vague, conditionnel) :
     "@type": "NewsArticle",
     "headline": "Prix immobilier Lyon : +3.2% au T1 2026, analyse complete",
     "description": "Lyon affiche +3.2% de hausse au T1 2026. Analyse DVF quartier par quartier avec simulation de rendement.",
-    "image": "https://tiili.fr/og/blog/prix-immobilier-lyon-2026.png",
+    "image": "https://tiili.io/og/blog/prix-immobilier-lyon-2026.png",
     "datePublished": "2026-03-15",
     "dateModified": "2026-03-15",
     "author": {
       "@type": "Organization",
-      "name": "tiili.fr",
-      "url": "https://tiili.fr"
+      "name": "tiili.io",
+      "url": "https://tiili.io"
     },
     "publisher": {
       "@type": "Organization",
-      "name": "tiili.fr",
-      "url": "https://tiili.fr",
+      "name": "tiili.io",
+      "url": "https://tiili.io",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://tiili.fr/logo.png"
+        "url": "https://tiili.io/logo.png"
       }
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": "https://tiili.fr/blog/prix-immobilier-lyon-2026"
+      "@id": "https://tiili.io/blog/prix-immobilier-lyon-2026"
     },
     "keywords": ["prix immobilier Lyon", "marche immobilier 2026", "investissement locatif Lyon"],
     "articleSection": "Actualite marche"
@@ -524,19 +524,19 @@ NON (vague, conditionnel) :
         "@type": "ListItem",
         "position": 1,
         "name": "Blog",
-        "item": "https://tiili.fr/blog"
+        "item": "https://tiili.io/blog"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Actualite marche",
-        "item": "https://tiili.fr/blog/categorie/actu-marche"
+        "item": "https://tiili.io/blog/categorie/actu-marche"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": "Prix immobilier Lyon : +3.2% au T1 2026",
-        "item": "https://tiili.fr/blog/prix-immobilier-lyon-2026"
+        "item": "https://tiili.io/blog/prix-immobilier-lyon-2026"
       }
     ]
   }
@@ -551,10 +551,10 @@ NON (vague, conditionnel) :
   "@type": "CollectionPage",
   "name": "Guide investissement locatif par ville",
   "description": "Comparez 200+ villes francaises pour votre investissement locatif.",
-  "url": "https://tiili.fr/guide",
+  "url": "https://tiili.io/guide",
   "publisher": {
     "@type": "Organization",
-    "name": "tiili.fr"
+    "name": "tiili.io"
   },
   "mainEntity": {
     "@type": "ItemList",
@@ -563,13 +563,13 @@ NON (vague, conditionnel) :
       {
         "@type": "ListItem",
         "position": 1,
-        "url": "https://tiili.fr/guide/lyon",
+        "url": "https://tiili.io/guide/lyon",
         "name": "Investir a Lyon"
       },
       {
         "@type": "ListItem",
         "position": 2,
-        "url": "https://tiili.fr/guide/bordeaux",
+        "url": "https://tiili.io/guide/bordeaux",
         "name": "Investir a Bordeaux"
       }
     ]
@@ -587,8 +587,8 @@ NON (vague, conditionnel) :
   "description": "Le rendement brut est le ratio entre les loyers annuels et le prix d'achat du bien, exprime en pourcentage. Formule : (loyer annuel / prix d'achat) x 100.",
   "inDefinedTermSet": {
     "@type": "DefinedTermSet",
-    "name": "Glossaire immobilier tiili.fr",
-    "url": "https://tiili.fr/glossaire"
+    "name": "Glossaire immobilier tiili.io",
+    "url": "https://tiili.io/glossaire"
   }
 }
 ```
@@ -615,7 +615,7 @@ Chaque section importante commence par une phrase assertive complete qui repond 
 ```
 BON (extractible par une IA) :
 "Le prix moyen au m2 a Lyon est de 4 200 EUR en mars 2026, en hausse de
-3.2% sur un an (source : DVF / tiili.fr). Ce niveau de prix place Lyon au
+3.2% sur un an (source : DVF / tiili.io). Ce niveau de prix place Lyon au
 5e rang des grandes villes francaises, derriere Paris (10 500 EUR),
 Nice (5 100 EUR), Bordeaux (4 600 EUR) et Aix-en-Provence (4 400 EUR)."
 
@@ -642,7 +642,7 @@ en mars 2026. Ce rendement varie selon le quartier et le type de bien :
 | 6e arrondissement | 3.8% | 5 800 EUR | 18.40 EUR |
 | Presqu'ile (2e) | 3.5% | 6 200 EUR | 18.10 EUR |
 
-*Source : donnees DVF et Observatoire des loyers, calculs tiili.fr, mars 2026.*
+*Source : donnees DVF et Observatoire des loyers, calculs tiili.io, mars 2026.*
 
 **Simulation type** : un T2 de 45 m2 achete 189 000 EUR dans le 8e,
 loue 675 EUR/mois en meuble, genere un rendement brut de 4.3% et un
@@ -712,7 +712,7 @@ Exemples :
 | Observatoire des loyers | "Observatoire local des loyers" ou "ANIL" | observatoires-des-loyers.org |
 | Georisques | "base Georisques du BRGM" | georisques.gouv.fr |
 | ADEME | "base DPE de l'ADEME" | data.ademe.fr |
-| tiili.fr | "calculs tiili.fr" | tiili.fr |
+| tiili.io | "calculs tiili.io" | tiili.io |
 
 **Regle critique :** chaque chiffre doit etre attribue a une source. Les chiffres sans source sont ignores par les IA.
 
@@ -812,7 +812,7 @@ Denormandie (si applicable) et le LMNP.]
 ```
 "Le [indicateur] a [lieu] est de [valeur] en [date] (source : [source])."
 ```
-Exemple : "Le rendement brut moyen a Lyon est de 5.1% en mars 2026 (source : DVF/tiili.fr)."
+Exemple : "Le rendement brut moyen a Lyon est de 5.1% en mars 2026 (source : DVF/tiili.io)."
 
 **Pattern 2 — Comparaison :**
 ```
@@ -879,7 +879,7 @@ Chaque page guide et article insere au moins un lien vers le simulateur :
 
 ```markdown
 > **Simulez votre investissement a Lyon** : [creez une simulation gratuite](/property/new)
-> sur tiili.fr et calculez votre rendement, cash-flow et mensualites en 2 minutes.
+> sur tiili.io et calculez votre rendement, cash-flow et mensualites en 2 minutes.
 ```
 
 **Regle 5 — Liens glossaire**
@@ -1025,7 +1025,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/admin/"],
       },
     ],
-    sitemap: "https://tiili.fr/sitemap.xml",
+    sitemap: "https://tiili.io/sitemap.xml",
   };
 }
 ```
@@ -1046,7 +1046,7 @@ import { getAllArticleSlugs } from "@/domains/blog/repository";
 import { getAllGlossaryTerms } from "@/domains/glossary/repository";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://tiili.fr";
+  const baseUrl = "https://tiili.io";
 
   // Pages statiques
   const staticPages: MetadataRoute.Sitemap = [
@@ -1178,7 +1178,7 @@ export default async function GuidePage({ params }: Props) {
 ```
 
 **Les pages guide et blog ne doivent charger AUCUN JavaScript** cote client. Les seuls composants interactifs autorises :
-- Bouton "Simuler sur tiili.fr" (simple lien `<a>`, pas de JS)
+- Bouton "Simuler sur tiili.io" (simple lien `<a>`, pas de JS)
 - Accordeon FAQ (CSS-only avec `<details>`/`<summary>`)
 - Tableau triable (si necessaire, lazy-load le JS)
 
@@ -1211,21 +1211,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `Investir a ${data.cityName} en 2026 : prix, rendement et guide complet | tiili`,
     description: `Faut-il investir a ${data.cityName} ? Prix au m2 (${data.pricePerM2} EUR), rendement brut (${data.grossYield}%), loyers, quartiers, fiscalite. Donnees mars 2026.`,
     alternates: {
-      canonical: `https://tiili.fr/guide/${city}`,
+      canonical: `https://tiili.io/guide/${city}`,
     },
     openGraph: {
       type: "article",
       title: `Investir a ${data.cityName} en 2026 : guide complet`,
       description: `Prix au m2 : ${data.pricePerM2} EUR | Rendement brut : ${data.grossYield}% | Loyer meuble : ${data.rentPerM2} EUR/m2`,
-      url: `https://tiili.fr/guide/${city}`,
-      siteName: "tiili.fr",
+      url: `https://tiili.io/guide/${city}`,
+      siteName: "tiili.io",
       locale: "fr_FR",
       images: [
         {
-          url: `https://tiili.fr/og/guide/${city}.png`,
+          url: `https://tiili.io/og/guide/${city}.png`,
           width: 1200,
           height: 630,
-          alt: `Investissement locatif a ${data.cityName} - tiili.fr`,
+          alt: `Investissement locatif a ${data.cityName} - tiili.io`,
         },
       ],
       publishedTime: data.publishedAt,
@@ -1237,7 +1237,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       card: "summary_large_image",
       title: `Investir a ${data.cityName} en 2026 | tiili`,
       description: `Prix m2 : ${data.pricePerM2} EUR | Rendement : ${data.grossYield}%`,
-      images: [`https://tiili.fr/og/guide/${city}.png`],
+      images: [`https://tiili.io/og/guide/${city}.png`],
     },
   };
 }
@@ -1267,7 +1267,7 @@ export async function GET(request: Request, { params }: { params: { city: string
         fontFamily: "DM Sans",
       }}>
         <div style={{ fontSize: 28, color: "#d97706", marginBottom: 16 }}>
-          tiili.fr — Guide investissement
+          tiili.io — Guide investissement
         </div>
         <div style={{ fontSize: 52, fontWeight: 700, color: "#1a1a2e", marginBottom: 24 }}>
           Investir a {data.cityName}
@@ -1418,7 +1418,7 @@ Les citations IA sont difficiles a suivre car les moteurs generatifs n'offrent p
 
 **Methode 1 — Monitoring manuel regulier**
 
-Poser les questions cles aux IA chaque semaine et noter si tiili.fr est cite :
+Poser les questions cles aux IA chaque semaine et noter si tiili.io est cite :
 
 | Question test | IA testee | Cite tiili ? | Date |
 |---------------|-----------|-------------|------|

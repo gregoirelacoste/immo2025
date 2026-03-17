@@ -190,7 +190,7 @@ export async function fetchDvfData(
   url.searchParams.set("nature_mutation", nature);
 
   const response = await fetch(url.toString(), {
-    headers: { "User-Agent": "tiili.fr/news-fetcher/1.0" },
+    headers: { "User-Agent": "tiili.io/news-fetcher/1.0" },
     signal: AbortSignal.timeout(15_000),
   });
 
@@ -702,7 +702,7 @@ async function fetchGeorisquesEndpoint<T>(path: string, params: Record<string, s
   }
 
   const response = await fetch(url.toString(), {
-    headers: { "User-Agent": "tiili.fr/news-fetcher/1.0" },
+    headers: { "User-Agent": "tiili.io/news-fetcher/1.0" },
     signal: AbortSignal.timeout(15_000),
   });
 
@@ -873,7 +873,7 @@ export async function fetchAdemeData(codeInsee: string): Promise<AdemeCityData> 
   url.searchParams.set("sort", "Date_etablissement_DPE:-1");
 
   const response = await fetch(url.toString(), {
-    headers: { "User-Agent": "tiili.fr/news-fetcher/1.0" },
+    headers: { "User-Agent": "tiili.io/news-fetcher/1.0" },
     signal: AbortSignal.timeout(20_000),
   });
 
@@ -1040,7 +1040,7 @@ export async function fetchGoogleNewsRss(
 
   const response = await fetch(url.toString(), {
     headers: {
-      "User-Agent": "tiili.fr/news-fetcher/1.0",
+      "User-Agent": "tiili.io/news-fetcher/1.0",
       Accept: "application/rss+xml, application/xml, text/xml",
     },
     signal: AbortSignal.timeout(10_000),
@@ -1198,7 +1198,7 @@ export async function fetchImmoRssFeeds(maxPerFeed: number = 5): Promise<ImmmoRs
   const results = await Promise.allSettled(
     IMMO_RSS_FEEDS.map(async (feed) => {
       const res = await fetch(feed.url, {
-        headers: { "User-Agent": "tiili.fr/news-fetcher/1.0" },
+        headers: { "User-Agent": "tiili.io/news-fetcher/1.0" },
         signal: AbortSignal.timeout(8_000),
       });
       if (!res.ok) throw new Error(`${feed.name} RSS ${res.status}`);
@@ -1575,7 +1575,7 @@ export async function fetchBdfRateData(): Promise<BdfRateData> {
   url.searchParams.set("apikey", apiKey);
 
   const response = await fetch(url.toString(), {
-    headers: { "User-Agent": "tiili.fr/news-fetcher/1.0" },
+    headers: { "User-Agent": "tiili.io/news-fetcher/1.0" },
     signal: AbortSignal.timeout(15_000),
   });
 

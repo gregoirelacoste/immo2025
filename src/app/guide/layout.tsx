@@ -4,8 +4,8 @@ import BlogFooter from "@/components/BlogFooter";
 
 export const metadata: Metadata = {
   title: {
-    template: "%s — Guide investissement | tiili.fr",
-    default: "Guides villes — Investissement immobilier locatif | tiili.fr",
+    template: "%s — Guide investissement | tiili.io",
+    default: "Guides villes — Investissement immobilier locatif | tiili.io",
   },
   description:
     "Guides d'investissement locatif par ville : prix, loyers, rendements, quartiers, risques. Données DVF et INSEE.",

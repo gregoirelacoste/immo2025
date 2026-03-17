@@ -183,7 +183,7 @@ export async function createProperty(
         property_tax, vacancy_rate, airbnb_price_per_night, airbnb_occupancy_rate,
         airbnb_charges, renovation_cost, dpe_rating, fiscal_regime,
         amenities, travaux_ratings, travaux_overrides, equipment_costs,
-        source_url, image_urls, prefill_sources, created_at, updated_at
+        rent_mode, source_url, image_urls, prefill_sources, created_at, updated_at
       ) VALUES (
         $id, $user_id, $visibility, $address, $city, $postal_code, $purchase_price, $surface, $property_type, $description, $neighborhood,
         $loan_amount, $interest_rate, $loan_duration, $personal_contribution,
@@ -191,7 +191,7 @@ export async function createProperty(
         $property_tax, $vacancy_rate, $airbnb_price_per_night, $airbnb_occupancy_rate,
         $airbnb_charges, $renovation_cost, $dpe_rating, $fiscal_regime,
         $amenities, $travaux_ratings, $travaux_overrides, $equipment_costs,
-        $source_url, $image_urls, $prefill_sources, $created_at, $updated_at
+        $rent_mode, $source_url, $image_urls, $prefill_sources, $created_at, $updated_at
       )
     `,
     args: {
@@ -228,6 +228,7 @@ export async function createProperty(
       travaux_ratings: property.travaux_ratings ?? "{}",
       travaux_overrides: property.travaux_overrides ?? "{}",
       equipment_costs: property.equipment_costs ?? "{}",
+      rent_mode: property.rent_mode || "auto",
       source_url: property.source_url,
       image_urls: property.image_urls,
       prefill_sources: property.prefill_sources,
@@ -262,7 +263,7 @@ export async function updateProperty(
         airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
         renovation_cost = $renovation_cost, dpe_rating = $dpe_rating, fiscal_regime = $fiscal_regime,
         amenities = $amenities, travaux_ratings = $travaux_ratings, travaux_overrides = $travaux_overrides, equipment_costs = $equipment_costs,
-        source_url = $source_url, image_urls = $image_urls,
+        rent_mode = $rent_mode, source_url = $source_url, image_urls = $image_urls,
         prefill_sources = $prefill_sources, updated_at = $updated_at
       WHERE id = $id AND user_id = $user_id
     `,
@@ -300,6 +301,7 @@ export async function updateProperty(
       travaux_ratings: property.travaux_ratings ?? "{}",
       travaux_overrides: property.travaux_overrides ?? "{}",
       equipment_costs: property.equipment_costs ?? "{}",
+      rent_mode: property.rent_mode || "auto",
       source_url: property.source_url,
       image_urls: property.image_urls,
       prefill_sources: property.prefill_sources,
@@ -331,7 +333,7 @@ export async function updateOrphanProperty(
         airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
         renovation_cost = $renovation_cost, dpe_rating = $dpe_rating, fiscal_regime = $fiscal_regime,
         amenities = $amenities, travaux_ratings = $travaux_ratings, travaux_overrides = $travaux_overrides, equipment_costs = $equipment_costs,
-        source_url = $source_url, image_urls = $image_urls,
+        rent_mode = $rent_mode, source_url = $source_url, image_urls = $image_urls,
         prefill_sources = $prefill_sources, updated_at = $updated_at
       WHERE id = $id AND (user_id = '' OR user_id IS NULL)
     `,
@@ -368,6 +370,7 @@ export async function updateOrphanProperty(
       travaux_ratings: property.travaux_ratings ?? "{}",
       travaux_overrides: property.travaux_overrides ?? "{}",
       equipment_costs: property.equipment_costs ?? "{}",
+      rent_mode: property.rent_mode || "auto",
       source_url: property.source_url,
       image_urls: property.image_urls,
       prefill_sources: property.prefill_sources,
@@ -505,7 +508,7 @@ export async function updatePropertyAsAdmin(
         airbnb_occupancy_rate = $airbnb_occupancy_rate, airbnb_charges = $airbnb_charges,
         renovation_cost = $renovation_cost, dpe_rating = $dpe_rating, fiscal_regime = $fiscal_regime,
         amenities = $amenities, travaux_ratings = $travaux_ratings, travaux_overrides = $travaux_overrides, equipment_costs = $equipment_costs,
-        source_url = $source_url, image_urls = $image_urls,
+        rent_mode = $rent_mode, source_url = $source_url, image_urls = $image_urls,
         prefill_sources = $prefill_sources, updated_at = $updated_at
       WHERE id = $id
     `,
@@ -542,6 +545,7 @@ export async function updatePropertyAsAdmin(
       travaux_ratings: property.travaux_ratings ?? "{}",
       travaux_overrides: property.travaux_overrides ?? "{}",
       equipment_costs: property.equipment_costs ?? "{}",
+      rent_mode: property.rent_mode || "auto",
       source_url: property.source_url,
       image_urls: property.image_urls,
       prefill_sources: property.prefill_sources,

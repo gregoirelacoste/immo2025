@@ -54,7 +54,7 @@ function hasFlag(name: string): boolean {
 
 if (hasFlag("help") || args.length === 0) {
   console.log(`
-📝 Blog Generator — tiili.fr
+📝 Blog Generator — tiili.io
 
 Usage :
   npm run blog -- --category <type> [--city <ville>] [options]

@@ -208,7 +208,7 @@ Chaque bien peut avoir plusieurs simulations nommées :
 ### Architecture URL
 
 ```
-tiili.fr/
+tiili.io/
   /guide/                           → hub guides villes
   /guide/lyon                       → guide ville
   /guide/paris/18e-arrondissement   → guide quartier

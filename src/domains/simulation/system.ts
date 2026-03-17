@@ -19,10 +19,14 @@ export function buildSystemSimulation(
   const loc = localityFields ?? {};
 
   // --- Rent ---
-  // Property monthly_rent > locality avg rent × surface > 0
-  const monthlyRent = property.monthly_rent > 0
+  // Manual mode: always use property.monthly_rent
+  // Auto mode: locality avg rent × surface (fallback to property rent if locality unavailable)
+  const isManualRent = property.rent_mode === "manual";
+  const monthlyRent = isManualRent
     ? property.monthly_rent
-    : (loc.avg_rent_per_m2 && surface > 0 ? Math.round(loc.avg_rent_per_m2 * surface) : 0);
+    : (loc.avg_rent_per_m2 && surface > 0
+      ? Math.round(loc.avg_rent_per_m2 * surface)
+      : property.monthly_rent);
 
   // --- Charges ---
   const condoCharges = property.condo_charges > 0

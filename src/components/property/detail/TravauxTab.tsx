@@ -23,7 +23,6 @@ export default function TravauxTab({ property }: Props) {
     parseTravauxOverrides(property.travaux_overrides ?? "{}")
   );
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
-  const [applied, setApplied] = useState(false);
 
   const summary = useMemo(
     () => calculateTravaux(property.surface, JSON.stringify(localRatings), JSON.stringify(localOverrides)),
@@ -33,23 +32,27 @@ export default function TravauxTab({ property }: Props) {
   const hasAnyRating = Object.keys(localRatings).length > 0;
   const hasDpe = !!property.dpe_rating;
 
-  // Persist ratings to DB
+  // Persist ratings + renovation_cost to DB in real-time
   const persistRatings = useCallback(
     (newRatings: Record<string, number>) => {
+      const newSummary = calculateTravaux(property.surface, JSON.stringify(newRatings), JSON.stringify(localOverrides));
       startTransition(async () => {
         await updatePropertyField(property.id, "travaux_ratings", JSON.stringify(newRatings), "Estimation travaux", "estimated");
+        await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
       });
     },
-    [property.id]
+    [property.id, property.surface, localOverrides]
   );
 
   const persistOverrides = useCallback(
     (newOverrides: Record<string, number>) => {
+      const newSummary = calculateTravaux(property.surface, JSON.stringify(localRatings), JSON.stringify(newOverrides));
       startTransition(async () => {
         await updatePropertyField(property.id, "travaux_overrides", JSON.stringify(newOverrides), "Estimation travaux", "declared");
+        await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
       });
     },
-    [property.id]
+    [property.id, property.surface, localRatings]
   );
 
   function handleRatingChange(key: string, value: number | null) {
@@ -60,7 +63,6 @@ export default function TravauxTab({ property }: Props) {
       next[key] = value;
     }
     setLocalRatings(next);
-    setApplied(false);
     persistRatings(next);
   }
 
@@ -74,13 +76,6 @@ export default function TravauxTab({ property }: Props) {
     }
     setLocalOverrides(next);
     persistOverrides(next);
-  }
-
-  function handleApplyToSimulation() {
-    startTransition(async () => {
-      await updatePropertyField(property.id, "renovation_cost", summary.totalRenovationCost, "Estimation travaux", "estimated");
-      setApplied(true);
-    });
   }
 
   // Group items by category
@@ -129,27 +124,12 @@ export default function TravauxTab({ property }: Props) {
         {/* Budget summary */}
         {hasAnyRating ? (
           <div className="mb-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <div className="text-2xl font-extrabold text-orange-700">
-                  {formatCurrency(summary.totalRenovationCost)}
-                </div>
-                <div className="text-xs text-orange-500 font-medium">Budget travaux estimé</div>
-              </div>
-              <button
-                onClick={handleApplyToSimulation}
-                disabled={isPending || applied}
-                className={`px-3 py-2 text-xs font-semibold rounded-lg transition-colors min-h-[44px] ${
-                  applied
-                    ? "bg-green-100 text-green-700"
-                    : "bg-orange-600 text-white hover:bg-orange-700"
-                }`}
-              >
-                {applied ? "Appliqué" : "Appliquer"}
-              </button>
+            <div className="text-2xl font-extrabold text-orange-700">
+              {formatCurrency(summary.totalRenovationCost)}
             </div>
+            <div className="text-xs text-orange-500 font-medium">Budget travaux estimé</div>
             {summary.monthlyMaintenanceCost > 0 && (
-              <div className="text-sm text-orange-600">
+              <div className="text-sm text-orange-600 mt-1">
                 Entretien : +{summary.monthlyMaintenanceCost} €/mois
               </div>
             )}

@@ -147,7 +147,7 @@ async function fetchSingleFeed(config: RssFeedConfig): Promise<RssItem[]> {
   try {
     const res = await fetch(config.url, {
       headers: {
-        "User-Agent": "tiili.fr/news-fetcher/1.0",
+        "User-Agent": "tiili.io/news-fetcher/1.0",
         Accept: "application/rss+xml, application/xml, text/xml",
       },
       signal: AbortSignal.timeout(10_000),

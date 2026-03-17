@@ -7,7 +7,7 @@ export default function BlogFooter() {
         <div className="flex flex-col md:flex-row justify-between gap-4">
           <div>
             <Link href="/" className="font-semibold text-gray-700 hover:text-amber-600">
-              tiili.fr
+              tiili.io
             </Link>
             <p>Simulateur d&apos;investissement immobilier locatif</p>
           </div>

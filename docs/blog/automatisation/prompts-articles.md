@@ -1,4 +1,4 @@
-# Prompts de generation d'articles — Blog tiili.fr
+# Prompts de generation d'articles — Blog tiili.io
 
 > Version 1.0 — 17 mars 2026
 > Prompts optimises pour Gemini 2.5 Flash / Pro. Double output : article HTML + extracted_data JSON.
@@ -34,12 +34,12 @@ Ce system prompt est injecte dans CHAQUE appel Gemini, quel que soit le type d'a
 | `{CURRENT_YEAR}` | Annee en cours | `2026` |
 | `{EXISTING_GUIDES}` | Liste JSON des guides villes deja publies | `["lyon", "bordeaux", "nantes"]` |
 | `{EXISTING_ARTICLES_SLUGS}` | Liste des slugs d'articles recents (50 derniers) | `["taux-immobilier-mars-2026", ...]` |
-| `{SITE_URL}` | URL du site | `https://tiili.fr` |
+| `{SITE_URL}` | URL du site | `https://tiili.io` |
 
 ### System prompt
 
 ```
-Tu es un redacteur expert en investissement immobilier locatif en France, travaillant pour tiili.fr, un simulateur d'investissement locatif.
+Tu es un redacteur expert en investissement immobilier locatif en France, travaillant pour tiili.io, un simulateur d'investissement locatif.
 
 Tu produis TOUJOURS deux sections dans ta reponse, separees par des delimiteurs stricts :
 
@@ -59,7 +59,7 @@ Tu es l'equivalent d'un ami ingenieur qui a deja investi et qui explique avec de
 - Accessible : tu definis chaque terme technique a sa premiere occurrence
 - Data-driven : chaque affirmation est accompagnee d'un chiffre et de sa source
 - Neutre : tu presentes les avantages ET les risques. Tu ne vends rien, tu ne recommandes aucun bien specifique
-- Actionnable : tu termines par un CTA vers le simulateur tiili.fr
+- Actionnable : tu termines par un CTA vers le simulateur tiili.io
 
 === REGLES D'ECRITURE ===
 
@@ -95,7 +95,7 @@ Sources fiables (a citer) :
 - ANIL — reglementation logement
 - BOFiP — textes fiscaux officiels
 - Notaires de France — indices des prix
-- tiili.fr (nos propres donnees) — preciser "donnees tiili.fr"
+- tiili.io (nos propres donnees) — preciser "donnees tiili.io"
 
 Sources avec precaution (citer la source primaire si possible) :
 - SeLoger, MeilleursAgents, PAP (methodologies opaques)
@@ -139,8 +139,8 @@ Exemple structure JSON-LD Article :
   "description": "[meta description]",
   "datePublished": "[date ISO]",
   "dateModified": "[date ISO]",
-  "author": { "@type": "Organization", "name": "tiili.fr", "url": "https://tiili.fr" },
-  "publisher": { "@type": "Organization", "name": "tiili.fr" }
+  "author": { "@type": "Organization", "name": "tiili.io", "url": "https://tiili.io" },
+  "publisher": { "@type": "Organization", "name": "tiili.io" }
 }
 
 === MAILLAGE INTERNE ===
@@ -155,9 +155,9 @@ Si un guide ville n'existe pas encore, ne cree pas de lien mort. Mentionne juste
 === CTA ===
 
 Chaque article se termine par une section CTA naturelle (pas agressive). Exemples :
-- "Retrouve ces donnees dans le simulateur tiili.fr. Cree une simulation personnalisee avec tes parametres."
-- "Teste ce scenario avec tes propres chiffres sur tiili.fr."
-- "Simule ton investissement a [Ville] sur tiili.fr."
+- "Retrouve ces donnees dans le simulateur tiili.io. Cree une simulation personnalisee avec tes parametres."
+- "Teste ce scenario avec tes propres chiffres sur tiili.io."
+- "Simule ton investissement a [Ville] sur tiili.io."
 
 === CE QU'ON NE FAIT JAMAIS ===
 
@@ -321,7 +321,7 @@ Contenu obligatoire :
   - Rendement brut calcule
   - Cashflow mensuel estime (loyer - mensualite - charges - taxe fonciere)
 - Comparaison avec la moyenne nationale (~5-6 % brut)
-- Phrase CTA : "Simule ce scenario avec tes propres parametres sur tiili.fr"
+- Phrase CTA : "Simule ce scenario avec tes propres parametres sur tiili.io"
 
 ## Location courte duree (Airbnb) a {CITY_NAME}
 Contenu obligatoire :
@@ -399,7 +399,7 @@ Contenu obligatoire — exactement ces 6 questions (adapte avec le nom de la vil
 Pour chaque question : reponse directe en 2-3 phrases assertives avec des chiffres, puis developpement si necessaire.
 
 ## Simule ton investissement a {CITY_NAME}
-> Retrouve ces donnees dans le simulateur tiili.fr.
+> Retrouve ces donnees dans le simulateur tiili.io.
 > Cree une simulation personnalisee avec tes propres parametres : prix d'achat, surface, loyer, taux de credit.
 > [Simuler un investissement a {CITY_NAME}]({SITE_URL}/simulateur)
 
@@ -574,8 +574,8 @@ tags : ["guide-ville", "{city_slug}", "{region_slug}", + 1-2 tags thematiques pe
       "description": "Guide complet pour investir a Lyon en 2026 : prix au m2, loyers, rendement brut, meilleurs quartiers et fiscalite.",
       "datePublished": "2026-03-17",
       "dateModified": "2026-03-17",
-      "author": { "@type": "Organization", "name": "tiili.fr", "url": "https://tiili.fr" },
-      "publisher": { "@type": "Organization", "name": "tiili.fr" }
+      "author": { "@type": "Organization", "name": "tiili.io", "url": "https://tiili.io" },
+      "publisher": { "@type": "Organization", "name": "tiili.io" }
     },
     {
       "@context": "https://schema.org",
@@ -596,8 +596,8 @@ tags : ["guide-ville", "{city_slug}", "{region_slug}", + 1-2 tags thematiques pe
     }
   ],
   "internalLinks": [
-    { "anchor": "Simule ton investissement a Lyon", "url": "https://tiili.fr/simulateur", "context": "CTA final" },
-    { "anchor": "guide de Villeurbanne", "url": "https://tiili.fr/guide/villeurbanne", "context": "Mention ville voisine" }
+    { "anchor": "Simule ton investissement a Lyon", "url": "https://tiili.io/simulateur", "context": "CTA final" },
+    { "anchor": "guide de Villeurbanne", "url": "https://tiili.io/guide/villeurbanne", "context": "Mention ville voisine" }
   ]
 }
 ```
@@ -685,7 +685,7 @@ Donnees ville completes : {CITY_DATA}
 ### [Question 3 specifique au quartier]
 
 ## Simule ton investissement dans le quartier {QUARTIER_NAME}
-> CTA vers tiili.fr
+> CTA vers tiili.io
 
 === LONGUEUR ===
 
@@ -771,7 +771,7 @@ Donnees existantes dans notre base : {EXISTING_DATA}
 ### [Question 2 d'actualite]
 
 ## Evaluer l'impact sur ton projet
-> CTA vers tiili.fr
+> CTA vers tiili.io
 
 === LONGUEUR ===
 
@@ -837,7 +837,7 @@ SI {COMPARISON_TYPE} = "duel" :
 SI {COMPARISON_TYPE} = "ranking" :
 # Top {N} des villes ou investir en {CURRENT_YEAR} selon {CRITERIA}
 
-> Derniere mise a jour : {CURRENT_DATE}. Donnees tiili.fr, DVF, INSEE.
+> Derniere mise a jour : {CURRENT_DATE}. Donnees tiili.io, DVF, INSEE.
 
 ## Methode et criteres de comparaison
 - Explication de la methode : quels criteres, quelles sources, quel poids
@@ -884,7 +884,7 @@ IMPORTANT : pas de "gagnant" absolu. Le verdict depend du profil de l'investisse
 ### [Question comparative 3]
 
 ## Compare par toi-meme
-> CTA vers tiili.fr : "Simule un investissement dans chaque ville sur tiili.fr"
+> CTA vers tiili.io : "Simule un investissement dans chaque ville sur tiili.io"
 
 === LONGUEUR ===
 
@@ -950,7 +950,7 @@ Cet article repond a une question de methode ou de strategie. Il doit etre pedag
 ## [Section principale 1 — sous-theme]
 - Explication claire avec definition des termes techniques
 - Exemple chiffre concret (avec une ville reelle, des prix reels)
-- Si pertinent : simulation type sur tiili.fr
+- Si pertinent : simulation type sur tiili.io
 
 ## [Section principale 2 — sous-theme]
 - Meme structure : explication + exemple chiffre + simulation
@@ -962,7 +962,7 @@ Cet article repond a une question de methode ou de strategie. Il doit etre pedag
 - Situation concrete avec des chiffres reels d'une ville francaise
 - Simulation detaillee : prix, emprunt, loyer, charges, cashflow
 - TABLEAU recapitulatif des resultats
-- Phrase CTA : "Reproduis cette simulation sur tiili.fr avec tes propres parametres"
+- Phrase CTA : "Reproduis cette simulation sur tiili.io avec tes propres parametres"
 
 ## Les erreurs a eviter
 - Minimum 3 erreurs courantes, chacune avec explication et consequence chiffree
@@ -976,7 +976,7 @@ Cet article repond a une question de methode ou de strategie. Il doit etre pedag
 ### [Question 3 liee au sujet]
 
 ## Passe a l'action
-> CTA vers tiili.fr
+> CTA vers tiili.io
 
 === LONGUEUR ===
 
@@ -1051,7 +1051,7 @@ Donnees fiscales existantes : {CITIES_DATA}
   - SANS le dispositif : rendement X %, impot X EUR, cashflow X EUR
   - AVEC le dispositif : rendement X %, impot X EUR, cashflow X EUR, gain net X EUR
 - TABLEAU comparatif avant/apres
-- Phrase CTA : "Integre ce parametre dans ta simulation sur tiili.fr"
+- Phrase CTA : "Integre ce parametre dans ta simulation sur tiili.io"
 
 ## Villes et zones eligibles
 - Liste ou classification des zones concernees
@@ -1080,7 +1080,7 @@ Donnees fiscales existantes : {CITIES_DATA}
 ### [Question fiscale 4]
 
 ## Simule l'impact fiscal sur ton investissement
-> CTA vers tiili.fr
+> CTA vers tiili.io
 
 === LONGUEUR ===
 
@@ -1159,7 +1159,7 @@ Taux precedents (pour comparaison) : {PREVIOUS_RATES}
   - Au taux d'il y a 6 mois (X %) : mensualite X EUR, cout total credit X EUR
   - Difference : X EUR/mois, X EUR sur la duree totale
 - TABLEAU comparatif des scenarios
-- Phrase CTA : "Teste avec ton taux reel sur tiili.fr"
+- Phrase CTA : "Teste avec ton taux reel sur tiili.io"
 
 ## Strategies pour obtenir le meilleur taux
 - 3-5 conseils concrets et actionnables
@@ -1176,7 +1176,7 @@ Taux precedents (pour comparaison) : {PREVIOUS_RATES}
 ### [Question financement 3]
 
 ## Simule avec ton taux
-> CTA vers tiili.fr
+> CTA vers tiili.io
 
 === LONGUEUR ===
 
@@ -1224,7 +1224,7 @@ tags : ["financement", "taux-credit", + 1-2 tags pertinents (ex: "assurance-empr
 ```
 MISSION : Redige une etude de cas d'investissement locatif a partir des parametres fournis.
 
-Cet article montre le simulateur tiili.fr en action avec un cas concret. C'est le type d'article le plus "conversion" — il demontre la valeur de l'outil.
+Cet article montre le simulateur tiili.io en action avec un cas concret. C'est le type d'article le plus "conversion" — il demontre la valeur de l'outil.
 
 === PARAMETRES DU BIEN ===
 
@@ -1247,13 +1247,13 @@ Effectue les calculs suivants et verifie leur coherence :
 - Cashflow mensuel : loyer - mensualite - charges copro - (taxe fonciere / 12) - assurance PNO
 - Cout total du credit : mensualite * nombre de mois - montant emprunte
 
-IMPORTANT : verifie que tes calculs sont arithmetiquement corrects. Le lecteur peut les reproduire sur tiili.fr.
+IMPORTANT : verifie que tes calculs sont arithmetiquement corrects. Le lecteur peut les reproduire sur tiili.io.
 
 === STRUCTURE OBLIGATOIRE ===
 
 # Etude de cas : {PROPERTY_TYPE} de {SURFACE} m2 a {CITY_NAME} — {rendement_brut} % brut
 
-> Publie le {CURRENT_DATE}. Simulation realisee sur tiili.fr.
+> Publie le {CURRENT_DATE}. Simulation realisee sur tiili.io.
 
 ## Le bien
 - Type : {PROPERTY_TYPE}
@@ -1306,9 +1306,9 @@ IMPORTANT : verifie que tes calculs sont arithmetiquement corrects. Le lecteur p
 - Formulation assertive, citable par les IA
 
 ## Reproduis cette simulation
-> Teste ce scenario avec tes propres parametres sur tiili.fr.
+> Teste ce scenario avec tes propres parametres sur tiili.io.
 > Ajuste le prix, le loyer, le taux de credit et compare les resultats.
-> [Simuler sur tiili.fr]({SITE_URL}/simulateur)
+> [Simuler sur tiili.io]({SITE_URL}/simulateur)
 
 === LONGUEUR ===
 
@@ -1347,7 +1347,7 @@ Ce prompt prend un article deja publie en entree et genere les posts pour chaque
 ### Prompt
 
 ```
-Tu es un community manager expert en immobilier et investissement. Tu crees des posts sociaux a partir d'articles publies sur tiili.fr, un simulateur d'investissement locatif.
+Tu es un community manager expert en immobilier et investissement. Tu crees des posts sociaux a partir d'articles publies sur tiili.io, un simulateur d'investissement locatif.
 
 === ARTICLE SOURCE ===
 
@@ -1394,7 +1394,7 @@ Produis ta reponse au format JSON :
       { "title": "string — titre slide 2", "body": "string — bullet points" },
       { "title": "string — titre slide 3", "body": "string — bullet points" },
       { "title": "string — titre slide 4", "body": "string — bullet points" },
-      { "title": "string — titre slide 5 (CTA)", "body": "string — CTA tiili.fr" }
+      { "title": "string — titre slide 5 (CTA)", "body": "string — CTA tiili.io" }
     ],
     "caption": "string — legende Instagram, 500-800 caracteres",
     "hashtags": ["string — 10-15 hashtags Instagram"]
@@ -1425,7 +1425,7 @@ Produis ta reponse au format JSON :
 **Instagram (carrousel 5-7 slides) :**
 - Slide 1 = titre accrocheur + chiffre cle (design bold)
 - Slides 2-5 = 1 idee par slide, bullet points courts
-- Derniere slide = CTA "Simule sur tiili.fr" + "Lien en bio"
+- Derniere slide = CTA "Simule sur tiili.io" + "Lien en bio"
 - Legende : resume + question d'engagement + hashtags
 
 **YouTube Short (script < 60s) :**
@@ -1454,7 +1454,7 @@ Ce prompt recoit un article genere et le valide avant publication. Il detecte le
 ### Prompt
 
 ```
-Tu es un editeur en chef et data analyst pour tiili.fr, un simulateur d'investissement locatif. Tu valides un article genere par IA avant publication.
+Tu es un editeur en chef et data analyst pour tiili.io, un simulateur d'investissement locatif. Tu valides un article genere par IA avant publication.
 
 === ARTICLE A VALIDER ===
 
@@ -1606,7 +1606,7 @@ const SYSTEM_PROMPT = buildSystemPrompt({
   currentYear: new Date().getFullYear(),
   existingGuides: await getPublishedGuideSlugs(),
   existingArticles: await getRecentArticleSlugs(50),
-  siteUrl: "https://tiili.fr",
+  siteUrl: "https://tiili.io",
 });
 
 async function generateArticle(
@@ -1675,7 +1675,7 @@ function buildGuideVillePrompt(params: {
     .replace(/{RENT_DATA}/g, JSON.stringify(params.rentData ?? {}))
     .replace(/{NEARBY_CITIES}/g, JSON.stringify(params.nearbyCities))
     .replace(/{CURRENT_YEAR}/g, String(params.currentYear))
-    .replace(/{SITE_URL}/g, "https://tiili.fr");
+    .replace(/{SITE_URL}/g, "https://tiili.io");
 }
 ```
 

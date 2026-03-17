@@ -1,8 +1,8 @@
-# Strategie Social Media — tiili.fr
+# Strategie Social Media — tiili.io
 
 > Blog immobilier investissement locatif | 1 article/jour
 > Audience : investisseurs immobiliers locatifs en France (25-55 ans, CSP+, debutants a confirmes)
-> Objectif : trafic vers le blog + adoption de l'app tiili.fr
+> Objectif : trafic vers le blog + adoption de l'app tiili.io
 
 ---
 
@@ -129,7 +129,7 @@
 - Posts informatifs avec donnees (jamais de lien en premier post)
 - Reponses detaillees aux questions des membres
 - AMA trimestriel "Donnees marche immo Q[X] 2025"
-- Mention naturelle de tiili.fr uniquement quand pertinent
+- Mention naturelle de tiili.io uniquement quand pertinent
 
 **Frequence** : 2-3 interventions/semaine (dont 1 post original/semaine max)
 
@@ -171,7 +171,7 @@ Mais le chiffre qui m'a surpris...
 
 [suite du post avec l'element differenciateur]
 
-Simulez votre investissement a [VILLE] -> tiili.fr/guide/[ville]
+Simulez votre investissement a [VILLE] -> tiili.io/guide/[ville]
 
 #immobilier #investissement #[ville] #rendement
 ```
@@ -187,7 +187,7 @@ Slide 6 : "Simulation type" (T2 45m2, achat/loyer/cashflow)
 Slide 7 : "Avantages" (3 bullet points)
 Slide 8 : "Risques a connaitre" (2-3 points)
 Slide 9 : "Verdict : [note/5]"
-Slide 10 : CTA "Simulez sur tiili.fr"
+Slide 10 : CTA "Simulez sur tiili.io"
 ```
 
 ---
@@ -229,7 +229,7 @@ Les perdantes :
 Ce que ca change pour les investisseurs :
 [analyse en 3 points]
 
-Toutes les donnees sur tiili.fr/blog/[slug]
+Toutes les donnees sur tiili.io/blog/[slug]
 ```
 
 ---
@@ -270,7 +270,7 @@ Le loyer au m2 du T2 est plus stable.
 
 Mon avis : le T2 est le sweet spot pour 80% des investisseurs.
 
-Faites votre propre simulation -> tiili.fr
+Faites votre propre simulation -> tiili.io
 
 #investissementimmobilier #studio #rendement #patrimoine
 ```
@@ -374,7 +374,7 @@ Faites votre propre simulation -> tiili.fr
 | Reprise blog | **50%** | Reformulation des articles du jour en format natif |
 | Contenu original social-first | **25%** | Sondages, debats, reactions actu, behind the scenes |
 | Engagement communaute | **15%** | Reponses, RT/partages commentes, mentions |
-| Promotion app tiili.fr | **10%** | CTA direct vers l'app, demos, temoignages |
+| Promotion app tiili.io | **10%** | CTA direct vers l'app, demos, temoignages |
 
 **Regle absolue** : jamais plus de 1 post promotionnel sur 10. La valeur d'abord, la promo en sous-texte.
 
@@ -472,7 +472,7 @@ Genere les posts suivants en francais, avec les donnees chiffrees de l'article :
    - Slide 1 = titre accrocheur
    - Slides 2-8 = 1 donnee/idee par slide, phrases courtes
    - Slide 9 = verdict
-   - Slide 10 = CTA tiili.fr
+   - Slide 10 = CTA tiili.io
 
 4. SCRIPT SHORT YOUTUBE/TIKTOK (30-60 secondes)
    - Hook 3 secondes
@@ -535,7 +535,7 @@ Ton : expert accessible, jamais condescendant, toujours des chiffres.
 
 5. **SEO croise**
    - Chaque article blog inclut des boutons de partage
-   - Bio de tous les comptes sociaux pointe vers tiili.fr
+   - Bio de tous les comptes sociaux pointe vers tiili.io
    - Lien blog dans la bio Instagram
 
 **Metriques cles a surveiller** :
@@ -696,11 +696,11 @@ Ton : expert accessible, jamais condescendant, toujours des chiffres.
 - Creer des debats (mais toujours avec des donnees)
 - Remercier les partages et les mentions
 - Interagir genuinement avec les autres comptes immo
-- Partager les reussites des utilisateurs de tiili.fr (avec leur accord)
+- Partager les reussites des utilisateurs de tiili.io (avec leur accord)
 
 **Marque** :
 - Maintenir une identite visuelle coherente (couleurs tiili, typographies)
-- Utiliser le meme handle partout : @tiili_fr ou @tiili.fr
+- Utiliser le meme handle partout : @tiili.io ou @tiili.io
 - Avoir une bio claire et coherente sur toutes les plateformes
 - Inclure un lien vers le blog/app dans toutes les bios
 
@@ -752,7 +752,7 @@ On prefere la transparence a la perfection.
 **Reponse type** :
 ```
 On comprend la reaction. Notre objectif est de partager des donnees marche
-utiles aux investisseurs. tiili.fr est l'outil qu'on a construit pour ca,
+utiles aux investisseurs. tiili.io est l'outil qu'on a construit pour ca,
 mais les donnees qu'on publie ici sont utiles meme sans l'outil.
 On est ouvert a vos retours sur le type de contenu que vous attendez.
 ```
@@ -768,7 +768,7 @@ Voici les chiffres objectifs sur le sujet : [donnees factuelles].
 ```
 **Action** : Rester factuel. Ne jamais prendre parti politiquement. Toujours ramener aux donnees.
 
-#### Scenario 4 : Utilisateur mecontent de l'app tiili.fr
+#### Scenario 4 : Utilisateur mecontent de l'app tiili.io
 
 **Reponse type** :
 ```
@@ -802,7 +802,7 @@ Quelques pistes avec les donnees actuelles :
 - Plus-value : [ville3] (+X% sur 5 ans)
 - Equilibre : [ville4]
 
-On a un guide complet ici : tiili.fr/guide/[ville]
+On a un guide complet ici : tiili.io/guide/[ville]
 ```
 
 **Quand quelqu'un critique les rendements annonces** :
@@ -822,7 +822,7 @@ importante — chaque situation est differente.
 - [ ] Creer les comptes : X, LinkedIn (page), Instagram, YouTube, TikTok, Threads
 - [ ] Charte visuelle : templates Canva/Figma pour carrousels, thumbnails, stories
 - [ ] Bio unifiee sur toutes les plateformes
-- [ ] Lier tous les comptes au blog tiili.fr
+- [ ] Lier tous les comptes au blog tiili.io
 - [ ] Configurer Buffer (ou equivalent) pour le scheduling
 - [ ] Preparer 7 jours de contenu d'avance
 

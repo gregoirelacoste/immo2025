@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const cityName = await findCityNameBySlug(slug);
   if (!cityName) return { title: "Ville non trouvée" };
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io";
   const year = new Date().getFullYear();
 
   return {
@@ -102,7 +102,7 @@ export default async function CityGuidePage({ params }: Props) {
     headline: `Investir à ${cityName} en ${year}`,
     name: cityName,
     description: `Guide investissement immobilier locatif à ${cityName}`,
-    url: `${process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.fr"}/guide/${slug}`,
+    url: `${process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io"}/guide/${slug}`,
   };
 
   return (

@@ -1,6 +1,6 @@
 # Pipeline Data : Article → App
 
-Spécification technique du flux de données bidirectionnel entre le blog et l'application tiili.fr.
+Spécification technique du flux de données bidirectionnel entre le blog et l'application tiili.io.
 
 ---
 

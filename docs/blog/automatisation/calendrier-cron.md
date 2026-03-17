@@ -1,4 +1,4 @@
-# Calendrier Cron & Pipeline de Publication Automatisee — tiili.fr
+# Calendrier Cron & Pipeline de Publication Automatisee — tiili.io
 
 > Specification technique pour la publication automatisee de ~45 articles/mois via pipeline IA (Gemini).
 > Stack : Next.js 16, Vercel, SQLite/Turso, GitHub Actions.
