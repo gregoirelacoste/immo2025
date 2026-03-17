@@ -2,6 +2,7 @@
 
 import { getMarketData } from "@/domains/market/service";
 import { MarketData } from "@/domains/market/types";
+import { calculateDegressiveRent } from "@/domains/market/rent-degressive";
 
 export async function fetchMarketDataForCity(
   city: string
@@ -27,7 +28,12 @@ export async function estimateMonthlyRent(
     const market = await getMarketData(city);
     if (!market?.avgRentPerM2) return null;
 
-    const rent = Math.round(market.avgRentPerM2 * surface);
+    const rent = calculateDegressiveRent(
+      market.avgRentPerM2,
+      surface,
+      market.rentElasticityAlpha ?? undefined,
+      market.rentReferenceSurface ?? undefined
+    );
     const source =
       market.rentSource === "locality"
         ? "Données locales"

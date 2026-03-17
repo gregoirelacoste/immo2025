@@ -65,6 +65,10 @@ export interface LocalityDataFields {
   avg_airbnb_night_price?: number | null;
   avg_airbnb_occupancy_rate?: number | null;
 
+  // Dégressivité loyer (loi de puissance L = k × S^α)
+  rent_elasticity_alpha?: number | null; // exposant α (0.6–0.8, défaut 0.72)
+  rent_reference_surface?: number | null; // surface de référence du loyer moyen (défaut 45 m²)
+
   // Socio-economique
   population?: number | null;
   population_growth_pct?: number | null;
@@ -94,6 +98,8 @@ export const LOCALITY_DATA_FIELD_KEYS: (keyof LocalityDataFields)[] = [
   "avg_property_tax_per_m2",
   "avg_airbnb_night_price",
   "avg_airbnb_occupancy_rate",
+  "rent_elasticity_alpha",
+  "rent_reference_surface",
   "population",
   "population_growth_pct",
   "median_income",

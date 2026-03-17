@@ -1,6 +1,7 @@
 import { ScrapedPropertyData, ScrapeResult } from "@/domains/scraping/types";
 import { MarketData } from "@/domains/market/types";
 import { PhotoExtractedListing } from "@/domains/collect/types";
+import { calculateDegressiveRent, adjustRentPerM2 } from "@/domains/market/rent-degressive";
 
 export type Confidence = "estimated" | "declared" | "verified";
 
@@ -61,14 +62,18 @@ export function applyMarketDataToPrefill(
         : market.rentSource === "reference"
           ? "Observatoire des loyers"
           : "Estimation DVF (5.5%)";
-    rentPerM2 = market.avgRentPerM2;
-    // Only set rent_per_m2 in prefill (always from market)
-    prefill.rent_per_m2 = { source: rentSource, value: Math.round(rentPerM2 * 100) / 100 };
+
+    const alpha = market.rentElasticityAlpha ?? undefined;
+    const refSurface = market.rentReferenceSurface ?? undefined;
+
+    // Ajuster le loyer/m² à la surface du bien (dégressivité)
+    rentPerM2 = adjustRentPerM2(market.avgRentPerM2, surface, alpha, refSurface);
+    prefill.rent_per_m2 = { source: `${rentSource} (ajusté surface)`, value: Math.round(rentPerM2 * 100) / 100 };
 
     // monthly_rent: only fill if not already set by scraping
     if (!prefill.monthly_rent) {
-      monthlyRent = Math.round(rentPerM2 * surface);
-      prefill.monthly_rent = { source: `Calcul (${rentSource})`, value: monthlyRent };
+      monthlyRent = calculateDegressiveRent(market.avgRentPerM2, surface, alpha, refSurface);
+      prefill.monthly_rent = { source: `Calcul dégressif (${rentSource})`, value: monthlyRent };
     } else {
       monthlyRent = Number(prefill.monthly_rent.value) || 0;
     }
