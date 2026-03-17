@@ -189,13 +189,26 @@ export default function PropertyDetail({ property, isOwner = false, userProfile,
       <StickyHeader property={property} calcs={calcs} />
 
       {/* Tab navigation */}
-      <TabNavigation propertyId={property.id} isOwner={isOwner} />
+      <TabNavigation />
 
       {/* ═══════════════════ ONGLET BIEN (description factuelle) ═══════════════════ */}
       {activeTab === "bien" && (
         <div className="space-y-4 mt-4">
           {/* Infos clés */}
           <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
+            {isOwner && (
+              <div className="flex justify-end mb-3">
+                <Link
+                  href={`/property/${property.id}/edit`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors min-h-[36px]"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                  </svg>
+                  Modifier le bien
+                </Link>
+              </div>
+            )}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Prix au m²</span>
