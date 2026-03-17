@@ -11,6 +11,7 @@ import {
 import { saveProperty } from "@/domains/property/actions";
 import { scrapeAndSaveProperty } from "@/domains/scraping/actions";
 import { useLoanAutoCalc } from "./useLoanAutoCalc";
+import { useRentAutoCalc } from "./useRentAutoCalc";
 
 import SmartCollector from "@/components/collect/SmartCollector";
 import PropertyInfoSection from "./PropertyInfoSection";
@@ -131,6 +132,7 @@ export default function PropertyForm({ existingProperty, defaultInputs, equipmen
   }, [existingProperty]);
 
   const { loanManuallySet, setLoanManuallySet } = useLoanAutoCalc(form, setForm);
+  useRentAutoCalc(form, setForm, existingProperty?.market_data);
 
   const effectiveNotary =
     form.notary_fees > 0

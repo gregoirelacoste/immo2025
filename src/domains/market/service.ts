@@ -30,5 +30,7 @@ export async function getMarketData(
     vacancyRate: f.vacancy_rate ?? null,
     avgAirbnbNightPrice: f.avg_airbnb_night_price ?? null,
     avgAirbnbOccupancyRate: f.avg_airbnb_occupancy_rate ?? null,
+    rentElasticityAlpha: f.rent_elasticity_alpha ?? null,
+    rentReferenceSurface: f.rent_reference_surface ?? null,
   };
 }

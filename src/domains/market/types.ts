@@ -12,4 +12,7 @@ export interface MarketData {
   vacancyRate: number | null;
   avgAirbnbNightPrice: number | null;
   avgAirbnbOccupancyRate: number | null;
+  // Dégressivité loyer (loi de puissance)
+  rentElasticityAlpha: number | null;
+  rentReferenceSurface: number | null;
 }
