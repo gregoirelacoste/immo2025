@@ -127,3 +127,70 @@ export interface NewsFetcherOptions {
   /** Nombre max d'actus RSS à inclure */
   maxNews?: number;
 }
+
+// ── Article en base ──
+
+export type ArticleStatus = "draft" | "published" | "archived" | "error";
+
+export interface BlogArticle {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  meta_description: string;
+  json_ld: string;
+  source_urls: string; // JSON array
+  category: ArticleCategory;
+  locality_id: string | null;
+  tags: string; // JSON array
+  extracted_data: string; // JSON object
+  data_injected: number; // 0 | 1
+  status: ArticleStatus;
+  published_at: string | null;
+  triggered_by: string;
+  generation_model: string;
+  generation_tokens: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Données pour créer ou mettre à jour un article */
+export interface BlogArticleInput {
+  slug: string;
+  title: string;
+  content: string;
+  excerpt?: string;
+  meta_description?: string;
+  json_ld?: string;
+  source_urls?: string[];
+  category: ArticleCategory;
+  locality_id?: string | null;
+  tags?: string[];
+  extracted_data?: Record<string, unknown>;
+  status?: ArticleStatus;
+  triggered_by?: string;
+  generation_model?: string;
+  generation_tokens?: number;
+}
+
+/** Output attendu de Gemini après génération d'article */
+export interface GeneratedArticle {
+  article: {
+    title: string;
+    slug: string;
+    content: string;
+    excerpt: string;
+    meta_description: string;
+    tags: string[];
+    json_ld: Record<string, unknown>;
+  };
+  extracted_data: {
+    localities?: Array<{
+      city: string;
+      code_insee?: string;
+      fields: Record<string, unknown>;
+    }>;
+    global?: Record<string, unknown>;
+  };
+}

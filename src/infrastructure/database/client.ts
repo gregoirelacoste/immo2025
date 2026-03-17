@@ -14,7 +14,7 @@ export function getClient(): Client {
 }
 
 // Bump this when adding new migrations so cold starts re-run them
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints
@@ -330,6 +330,48 @@ async function initializeDatabase(client: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_locality_data_valid ON locality_data(valid_from, valid_to);
     CREATE INDEX IF NOT EXISTS idx_locality_data_lookup ON locality_data(locality_id, valid_from DESC);
     CREATE INDEX IF NOT EXISTS idx_localities_name ON localities(name COLLATE NOCASE);
+  `);
+
+  // Blog tables
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS blog_articles (
+      id TEXT PRIMARY KEY,
+      slug TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '',
+      excerpt TEXT DEFAULT '',
+      meta_description TEXT DEFAULT '',
+      json_ld TEXT DEFAULT '',
+      source_urls TEXT DEFAULT '[]',
+      category TEXT NOT NULL DEFAULT 'guide_ville',
+      locality_id TEXT DEFAULT NULL,
+      tags TEXT DEFAULT '[]',
+      extracted_data TEXT DEFAULT '{}',
+      data_injected INTEGER DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived','error')),
+      published_at TEXT DEFAULT NULL,
+      triggered_by TEXT NOT NULL DEFAULT 'admin',
+      generation_model TEXT DEFAULT '',
+      generation_tokens INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_blog_articles_slug ON blog_articles(slug);
+    CREATE INDEX IF NOT EXISTS idx_blog_articles_status ON blog_articles(status);
+    CREATE INDEX IF NOT EXISTS idx_blog_articles_category ON blog_articles(category);
+    CREATE INDEX IF NOT EXISTS idx_blog_articles_locality ON blog_articles(locality_id);
+    CREATE INDEX IF NOT EXISTS idx_blog_articles_published ON blog_articles(published_at DESC);
+
+    CREATE TABLE IF NOT EXISTS blog_audit_log (
+      id TEXT PRIMARY KEY,
+      article_id TEXT DEFAULT NULL,
+      action TEXT NOT NULL,
+      details TEXT DEFAULT '{}',
+      triggered_by TEXT NOT NULL DEFAULT 'system',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_blog_audit_action ON blog_audit_log(action);
+    CREATE INDEX IF NOT EXISTS idx_blog_audit_article ON blog_audit_log(article_id);
   `);
 
   // Record schema version so subsequent cold starts skip migrations
