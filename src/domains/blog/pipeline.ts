@@ -38,6 +38,7 @@ export interface PipelineResult {
   article?: BlogArticle;
   injectionResult?: {
     injected: number;
+    created: number;
     skipped: number;
     errors: Array<{ city: string; error: string }>;
   };

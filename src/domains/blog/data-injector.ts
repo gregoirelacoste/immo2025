@@ -8,14 +8,16 @@
  * - Merge field-by-field : seuls les champs null/manquants sont complétés
  */
 
-import { findLocalityByCity, getLatestLocalityData, createLocalityData } from "@/domains/locality/repository";
-import { LOCALITY_DATA_FIELD_KEYS, LocalityDataFields } from "@/domains/locality/types";
+import { findLocalityByCity, getLatestLocalityData, createLocalityData, createLocality, getRootLocalities, getLocalityById } from "@/domains/locality/repository";
+import { LOCALITY_DATA_FIELD_KEYS, LocalityDataFields, Locality } from "@/domains/locality/types";
 import { GeneratedArticle } from "./types";
 import { markDataInjected } from "./repository";
+import { fetchGeoCity, fetchGeoCityByCode } from "./fetchers/geo-fetcher";
 
 interface InjectionResult {
   injected: number;
   skipped: number;
+  created: number;
   errors: Array<{ city: string; error: string }>;
 }
 
@@ -27,7 +29,7 @@ export async function injectArticleData(
   articleId: string,
   extractedData: GeneratedArticle["extracted_data"]
 ): Promise<InjectionResult> {
-  const result: InjectionResult = { injected: 0, skipped: 0, errors: [] };
+  const result: InjectionResult = { injected: 0, skipped: 0, created: 0, errors: [] };
 
   const localities = extractedData.localities ?? [];
   if (localities.length === 0) {
@@ -37,19 +39,25 @@ export async function injectArticleData(
   for (const locData of localities) {
     try {
       // Trouver la localité en base
-      const locality = await findLocalityByCity(
+      let locality = await findLocalityByCity(
         locData.city,
         undefined,
         locData.code_insee
       );
 
+      // Auto-créer la localité si elle n'existe pas
       if (!locality) {
-        result.skipped++;
-        result.errors.push({
-          city: locData.city,
-          error: `Localité non trouvée en base`,
-        });
-        continue;
+        const created = await autoCreateLocality(locData.city, locData.code_insee);
+        if (!created) {
+          result.skipped++;
+          result.errors.push({
+            city: locData.city,
+            error: `Localité non trouvée et impossible à créer automatiquement`,
+          });
+          continue;
+        }
+        locality = created;
+        result.created++;
       }
 
       // Charger les données existantes
@@ -121,4 +129,40 @@ export async function injectArticleData(
   }
 
   return result;
+}
+
+/**
+ * Auto-crée une localité "ville" en base à partir de geo.api.gouv.fr.
+ * Rattache au premier nœud racine (France) s'il existe.
+ */
+async function autoCreateLocality(
+  cityName: string,
+  codeInsee?: string
+): Promise<Locality | null> {
+  try {
+    // Résoudre les infos géographiques
+    const geo = codeInsee
+      ? await fetchGeoCityByCode(codeInsee)
+      : await fetchGeoCity(cityName);
+
+    if (!geo) return null;
+
+    // Trouver le parent racine (France)
+    const roots = await getRootLocalities();
+    const parentId = roots[0]?.id ?? null;
+
+    const id = await createLocality({
+      name: geo.nom,
+      type: "ville",
+      parent_id: parentId,
+      code: geo.code,
+      postal_codes: JSON.stringify(geo.codesPostaux ?? []),
+    });
+
+    // Re-fetch to get the complete Locality with timestamps
+    const created = await getLocalityById(id);
+    return created ?? null;
+  } catch {
+    return null;
+  }
 }
