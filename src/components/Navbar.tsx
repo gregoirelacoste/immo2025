@@ -120,6 +120,9 @@ export default function Navbar() {
           <div className="border-t border-gray-100 my-1" />
           {drawerLink("/compare", "Comparer")}
           {drawerLink("/portfolio", "Patrimoine")}
+          <div className="border-t border-gray-100 my-1" />
+          {drawerLink("/guide", "Guides villes")}
+          {drawerLink("/blog", "Blog")}
           {session?.user && drawerLink("/profile", "Profil")}
           {isUserAdmin && (
             <>
@@ -185,6 +188,22 @@ export default function Navbar() {
                 }`}
               >
                 + Nouveau bien
+              </Link>
+              <Link
+                href="/guide"
+                className={`text-sm font-medium ${
+                  isActive("/guide") ? "text-amber-700" : "text-gray-600 hover:text-[#1a1a2e]"
+                }`}
+              >
+                Guides
+              </Link>
+              <Link
+                href="/blog"
+                className={`text-sm font-medium ${
+                  isActive("/blog") ? "text-amber-700" : "text-gray-600 hover:text-[#1a1a2e]"
+                }`}
+              >
+                Blog
               </Link>
             </div>
             {burgerIcon}
