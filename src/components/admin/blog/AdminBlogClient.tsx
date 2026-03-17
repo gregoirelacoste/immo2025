@@ -65,7 +65,19 @@ export default function AdminBlogClient({ stats, initialArticles }: Props) {
     setGenerating(false);
 
     if (result.success) {
-      setSuccess(`Article généré avec succès (ID: ${result.articleId})`);
+      const parts = [`Article généré avec succès`];
+      if (result.injection) {
+        const { injected, created, skipped, errors } = result.injection;
+        const details: string[] = [];
+        if (created > 0) details.push(`${created} localité(s) créée(s)`);
+        if (injected > 0) details.push(`${injected} localité(s) enrichie(s)`);
+        if (skipped > 0) details.push(`${skipped} ignorée(s)`);
+        if (details.length > 0) parts.push(details.join(", "));
+        if (errors.length > 0) {
+          parts.push(`Erreurs : ${errors.map((e) => `${e.city} (${e.error})`).join(", ")}`);
+        }
+      }
+      setSuccess(parts.join(" — "));
       setCity("");
       router.refresh();
     } else {

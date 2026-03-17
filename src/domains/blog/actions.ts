@@ -24,7 +24,12 @@ export async function generateArticleAction(
   category: ArticleCategory,
   city?: string,
   autoPublish = false
-): Promise<{ success: boolean; error?: string; articleId?: string }> {
+): Promise<{
+  success: boolean;
+  error?: string;
+  articleId?: string;
+  injection?: { injected: number; created: number; skipped: number; errors: Array<{ city: string; error: string }> };
+}> {
   try {
     await requireAdmin();
 
@@ -42,11 +47,16 @@ export async function generateArticleAction(
 
     revalidatePath("/admin/blog");
     revalidatePath("/blog");
+    revalidatePath("/guide", "layout");
     if (autoPublish) {
       revalidatePath(`/blog/${result.article.slug}`);
     }
 
-    return { success: true, articleId: result.article.id };
+    return {
+      success: true,
+      articleId: result.article.id,
+      injection: result.injectionResult,
+    };
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }
@@ -124,6 +134,7 @@ export async function injectDataAction(
     const result = await injectArticleData(articleId, extractedData);
 
     revalidatePath("/admin/blog");
+    revalidatePath("/guide", "layout");
 
     return { success: true, injected: result.injected };
   } catch (e) {
