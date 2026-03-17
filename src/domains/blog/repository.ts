@@ -52,25 +52,27 @@ export async function createArticle(input: BlogArticleInput): Promise<BlogArticl
 
   await logAudit(id, "created", { category: input.category, triggered_by: input.triggered_by });
 
-  return (await getArticleById(id))!;
+  const created = await getArticleById(id);
+  if (!created) throw new Error(`Failed to read back article ${id} after INSERT`);
+  return created;
 }
 
-export async function getArticleById(id: string): Promise<BlogArticle | null> {
+export async function getArticleById(id: string): Promise<BlogArticle | undefined> {
   const db = await getDb();
   const result = await db.execute({
     sql: "SELECT * FROM blog_articles WHERE id = ?",
     args: [id],
   });
-  return result.rows[0] ? rowAs<BlogArticle>(result.rows[0]) : null;
+  return result.rows[0] ? rowAs<BlogArticle>(result.rows[0]) : undefined;
 }
 
-export async function getArticleBySlug(slug: string): Promise<BlogArticle | null> {
+export async function getArticleBySlug(slug: string): Promise<BlogArticle | undefined> {
   const db = await getDb();
   const result = await db.execute({
     sql: "SELECT * FROM blog_articles WHERE slug = ?",
     args: [slug],
   });
-  return result.rows[0] ? rowAs<BlogArticle>(result.rows[0]) : null;
+  return result.rows[0] ? rowAs<BlogArticle>(result.rows[0]) : undefined;
 }
 
 export async function listArticles(options?: {

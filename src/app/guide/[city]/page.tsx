@@ -151,7 +151,7 @@ export default async function CityGuidePage({ params }: Props) {
         </Section>
 
         {/* Charges */}
-        {(f.avg_condo_charges_per_m2 || f.avg_property_tax_per_m2) && (
+        {(f.avg_condo_charges_per_m2 != null || f.avg_property_tax_per_m2 != null) && (
           <Section title="Charges et taxes">
             <div className="bg-gray-50 rounded-lg p-4">
               <DataRow label="Charges copro/m²" value={fmt(f.avg_condo_charges_per_m2, " €")} />
@@ -161,7 +161,7 @@ export default async function CityGuidePage({ params }: Props) {
         )}
 
         {/* Airbnb */}
-        {(f.avg_airbnb_night_price || f.avg_airbnb_occupancy_rate) && (
+        {(f.avg_airbnb_night_price != null || f.avg_airbnb_occupancy_rate != null) && (
           <Section title="Location courte durée (Airbnb)">
             <div className="bg-gray-50 rounded-lg p-4">
               <DataRow label="Prix moyen/nuit" value={fmt(f.avg_airbnb_night_price, " €")} />

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { getAllLocalities } from "@/domains/locality/repository";
-import { getLatestLocalityDataBatch } from "@/domains/locality/repository";
+import { getAllLocalities, getLatestLocalityDataBatch } from "@/domains/locality/repository";
 import { LocalityDataFields } from "@/domains/locality/types";
 
 export const metadata: Metadata = {

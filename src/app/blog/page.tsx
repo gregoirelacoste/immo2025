@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { listPublishedArticles } from "@/domains/blog/repository";
-import { ARTICLE_CATEGORIES, ArticleCategory } from "@/domains/blog/types";
+import { ArticleCategory } from "@/domains/blog/types";
 
 export const metadata: Metadata = {
   title: "Blog — Investissement immobilier locatif",

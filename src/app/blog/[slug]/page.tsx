@@ -43,7 +43,7 @@ export const revalidate = 3600; // ISR: revalidate every hour
 export default async function BlogArticlePage({ params }: Props) {
   const { slug } = await params;
   const article = await getArticleBySlug(slug);
-  if (!article || article.status !== "published") notFound();
+  if (!article || article.status !== "published") return notFound();
 
   const tags: string[] = JSON.parse(article.tags || "[]");
   const jsonLd = article.json_ld ? JSON.parse(article.json_ld) : null;
