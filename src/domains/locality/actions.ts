@@ -10,7 +10,26 @@ import {
   deleteLocalityData as repoDeleteLocalityData,
   getLocalityById,
 } from "./repository";
+import { resolveLocalityData } from "./resolver";
 import { LOCALITY_TYPES, LOCALITY_DATA_FIELD_KEYS, LocalityDataFields } from "./types";
+
+// ─── Public action: fetch locality data for a city ───
+
+export async function fetchLocalityFields(
+  city: string,
+  postalCode?: string
+): Promise<{ cityName: string; fields: LocalityDataFields } | null> {
+  try {
+    const resolved = await resolveLocalityData(city, postalCode);
+    if (!resolved) return null;
+    return {
+      cityName: resolved.locality.name,
+      fields: resolved.fields,
+    };
+  } catch {
+    return null;
+  }
+}
 
 // ─── Locality CRUD ───
 

@@ -13,10 +13,10 @@ export default function StickyHeader({ property, calcs, visible }: Props) {
   const isDpeAlert = dpe === "F" || dpe === "G";
   const grade = getGrade(property.investment_score);
 
+  if (!visible) return null;
+
   return (
-    <div className={`sticky top-12 md:top-16 z-10 bg-white/95 backdrop-blur border-b border-tiili-border -mx-4 px-4 md:-mx-6 md:px-6 py-2 transition-all duration-200 ${
-      visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"
-    }`}>
+    <div className="sticky top-12 md:top-16 z-10 bg-white/95 backdrop-blur border-b border-tiili-border -mx-4 px-4 md:-mx-6 md:px-6 py-2">
       <div className="flex items-center justify-between gap-2 text-sm">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${grade.bg} ${grade.color}`}>

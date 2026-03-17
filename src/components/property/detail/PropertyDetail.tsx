@@ -5,19 +5,15 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
 import { calculateSimulation, calculateAll, formatCurrency } from "@/lib/calculations";
-import { removeProperty, updatePropertyField } from "@/domains/property/actions";
+import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
-import type { SocioEconomicData } from "@/domains/enrich/socioeconomic-types";
 import type { InvestmentScoreBreakdown } from "@/domains/enrich/types";
-import { parseAmenities } from "@/domains/property/amenities";
-import { calculateEquipmentImpact } from "@/domains/property/equipment-calculator";
 import { getGrade } from "@/lib/grade";
 import Link from "next/link";
 import PropertyHeader from "./PropertyHeader";
 import InvestmentScorePanel from "./InvestmentScorePanel";
 import StatusSelector from "@/components/property/StatusSelector";
-import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import TabNavigation, { type TabId } from "./TabNavigation";
 import StickyHeader from "./StickyHeader";
 import SimulationTab from "./SimulationTab";
@@ -25,8 +21,6 @@ import TravauxTab from "./TravauxTab";
 import EquipementsTab from "./EquipementsTab";
 import CompletionBadge from "./CompletionBadge";
 import { getCompletionSummary } from "@/domains/property/completion";
-import { getFieldsByCategory, isFieldFilled } from "@/domains/property/field-registry";
-import InlineFieldEditor from "./InlineFieldEditor";
 import type { Photo } from "@/domains/photo/types";
 import type { Simulation } from "@/domains/simulation/types";
 import PhotoGallery from "./PhotoGallery";
@@ -70,72 +64,6 @@ function ScoreBrick({ score, grade }: { score: number | null; grade: ReturnType<
         {score ?? 0}
       </span>
     </div>
-  );
-}
-
-/** Rent section with auto/manual toggle */
-function RentSection({ property, marketData, amenities }: { property: Property; marketData: MarketData | null; amenities: string[] }) {
-  const router = useRouter();
-  const isManual = property.rent_mode === "manual";
-  const marketRentPerM2 = marketData?.avgRentPerM2 ?? (property.rent_per_m2 > 0 ? property.rent_per_m2 : 0);
-
-  // Calculate auto rent = market × surface × (1 + equipment impact)
-  const eqSummary = useMemo(
-    () => marketRentPerM2 > 0 ? calculateEquipmentImpact(marketRentPerM2, amenities) : null,
-    [marketRentPerM2, amenities]
-  );
-  const autoRent = eqSummary && property.surface > 0
-    ? Math.round(eqSummary.adjustedRentPerM2 * property.surface)
-    : 0;
-
-  const displayRent = isManual ? property.monthly_rent : autoRent;
-
-  async function toggleRentMode() {
-    const newMode = isManual ? "auto" : "manual";
-    await updatePropertyField(property.id, "rent_mode", newMode, "Saisie manuelle", "declared");
-    // If switching to auto, also update monthly_rent to the auto value
-    if (newMode === "auto" && autoRent > 0) {
-      await updatePropertyField(property.id, "monthly_rent", autoRent, "Loyer auto (localité + équipements)", "estimated");
-    }
-    router.refresh();
-  }
-
-  return (
-    <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-semibold text-gray-900">Location classique</h3>
-        <button
-          onClick={toggleRentMode}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
-            isManual
-              ? "bg-amber-50 text-amber-700 border border-amber-200"
-              : "bg-blue-50 text-blue-700 border border-blue-200"
-          }`}
-        >
-          {isManual ? "Manuel" : "Auto"}
-        </button>
-      </div>
-
-      <div className="p-3 bg-tiili-surface rounded-xl mb-3">
-        <div className="text-2xl font-extrabold text-[#1a1a2e]">
-          {displayRent > 0 ? `${formatCurrency(displayRent)}/mois` : "—"}
-        </div>
-        <div className="text-xs text-gray-500 mt-0.5">
-          {isManual
-            ? "Loyer renseigné manuellement"
-            : autoRent > 0
-              ? `Calculé : ${marketRentPerM2.toFixed(1)} €/m² × ${property.surface} m²${eqSummary && eqSummary.totalImpactPercent !== 0 ? ` × (1${eqSummary.totalImpactPercent > 0 ? "+" : ""}${Math.round(eqSummary.totalImpactPercent * 100)}% équip.)` : ""}`
-              : "Données de localité insuffisantes"
-          }
-        </div>
-      </div>
-
-      {property.vacancy_rate > 0 && (
-        <div className="text-xs text-gray-500">
-          Vacance locative : {property.vacancy_rate}%
-        </div>
-      )}
-    </section>
   );
 }
 
@@ -183,18 +111,9 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
 
   const marketData = useMemo(() => parseJson<MarketData | null>(property.market_data, null), [property.market_data]);
   const scoreBreakdown = useMemo(() => parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null), [property.score_breakdown]);
-  const socioData = useMemo(() => parseJson<SocioEconomicData | null>(property.socioeconomic_data, null), [property.socioeconomic_data]);
-  const amenities = useMemo(() => parseAmenities(property.amenities), [property.amenities]);
   const images: string[] = parseJson(property.image_urls, []);
 
   const completionSummary = useMemo(() => getCompletionSummary(property), [property]);
-
-  // Missing fields for the "Bien" tab: charges + revenus that are empty
-  const missingBienFields = useMemo(() => {
-    const chargesFields = getFieldsByCategory("charges");
-    const revenusFields = getFieldsByCategory("revenus");
-    return [...chargesFields, ...revenusFields].filter((f) => !isFieldFilled(property, f.key));
-  }, [property]);
 
   const pricePerM2 = property.surface > 0 ? property.purchase_price / property.surface : 0;
   const marketDiff = marketData?.medianPurchasePricePerM2 && pricePerM2
@@ -225,7 +144,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
       <PropertyHeader property={property} isOwner={isOwner} onDelete={handleDelete} />
 
       {/* Hero — tiili style */}
-      <section ref={heroRef} className="bg-white rounded-xl border border-tiili-border p-4 md:p-6 mb-4">
+      <section ref={heroRef} className="bg-white rounded-xl border border-tiili-border p-4 md:p-6 mb-2">
               {/* Header: City + Score brick */}
               <div className="flex justify-between items-start">
                 <div>
@@ -260,68 +179,65 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
         <div className="space-y-4 mt-4">
           {/* Infos clés */}
           <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
-            {isOwner && (
-              <div className="flex justify-end mb-3">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-gray-900">Informations du bien</h3>
+              {isOwner && (
                 <Link
                   href={`/property/${property.id}/edit`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors min-h-[36px]"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                   </svg>
-                  Modifier le bien
+                  Modifier
                 </Link>
+              )}
+            </div>
+
+            <div className="space-y-0">
+              <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                <span className="text-sm text-gray-500">Prix au m²</span>
+                <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)]">{pricePerM2 > 0 ? formatCurrency(pricePerM2) : "—"}</span>
               </div>
-            )}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500">Prix au m²</span>
-                <p className="font-semibold">{pricePerM2 > 0 ? formatCurrency(pricePerM2) : "—"}</p>
+              <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                <span className="text-sm text-gray-500">Type</span>
+                <span className="text-sm font-semibold text-[#1a1a2e] capitalize">{property.property_type}</span>
               </div>
-              <div>
-                <span className="text-gray-500">Type</span>
-                <p className="font-semibold capitalize">{property.property_type}</p>
-              </div>
-              <div>
-                <span className="text-gray-500">Écart marché</span>
-                <p className={`font-semibold ${
+              <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                <span className="text-sm text-gray-500">Écart marché</span>
+                <span className={`text-sm font-semibold ${
                   marketDiff == null ? "text-gray-400" :
                   marketDiff <= 0 ? "text-green-600" : "text-red-600"
                 }`}>
                   {marketDiff != null ? `${marketDiff > 0 ? "+" : ""}${marketDiff.toFixed(1)}%` : "—"}
-                </p>
+                </span>
               </div>
               {(firstSim?.renovation_cost ?? property.renovation_cost) > 0 && (
-                <div>
-                  <span className="text-gray-500">Travaux</span>
-                  <p className="font-semibold text-orange-600">{formatCurrency(firstSim?.renovation_cost ?? property.renovation_cost)}</p>
+                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                  <span className="text-sm text-gray-500">Travaux</span>
+                  <span className="text-sm font-semibold text-orange-600">{formatCurrency(firstSim?.renovation_cost ?? property.renovation_cost)}</span>
+                </div>
+              )}
+              {property.monthly_rent > 0 && (
+                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                  <span className="text-sm text-gray-500">Loyer</span>
+                  <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)]">{formatCurrency(property.monthly_rent)}/mois</span>
+                </div>
+              )}
+              {property.condo_charges > 0 && (
+                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                  <span className="text-sm text-gray-500">Charges copro</span>
+                  <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)]">{formatCurrency(property.condo_charges)}/mois</span>
+                </div>
+              )}
+              {property.property_tax > 0 && (
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-sm text-gray-500">Taxe foncière</span>
+                  <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)]">{formatCurrency(property.property_tax)}/an</span>
                 </div>
               )}
             </div>
-
-            {/* Charges du bien */}
-            {(property.condo_charges > 0 || property.property_tax > 0) && (
-              <div className="mt-4 pt-3 border-t border-gray-100">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  {property.condo_charges > 0 && (
-                    <div>
-                      <span className="text-gray-500">Charges copro</span>
-                      <p className="font-semibold">{formatCurrency(property.condo_charges)}/mois</p>
-                    </div>
-                  )}
-                  {property.property_tax > 0 && (
-                    <div>
-                      <span className="text-gray-500">Taxe foncière</span>
-                      <p className="font-semibold">{formatCurrency(property.property_tax)}/an</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </section>
-
-          {/* Section Loyer — auto/manual toggle */}
-          <RentSection property={property} marketData={marketData} amenities={amenities} />
 
           {/* Description */}
           {property.description && (
@@ -351,34 +267,6 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
             </section>
           )}
 
-          {/* Données manquantes — saisie inline */}
-          {missingBienFields.length > 0 && (
-            <CollapsibleSection title={`Données manquantes (${missingBienFields.length})`} variant="blue">
-              <div className="space-y-2">
-                {missingBienFields.map((field) => (
-                  <div key={field.key} className="border border-dashed border-gray-200 rounded-lg p-3 bg-white">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">{field.label}</span>
-                      {field.importance === "critical" && (
-                        <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">Important</span>
-                      )}
-                    </div>
-                    <InlineFieldEditor
-                      propertyId={property.id}
-                      field={field}
-                      onSaved={() => router.refresh()}
-                    />
-                    {field.agentQuestion && (
-                      <p className="text-[11px] text-gray-400 mt-1.5">
-                        💡 {field.agentQuestion}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-          )}
-
         </div>
       )}
 
@@ -403,12 +291,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
 
       {/* ═══════════════════ ONGLET LOCALITÉ ═══════════════════ */}
       {activeTab === "localite" && (
-        <LocaliteTab
-          property={property}
-          marketData={marketData}
-          socioData={socioData}
-          monthlyRent={firstSim?.monthly_rent}
-        />
+        <LocaliteTab property={property} />
       )}
 
       {/* Score modal — opens on ScoreBrick click */}
