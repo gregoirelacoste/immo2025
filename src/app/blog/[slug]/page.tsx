@@ -115,12 +115,20 @@ export default async function BlogArticlePage({ params }: Props) {
           <p className="text-sm text-gray-600 mt-1 mb-4">
             Calculez rendement, cashflow et mensualités en quelques clics.
           </p>
-          <a
-            href="/dashboard"
-            className="inline-block rounded-lg bg-amber-600 px-6 py-3 text-white font-medium hover:bg-amber-700 transition-colors"
-          >
-            Lancer une simulation
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href="/property/new"
+              className="inline-block rounded-lg bg-amber-600 px-6 py-3 text-white font-medium hover:bg-amber-700 transition-colors"
+            >
+              Créer une simulation
+            </a>
+            <a
+              href="/guide"
+              className="inline-block rounded-lg border border-amber-600 px-6 py-3 text-amber-700 font-medium hover:bg-amber-50 transition-colors"
+            >
+              Explorer les villes
+            </a>
+          </div>
         </div>
       </article>
     </>

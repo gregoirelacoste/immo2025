@@ -221,12 +221,20 @@ export default async function CityGuidePage({ params }: Props) {
           <p className="text-sm text-gray-600 mt-1 mb-4">
             Calculez rendement, cashflow et mensualités avec vos paramètres.
           </p>
-          <a
-            href="/dashboard"
-            className="inline-block rounded-lg bg-amber-600 px-6 py-3 text-white font-medium hover:bg-amber-700 transition-colors"
-          >
-            Lancer une simulation
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href={`/property/new?city=${encodeURIComponent(cityName)}`}
+              className="inline-block rounded-lg bg-amber-600 px-6 py-3 text-white font-medium hover:bg-amber-700 transition-colors"
+            >
+              Simuler un bien à {cityName}
+            </a>
+            <a
+              href="/dashboard"
+              className="inline-block rounded-lg border border-amber-600 px-6 py-3 text-amber-700 font-medium hover:bg-amber-50 transition-colors"
+            >
+              Voir le dashboard
+            </a>
+          </div>
         </div>
       </div>
     </>

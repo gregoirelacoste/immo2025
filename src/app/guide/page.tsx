@@ -86,6 +86,7 @@ export default async function GuidePage() {
                 <th className="py-3 px-4 font-semibold text-right">Loyer/m²</th>
                 <th className="py-3 px-4 font-semibold text-right">Rendement brut</th>
                 <th className="py-3 pl-4 font-semibold text-right">Vacance</th>
+                <th className="py-3 pl-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -120,6 +121,14 @@ export default async function GuidePage() {
                   </td>
                   <td className="py-3 pl-4 text-right text-gray-600">
                     {row.vacancyRate != null ? `${row.vacancyRate} %` : "—"}
+                  </td>
+                  <td className="py-3 pl-3 text-right">
+                    <a
+                      href={`/property/new?city=${encodeURIComponent(row.name)}`}
+                      className="text-xs text-amber-600 hover:underline whitespace-nowrap"
+                    >
+                      Simuler
+                    </a>
                   </td>
                 </tr>
               ))}
