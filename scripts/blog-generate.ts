@@ -8,17 +8,30 @@
  *   npm run blog -- --category guide_ville --city Lyon --dry-run
  *   npm run blog -- --category actu_marche
  *   npm run blog -- --help
- *
- * Options :
- *   --category   Type d'article (obligatoire)
- *   --city       Ville cible (obligatoire pour guide_ville, guide_quartier, etude_de_cas)
- *   --postal     Code postal (optionnel, aide à la résolution)
- *   --insee      Code INSEE (optionnel, prioritaire sur city)
- *   --publish    Publier directement (sinon brouillon)
- *   --no-inject  Ne pas injecter les données dans locality_data
- *   --dry-run    Générer sans sauvegarder en base
- *   --help       Afficher l'aide
  */
+
+// ── Charger .env.local (tsx ne le fait pas comme Next.js) ──
+import { readFileSync } from "fs";
+import { resolve } from "path";
+
+function loadEnvFile(filename: string) {
+  try {
+    const envPath = resolve(process.cwd(), filename);
+    const content = readFileSync(envPath, "utf-8");
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx === -1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      const value = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
+      if (!process.env[key]) process.env[key] = value;
+    }
+  } catch { /* file not found — ok */ }
+}
+
+loadEnvFile(".env.local");
+loadEnvFile(".env");
 
 import { runPipeline, PipelineResult } from "../src/domains/blog/pipeline";
 import { ARTICLE_CATEGORIES, ArticleCategory } from "../src/domains/blog/types";
