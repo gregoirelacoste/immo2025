@@ -114,12 +114,30 @@ if (CITY_REQUIRED.includes(category) && !city && !codeInsee) {
   process.exit(1);
 }
 
+// ── Auto-select city for cron ──
+
+const AUTO_CITIES = [
+  "Lyon", "Bordeaux", "Nantes", "Toulouse", "Marseille", "Lille",
+  "Montpellier", "Rennes", "Strasbourg", "Nice", "Grenoble", "Rouen",
+  "Toulon", "Dijon", "Angers", "Metz", "Clermont-Ferrand", "Tours",
+  "Limoges", "Amiens", "Perpignan", "Besançon", "Orléans", "Reims",
+  "Le Mans", "Caen", "Saint-Étienne", "Brest", "Le Havre", "Avignon",
+];
+
+let resolvedCity = city;
+if (city === "auto") {
+  // Pick a city based on the day of the year for rotation
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  resolvedCity = AUTO_CITIES[dayOfYear % AUTO_CITIES.length];
+  console.log(`🎯 Sélection automatique : ${resolvedCity}`);
+}
+
 // ── Exécution ──
 
 async function main() {
   console.log("─────────────────────────────────────────");
   console.log(`📝 Génération d'article : ${category}`);
-  if (city) console.log(`🏙️  Ville : ${city}`);
+  if (resolvedCity) console.log(`🏙️  Ville : ${resolvedCity}`);
   if (codeInsee) console.log(`🔢 Code INSEE : ${codeInsee}`);
   if (dryRun) console.log(`🧪 Mode dry-run (pas de sauvegarde)`);
   if (autoPublish) console.log(`🚀 Publication automatique`);
@@ -130,7 +148,7 @@ async function main() {
 
   const result: PipelineResult = await runPipeline({
     category: category!,
-    city,
+    city: resolvedCity || undefined,
     postalCode,
     codeInsee,
     autoPublish,

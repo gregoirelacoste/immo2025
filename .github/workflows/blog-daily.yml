@@ -1,0 +1,83 @@
+name: Blog — Publication quotidienne
+
+on:
+  schedule:
+    # Tous les jours à 6h00 UTC (8h00 heure française été, 7h00 hiver)
+    - cron: '0 6 * * 1-6'  # Lundi à samedi
+  workflow_dispatch:
+    inputs:
+      category:
+        description: "Type d'article"
+        required: true
+        default: 'guide_ville'
+        type: choice
+        options:
+          - guide_ville
+          - guide_quartier
+          - actu_marche
+          - analyse_comparative
+          - conseil_investissement
+          - fiscalite
+          - financement
+          - etude_de_cas
+      city:
+        description: 'Ville (obligatoire pour guide_ville, guide_quartier, etude_de_cas)'
+        required: false
+        type: string
+      publish:
+        description: 'Publier directement'
+        required: false
+        default: true
+        type: boolean
+      dry_run:
+        description: 'Dry run (pas de sauvegarde)'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: blog-publish
+  cancel-in-progress: false  # Ne pas annuler un article en cours de génération
+
+env:
+  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+  TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+
+jobs:
+  publish-article:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # ── Scheduled run : sélection automatique ──
+      - name: Génération automatique (cron)
+        if: github.event_name == 'schedule'
+        run: npx tsx scripts/blog-generate.ts --category guide_ville --city auto --publish
+        env:
+          BLOG_AUTO_SELECT: 'true'
+
+      # ── Manual dispatch ──
+      - name: Génération manuelle (dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          ARGS="--category ${{ inputs.category }}"
+          if [ -n "${{ inputs.city }}" ]; then
+            ARGS="$ARGS --city \"${{ inputs.city }}\""
+          fi
+          if [ "${{ inputs.publish }}" = "true" ]; then
+            ARGS="$ARGS --publish"
+          fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          eval npx tsx scripts/blog-generate.ts $ARGS
