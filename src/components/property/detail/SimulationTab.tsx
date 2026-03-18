@@ -43,11 +43,15 @@ export default function SimulationTab({ property, simulations, isOwner }: Props)
       : simulations.find((s) => s.id === activeSimId)?.id ?? "__system__"
   );
   const [loading, setLoading] = useState(false);
+  // Live simulation state: reflects instant editor changes before server roundtrip
+  const [liveSim, setLiveSim] = useState<Simulation | null>(null);
 
   const isSystemSelected = selectedSimId === "__system__";
-  const activeSim = isSystemSelected
+  const serverActiveSim = isSystemSelected
     ? systemSim
     : simulations.find((s) => s.id === selectedSimId) ?? systemSim;
+  // Use live version if it matches the selected sim, otherwise server version
+  const activeSim = liveSim && liveSim.id === selectedSimId ? liveSim : serverActiveSim;
 
   const favoriteSimId = property.active_simulation_id || "__system__";
 
@@ -127,10 +131,10 @@ export default function SimulationTab({ property, simulations, isOwner }: Props)
         <div className="min-w-[260px] max-w-[300px] snap-start shrink-0">
           <SimulationCard
             property={property}
-            simulation={systemSim}
+            simulation={isSystemSelected && liveSim ? liveSim : systemSim}
             isActive={isSystemSelected}
             isFavorite={favoriteSimId === "__system__"}
-            onSelect={() => setSelectedSimId("__system__")}
+            onSelect={() => { setSelectedSimId("__system__"); setLiveSim(null); }}
             onSetFavorite={isOwner ? () => handleSetFavorite("__system__") : undefined}
             onDuplicate={isOwner ? () => handleDuplicateSystem() : undefined}
             canDelete={false}
@@ -139,21 +143,24 @@ export default function SimulationTab({ property, simulations, isOwner }: Props)
         </div>
 
         {/* User simulations */}
-        {simulations.map((sim) => (
-          <div key={sim.id} className="min-w-[260px] max-w-[300px] snap-start shrink-0">
-            <SimulationCard
-              property={property}
-              simulation={sim}
-              isActive={sim.id === selectedSimId}
-              isFavorite={favoriteSimId === sim.id}
-              onSelect={() => setSelectedSimId(sim.id)}
-              onSetFavorite={isOwner ? () => handleSetFavorite(sim.id) : undefined}
-              onDuplicate={isOwner ? () => handleDuplicate(sim.id) : undefined}
-              onDelete={isOwner ? () => handleDelete(sim.id) : undefined}
-              canDelete={isOwner}
-            />
-          </div>
-        ))}
+        {simulations.map((sim) => {
+          const displaySim = liveSim && liveSim.id === sim.id ? liveSim : sim;
+          return (
+            <div key={sim.id} className="min-w-[260px] max-w-[300px] snap-start shrink-0">
+              <SimulationCard
+                property={property}
+                simulation={displaySim}
+                isActive={sim.id === selectedSimId}
+                isFavorite={favoriteSimId === sim.id}
+                onSelect={() => { setSelectedSimId(sim.id); setLiveSim(null); }}
+                onSetFavorite={isOwner ? () => handleSetFavorite(sim.id) : undefined}
+                onDuplicate={isOwner ? () => handleDuplicate(sim.id) : undefined}
+                onDelete={isOwner ? () => handleDelete(sim.id) : undefined}
+                canDelete={isOwner}
+              />
+            </div>
+          );
+        })}
 
         {/* Add button */}
         {isOwner && (
@@ -195,6 +202,7 @@ export default function SimulationTab({ property, simulations, isOwner }: Props)
           property={property}
           simulation={activeSim}
           onUpdated={() => router.refresh()}
+          onLiveChange={setLiveSim}
         />
       )}
 

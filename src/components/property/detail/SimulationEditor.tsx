@@ -13,6 +13,8 @@ interface Props {
   property: Property;
   simulation: Simulation;
   onUpdated: () => void;
+  /** Emit the live merged simulation on every local change (for parent to update cards) */
+  onLiveChange?: (sim: Simulation) => void;
   readOnly?: boolean;
 }
 
@@ -160,7 +162,7 @@ function StepperField({
   );
 }
 
-export default function SimulationEditor({ property, simulation, onUpdated, readOnly = false }: Props) {
+export default function SimulationEditor({ property, simulation, onUpdated, onLiveChange, readOnly = false }: Props) {
   const [form, setForm] = useState<SimulationFormData>(() => simFormFromSimulation(simulation));
   const [saving, setSaving] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -190,25 +192,44 @@ export default function SimulationEditor({ property, simulation, onUpdated, read
     onUpdated();
   }, [simulation.id, onUpdated, form, property]);
 
+  function emitLive(updatedForm: SimulationFormData) {
+    if (onLiveChange) {
+      const loan = computeLoanAmount(property, updatedForm);
+      onLiveChange({ ...simulation, ...updatedForm, loan_amount: loan } as Simulation);
+    }
+  }
+
   function handleChange(field: keyof SimulationFormData, value: number) {
-    setForm(prev => ({ ...prev, [field]: value }));
+    setForm(prev => {
+      const next = { ...prev, [field]: value };
+      emitLive(next);
+      return next;
+    });
   }
 
   function handleCommit(field: keyof SimulationFormData, value: number) {
-    setForm(prev => ({ ...prev, [field]: value }));
+    setForm(prev => {
+      const next = { ...prev, [field]: value };
+      emitLive(next);
+      return next;
+    });
     saveChanges({ [field]: value });
   }
 
   function handleNameSave() {
     if (nameValue.trim() && nameValue !== simulation.name) {
-      setForm(prev => ({ ...prev, name: nameValue.trim() }));
+      const next = { ...form, name: nameValue.trim() };
+      setForm(next);
+      emitLive(next);
       saveChanges({ name: nameValue.trim() });
     }
     setEditingName(false);
   }
 
   function handleFiscalChange(regime: string) {
-    setForm(prev => ({ ...prev, fiscal_regime: regime }));
+    const next = { ...form, fiscal_regime: regime };
+    setForm(next);
+    emitLive(next);
     saveChanges({ fiscal_regime: regime });
   }
 
