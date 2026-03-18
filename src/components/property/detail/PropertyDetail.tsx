@@ -227,7 +227,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
               {property.condo_charges > 0 && (
                 <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
                   <span className="text-sm text-gray-500">Charges copro</span>
-                  <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)]">{formatCurrency(property.condo_charges)}/mois</span>
+                  <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)]">{formatCurrency(property.condo_charges)}/an</span>
                 </div>
               )}
               {property.property_tax > 0 && (

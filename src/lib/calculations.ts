@@ -45,7 +45,7 @@ export function calculateFiscalImpact(
   const amort_travaux = renovationCost > 0 ? renovationCost / 10 : 0; // sur 10 ans
   const amort_meubles = 5000 / 7;  // forfait mobilier sur 7 ans
   const interests_year1 = loanAmount * (interestRate / 100); // approximation année 1
-  const charges_deductibles = condoCharges * 12 + propertyTax + monthlyInsurance * 12 + interests_year1;
+  const charges_deductibles = condoCharges + propertyTax + monthlyInsurance * 12 + interests_year1;
   const resultat_reel = annualRent - charges_deductibles - amort_bien - amort_travaux - amort_meubles;
   const lmnp_reel_tax = Math.max(0, resultat_reel) * (tmi / 100);
 
@@ -123,7 +123,7 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
   // Charges d'exploitation (hors financement)
   // copro + taxe foncière + PNO + entretien + GLI
   const annual_charges =
-    condo_charges * 12 +
+    condo_charges +
     property_tax +
     charges.pnoInsurance +
     charges.annualMaintenanceCost +
@@ -142,7 +142,7 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
     annual_rent_income / 12 -
     monthly_payment -
     monthly_insurance -
-    condo_charges -
+    condo_charges / 12 -
     property_tax / 12 -
     charges.pnoInsurance / 12 -
     charges.annualMaintenanceCost / 12 -

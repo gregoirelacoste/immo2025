@@ -16,7 +16,7 @@ Extrais ces champs :
 - neighborhood : le quartier du bien (ex: "Centre historique", "Saint-Cyprien"). Omets si non trouvé.
 - property_type : "ancien" ou "neuf"
 - monthly_rent : le loyer mensuel en euros si mentionné (loyer, loyer estimé, revenus locatifs, loyer HC). Nombre entier. Omets si non trouvé.
-- condo_charges : les charges de copropriété mensuelles en euros (charges, charges de copropriété, provisions sur charges). Nombre entier. Omets si non trouvé.
+- condo_charges : les charges de copropriété annuelles en euros (charges, charges de copropriété, provisions sur charges). Si le montant est mensuel, multiplie par 12 pour obtenir le montant annuel. Nombre entier. Omets si non trouvé.
 - property_tax : la taxe foncière annuelle en euros (taxe foncière, impôt foncier). Nombre entier. Omets si non trouvé.
 - amenities : tableau de clés d'équipements détectés parmi ces valeurs connues : ${keysList}. Cherche dans la description, les caractéristiques, les listes de prestations. Attention aux synonymes (stationnement=parking, cellier=cave, véranda=terrasse, clim=climatisation, DV=double_vitrage, FTTH=fibre, etc.)
 - amenities_new : tableau d'équipements détectés qui NE SONT PAS dans la liste connue ci-dessus. Pour chaque nouvel équipement, retourne un objet { "key": "identifiant_snake_case", "label": "Label en français", "icon": "emoji" }. Exemples possibles : buanderie, local_velo, store_banne, volet_roulant, videophone, portail_electrique, alarme, VMC, chauffage_sol, etc. Ne duplique pas un équipement déjà dans la liste connue sous un autre nom.
