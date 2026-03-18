@@ -1,6 +1,6 @@
 /**
- * Seed localities — insère la hiérarchie France > régions > départements > villes principales
- * avec des données de marché initiales.
+ * Seed localities — insère la hiérarchie France > villes principales
+ * avec des données de marché initiales dans les tables thématiques.
  *
  * Usage : npx tsx scripts/seed-localities.ts
  *
@@ -20,43 +20,48 @@ interface CityData {
   code: string; // INSEE
   postalCodes: string[];
   parentDept: string;
-  fields: Record<string, number | string | boolean | null>;
+  prices: { avg: number; median: number; transactions?: number };
+  rental: { rent: number; furnished: number; vacancy: number };
+  charges: { condo: number; tax: number };
+  airbnb: { nightPrice: number; occupancy: number };
+  socio: { population: number; income: number; unemployment: number };
+  infra: { schools: number; university: boolean; transport: number };
 }
 
-// ~60 villes françaises principales avec données marché estimées
+// ~30 villes françaises principales avec données marché estimées
 const CITIES: CityData[] = [
-  { name: "Paris", code: "75056", postalCodes: ["75001"], parentDept: "Paris", fields: { avg_purchase_price_per_m2: 9800, median_purchase_price_per_m2: 9500, avg_rent_per_m2: 28, avg_rent_furnished_per_m2: 32, vacancy_rate: 3, population: 2161000, median_income: 27400, unemployment_rate: 8.2, avg_condo_charges_per_m2: 4.5, avg_property_tax_per_m2: 1.8, avg_airbnb_night_price: 120, avg_airbnb_occupancy_rate: 75, school_count: 800, university_nearby: true, public_transport_score: 10 }},
-  { name: "Lyon", code: "69123", postalCodes: ["69001"], parentDept: "Rhône", fields: { avg_purchase_price_per_m2: 4500, median_purchase_price_per_m2: 4200, avg_rent_per_m2: 14, avg_rent_furnished_per_m2: 16, vacancy_rate: 4, population: 522969, median_income: 23800, unemployment_rate: 7.5, avg_condo_charges_per_m2: 3.2, avg_property_tax_per_m2: 1.5, avg_airbnb_night_price: 85, avg_airbnb_occupancy_rate: 68, school_count: 200, university_nearby: true, public_transport_score: 9 }},
-  { name: "Marseille", code: "13055", postalCodes: ["13001"], parentDept: "Bouches-du-Rhône", fields: { avg_purchase_price_per_m2: 3200, median_purchase_price_per_m2: 2900, avg_rent_per_m2: 13, avg_rent_furnished_per_m2: 15, vacancy_rate: 6, population: 870731, median_income: 19800, unemployment_rate: 12.5, avg_condo_charges_per_m2: 2.8, avg_property_tax_per_m2: 1.6, avg_airbnb_night_price: 70, avg_airbnb_occupancy_rate: 62, school_count: 300, university_nearby: true, public_transport_score: 7 }},
-  { name: "Toulouse", code: "31555", postalCodes: ["31000"], parentDept: "Haute-Garonne", fields: { avg_purchase_price_per_m2: 3500, median_purchase_price_per_m2: 3300, avg_rent_per_m2: 12.5, avg_rent_furnished_per_m2: 14.5, vacancy_rate: 5, population: 498003, median_income: 22500, unemployment_rate: 8.0, avg_condo_charges_per_m2: 2.5, avg_property_tax_per_m2: 1.4, avg_airbnb_night_price: 65, avg_airbnb_occupancy_rate: 60, school_count: 180, university_nearby: true, public_transport_score: 8 }},
-  { name: "Bordeaux", code: "33063", postalCodes: ["33000"], parentDept: "Gironde", fields: { avg_purchase_price_per_m2: 4200, median_purchase_price_per_m2: 4000, avg_rent_per_m2: 13.5, avg_rent_furnished_per_m2: 15.5, vacancy_rate: 5, population: 260958, median_income: 23200, unemployment_rate: 8.5, avg_condo_charges_per_m2: 3.0, avg_property_tax_per_m2: 1.5, avg_airbnb_night_price: 80, avg_airbnb_occupancy_rate: 65, school_count: 120, university_nearby: true, public_transport_score: 8 }},
-  { name: "Nantes", code: "44109", postalCodes: ["44000"], parentDept: "Loire-Atlantique", fields: { avg_purchase_price_per_m2: 3800, median_purchase_price_per_m2: 3600, avg_rent_per_m2: 12.5, avg_rent_furnished_per_m2: 14.5, vacancy_rate: 4, population: 320732, median_income: 23000, unemployment_rate: 7.0, avg_condo_charges_per_m2: 2.8, avg_property_tax_per_m2: 1.4, avg_airbnb_night_price: 70, avg_airbnb_occupancy_rate: 62, school_count: 130, university_nearby: true, public_transport_score: 8 }},
-  { name: "Montpellier", code: "34172", postalCodes: ["34000"], parentDept: "Hérault", fields: { avg_purchase_price_per_m2: 3300, median_purchase_price_per_m2: 3100, avg_rent_per_m2: 13, avg_rent_furnished_per_m2: 15, vacancy_rate: 6, population: 299096, median_income: 20500, unemployment_rate: 11.0, avg_condo_charges_per_m2: 2.5, avg_property_tax_per_m2: 1.8, avg_airbnb_night_price: 65, avg_airbnb_occupancy_rate: 60, school_count: 100, university_nearby: true, public_transport_score: 7 }},
-  { name: "Strasbourg", code: "67482", postalCodes: ["67000"], parentDept: "Bas-Rhin", fields: { avg_purchase_price_per_m2: 3200, median_purchase_price_per_m2: 3000, avg_rent_per_m2: 12, avg_rent_furnished_per_m2: 14, vacancy_rate: 4, population: 287228, median_income: 22000, unemployment_rate: 8.5, avg_condo_charges_per_m2: 2.5, avg_property_tax_per_m2: 1.3, avg_airbnb_night_price: 70, avg_airbnb_occupancy_rate: 60, school_count: 110, university_nearby: true, public_transport_score: 9 }},
-  { name: "Lille", code: "59350", postalCodes: ["59000"], parentDept: "Nord", fields: { avg_purchase_price_per_m2: 3200, median_purchase_price_per_m2: 3000, avg_rent_per_m2: 13, avg_rent_furnished_per_m2: 15, vacancy_rate: 5, population: 236710, median_income: 20800, unemployment_rate: 10.5, avg_condo_charges_per_m2: 2.8, avg_property_tax_per_m2: 2.0, avg_airbnb_night_price: 65, avg_airbnb_occupancy_rate: 55, school_count: 100, university_nearby: true, public_transport_score: 8 }},
-  { name: "Rennes", code: "35238", postalCodes: ["35000"], parentDept: "Ille-et-Vilaine", fields: { avg_purchase_price_per_m2: 3500, median_purchase_price_per_m2: 3300, avg_rent_per_m2: 12, avg_rent_furnished_per_m2: 14, vacancy_rate: 3, population: 222485, median_income: 23500, unemployment_rate: 6.5, avg_condo_charges_per_m2: 2.5, avg_property_tax_per_m2: 1.3, avg_airbnb_night_price: 60, avg_airbnb_occupancy_rate: 55, school_count: 90, university_nearby: true, public_transport_score: 8 }},
-  { name: "Saint-Étienne", code: "42218", postalCodes: ["42000"], parentDept: "Loire", fields: { avg_purchase_price_per_m2: 1200, median_purchase_price_per_m2: 1100, avg_rent_per_m2: 8, avg_rent_furnished_per_m2: 10, vacancy_rate: 9, population: 174082, median_income: 18500, unemployment_rate: 12.0, avg_condo_charges_per_m2: 2.0, avg_property_tax_per_m2: 1.8, avg_airbnb_night_price: 40, avg_airbnb_occupancy_rate: 45, school_count: 60, university_nearby: true, public_transport_score: 6 }},
-  { name: "Le Mans", code: "72181", postalCodes: ["72000"], parentDept: "Sarthe", fields: { avg_purchase_price_per_m2: 1600, median_purchase_price_per_m2: 1500, avg_rent_per_m2: 9, avg_rent_furnished_per_m2: 11, vacancy_rate: 7, population: 145502, median_income: 20000, unemployment_rate: 9.0, avg_condo_charges_per_m2: 2.0, avg_property_tax_per_m2: 1.5, avg_airbnb_night_price: 45, avg_airbnb_occupancy_rate: 45, school_count: 50, university_nearby: true, public_transport_score: 5 }},
-  { name: "Mulhouse", code: "68224", postalCodes: ["68100"], parentDept: "Haut-Rhin", fields: { avg_purchase_price_per_m2: 1400, median_purchase_price_per_m2: 1300, avg_rent_per_m2: 9.5, avg_rent_furnished_per_m2: 11, vacancy_rate: 8, population: 110514, median_income: 17500, unemployment_rate: 15.0, avg_condo_charges_per_m2: 2.2, avg_property_tax_per_m2: 1.6, avg_airbnb_night_price: 45, avg_airbnb_occupancy_rate: 40, school_count: 40, university_nearby: true, public_transport_score: 6 }},
-  { name: "Perpignan", code: "66136", postalCodes: ["66000"], parentDept: "Pyrénées-Orientales", fields: { avg_purchase_price_per_m2: 1600, median_purchase_price_per_m2: 1500, avg_rent_per_m2: 9, avg_rent_furnished_per_m2: 11, vacancy_rate: 9, population: 121875, median_income: 17800, unemployment_rate: 14.5, avg_condo_charges_per_m2: 2.0, avg_property_tax_per_m2: 1.7, avg_airbnb_night_price: 50, avg_airbnb_occupancy_rate: 55, school_count: 45, university_nearby: true, public_transport_score: 5 }},
-  { name: "Limoges", code: "87085", postalCodes: ["87000"], parentDept: "Haute-Vienne", fields: { avg_purchase_price_per_m2: 1500, median_purchase_price_per_m2: 1400, avg_rent_per_m2: 9, avg_rent_furnished_per_m2: 10.5, vacancy_rate: 7, population: 132175, median_income: 19500, unemployment_rate: 9.0, avg_condo_charges_per_m2: 1.8, avg_property_tax_per_m2: 1.5, avg_airbnb_night_price: 45, avg_airbnb_occupancy_rate: 45, school_count: 50, university_nearby: true, public_transport_score: 5 }},
-  { name: "Clermont-Ferrand", code: "63113", postalCodes: ["63000"], parentDept: "Puy-de-Dôme", fields: { avg_purchase_price_per_m2: 2100, median_purchase_price_per_m2: 2000, avg_rent_per_m2: 10, avg_rent_furnished_per_m2: 12, vacancy_rate: 6, population: 147865, median_income: 21000, unemployment_rate: 8.5, avg_condo_charges_per_m2: 2.2, avg_property_tax_per_m2: 1.5, avg_airbnb_night_price: 50, avg_airbnb_occupancy_rate: 50, school_count: 55, university_nearby: true, public_transport_score: 6 }},
-  { name: "Angers", code: "49007", postalCodes: ["49000"], parentDept: "Maine-et-Loire", fields: { avg_purchase_price_per_m2: 2800, median_purchase_price_per_m2: 2600, avg_rent_per_m2: 11, avg_rent_furnished_per_m2: 13, vacancy_rate: 4, population: 157175, median_income: 21500, unemployment_rate: 7.5, avg_condo_charges_per_m2: 2.2, avg_property_tax_per_m2: 1.3, avg_airbnb_night_price: 55, avg_airbnb_occupancy_rate: 50, school_count: 60, university_nearby: true, public_transport_score: 7 }},
-  { name: "Grenoble", code: "38185", postalCodes: ["38000"], parentDept: "Isère", fields: { avg_purchase_price_per_m2: 2500, median_purchase_price_per_m2: 2300, avg_rent_per_m2: 11, avg_rent_furnished_per_m2: 13, vacancy_rate: 5, population: 158198, median_income: 21800, unemployment_rate: 8.0, avg_condo_charges_per_m2: 2.5, avg_property_tax_per_m2: 1.5, avg_airbnb_night_price: 60, avg_airbnb_occupancy_rate: 55, school_count: 65, university_nearby: true, public_transport_score: 7 }},
-  { name: "Dijon", code: "21231", postalCodes: ["21000"], parentDept: "Côte-d'Or", fields: { avg_purchase_price_per_m2: 2300, median_purchase_price_per_m2: 2100, avg_rent_per_m2: 11, avg_rent_furnished_per_m2: 13, vacancy_rate: 5, population: 159346, median_income: 21500, unemployment_rate: 8.0, avg_condo_charges_per_m2: 2.3, avg_property_tax_per_m2: 1.4, avg_airbnb_night_price: 55, avg_airbnb_occupancy_rate: 50, school_count: 60, university_nearby: true, public_transport_score: 7 }},
-  { name: "Rouen", code: "76540", postalCodes: ["76000"], parentDept: "Seine-Maritime", fields: { avg_purchase_price_per_m2: 2400, median_purchase_price_per_m2: 2200, avg_rent_per_m2: 11.5, avg_rent_furnished_per_m2: 13.5, vacancy_rate: 5, population: 113000, median_income: 20500, unemployment_rate: 9.5, avg_condo_charges_per_m2: 2.5, avg_property_tax_per_m2: 1.6, avg_airbnb_night_price: 55, avg_airbnb_occupancy_rate: 48, school_count: 50, university_nearby: true, public_transport_score: 7 }},
-  { name: "Nice", code: "06088", postalCodes: ["06000"], parentDept: "Alpes-Maritimes", fields: { avg_purchase_price_per_m2: 4800, median_purchase_price_per_m2: 4500, avg_rent_per_m2: 15, avg_rent_furnished_per_m2: 17, vacancy_rate: 4, population: 342669, median_income: 22000, unemployment_rate: 9.0, avg_condo_charges_per_m2: 3.5, avg_property_tax_per_m2: 1.5, avg_airbnb_night_price: 90, avg_airbnb_occupancy_rate: 70, school_count: 130, university_nearby: true, public_transport_score: 7 }},
-  { name: "Toulon", code: "83137", postalCodes: ["83000"], parentDept: "Var", fields: { avg_purchase_price_per_m2: 2800, median_purchase_price_per_m2: 2600, avg_rent_per_m2: 11.5, avg_rent_furnished_per_m2: 13, vacancy_rate: 5, population: 178745, median_income: 20500, unemployment_rate: 10.0, avg_condo_charges_per_m2: 2.5, avg_property_tax_per_m2: 1.5, avg_airbnb_night_price: 60, avg_airbnb_occupancy_rate: 60, school_count: 65, university_nearby: true, public_transport_score: 6 }},
-  { name: "Metz", code: "57463", postalCodes: ["57000"], parentDept: "Moselle", fields: { avg_purchase_price_per_m2: 2000, median_purchase_price_per_m2: 1850, avg_rent_per_m2: 10.5, avg_rent_furnished_per_m2: 12, vacancy_rate: 6, population: 120205, median_income: 20800, unemployment_rate: 9.5, avg_condo_charges_per_m2: 2.3, avg_property_tax_per_m2: 1.4, avg_airbnb_night_price: 55, avg_airbnb_occupancy_rate: 48, school_count: 50, university_nearby: true, public_transport_score: 6 }},
-  { name: "Tours", code: "37261", postalCodes: ["37000"], parentDept: "Indre-et-Loire", fields: { avg_purchase_price_per_m2: 2600, median_purchase_price_per_m2: 2400, avg_rent_per_m2: 11, avg_rent_furnished_per_m2: 13, vacancy_rate: 5, population: 136125, median_income: 21500, unemployment_rate: 8.0, avg_condo_charges_per_m2: 2.3, avg_property_tax_per_m2: 1.4, avg_airbnb_night_price: 55, avg_airbnb_occupancy_rate: 50, school_count: 55, university_nearby: true, public_transport_score: 7 }},
-  { name: "Amiens", code: "80021", postalCodes: ["80000"], parentDept: "Somme", fields: { avg_purchase_price_per_m2: 2100, median_purchase_price_per_m2: 1900, avg_rent_per_m2: 10.5, avg_rent_furnished_per_m2: 12, vacancy_rate: 6, population: 135501, median_income: 20000, unemployment_rate: 10.5, avg_condo_charges_per_m2: 2.0, avg_property_tax_per_m2: 1.6, avg_airbnb_night_price: 50, avg_airbnb_occupancy_rate: 45, school_count: 50, university_nearby: true, public_transport_score: 6 }},
-  { name: "Besançon", code: "25056", postalCodes: ["25000"], parentDept: "Doubs", fields: { avg_purchase_price_per_m2: 1800, median_purchase_price_per_m2: 1650, avg_rent_per_m2: 9.5, avg_rent_furnished_per_m2: 11, vacancy_rate: 6, population: 119163, median_income: 20500, unemployment_rate: 9.0, avg_condo_charges_per_m2: 2.0, avg_property_tax_per_m2: 1.4, avg_airbnb_night_price: 50, avg_airbnb_occupancy_rate: 45, school_count: 45, university_nearby: true, public_transport_score: 6 }},
-  { name: "Orléans", code: "45234", postalCodes: ["45000"], parentDept: "Loiret", fields: { avg_purchase_price_per_m2: 2400, median_purchase_price_per_m2: 2200, avg_rent_per_m2: 11, avg_rent_furnished_per_m2: 13, vacancy_rate: 5, population: 116685, median_income: 22000, unemployment_rate: 8.5, avg_condo_charges_per_m2: 2.3, avg_property_tax_per_m2: 1.4, avg_airbnb_night_price: 55, avg_airbnb_occupancy_rate: 48, school_count: 50, university_nearby: true, public_transport_score: 7 }},
-  { name: "Reims", code: "51454", postalCodes: ["51100"], parentDept: "Marne", fields: { avg_purchase_price_per_m2: 2200, median_purchase_price_per_m2: 2000, avg_rent_per_m2: 10.5, avg_rent_furnished_per_m2: 12.5, vacancy_rate: 6, population: 187206, median_income: 20500, unemployment_rate: 10.0, avg_condo_charges_per_m2: 2.2, avg_property_tax_per_m2: 1.5, avg_airbnb_night_price: 55, avg_airbnb_occupancy_rate: 50, school_count: 70, university_nearby: true, public_transport_score: 6 }},
-  { name: "Caen", code: "14118", postalCodes: ["14000"], parentDept: "Calvados", fields: { avg_purchase_price_per_m2: 2300, median_purchase_price_per_m2: 2100, avg_rent_per_m2: 11, avg_rent_furnished_per_m2: 13, vacancy_rate: 5, population: 106260, median_income: 21000, unemployment_rate: 8.5, avg_condo_charges_per_m2: 2.2, avg_property_tax_per_m2: 1.3, avg_airbnb_night_price: 55, avg_airbnb_occupancy_rate: 48, school_count: 45, university_nearby: true, public_transport_score: 7 }},
-  { name: "Brest", code: "29019", postalCodes: ["29200"], parentDept: "Finistère", fields: { avg_purchase_price_per_m2: 1700, median_purchase_price_per_m2: 1550, avg_rent_per_m2: 9, avg_rent_furnished_per_m2: 10.5, vacancy_rate: 5, population: 142722, median_income: 20500, unemployment_rate: 8.0, avg_condo_charges_per_m2: 2.0, avg_property_tax_per_m2: 1.3, avg_airbnb_night_price: 50, avg_airbnb_occupancy_rate: 45, school_count: 50, university_nearby: true, public_transport_score: 6 }},
-  { name: "Le Havre", code: "76351", postalCodes: ["76600"], parentDept: "Seine-Maritime", fields: { avg_purchase_price_per_m2: 1800, median_purchase_price_per_m2: 1600, avg_rent_per_m2: 10, avg_rent_furnished_per_m2: 11.5, vacancy_rate: 7, population: 172366, median_income: 19000, unemployment_rate: 12.0, avg_condo_charges_per_m2: 2.0, avg_property_tax_per_m2: 1.7, avg_airbnb_night_price: 50, avg_airbnb_occupancy_rate: 45, school_count: 60, university_nearby: true, public_transport_score: 6 }},
-  { name: "Avignon", code: "84007", postalCodes: ["84000"], parentDept: "Vaucluse", fields: { avg_purchase_price_per_m2: 2200, median_purchase_price_per_m2: 2000, avg_rent_per_m2: 11, avg_rent_furnished_per_m2: 13, vacancy_rate: 6, population: 93671, median_income: 19500, unemployment_rate: 11.0, avg_condo_charges_per_m2: 2.2, avg_property_tax_per_m2: 1.6, avg_airbnb_night_price: 65, avg_airbnb_occupancy_rate: 60, school_count: 40, university_nearby: true, public_transport_score: 5 }},
+  { name: "Paris", code: "75056", postalCodes: ["75001"], parentDept: "Paris", prices: { avg: 9800, median: 9500 }, rental: { rent: 28, furnished: 32, vacancy: 3 }, charges: { condo: 4.5, tax: 1.8 }, airbnb: { nightPrice: 120, occupancy: 75 }, socio: { population: 2161000, income: 27400, unemployment: 8.2 }, infra: { schools: 800, university: true, transport: 10 }},
+  { name: "Lyon", code: "69123", postalCodes: ["69001"], parentDept: "Rhône", prices: { avg: 4500, median: 4200 }, rental: { rent: 14, furnished: 16, vacancy: 4 }, charges: { condo: 3.2, tax: 1.5 }, airbnb: { nightPrice: 85, occupancy: 68 }, socio: { population: 522969, income: 23800, unemployment: 7.5 }, infra: { schools: 200, university: true, transport: 9 }},
+  { name: "Marseille", code: "13055", postalCodes: ["13001"], parentDept: "Bouches-du-Rhône", prices: { avg: 3200, median: 2900 }, rental: { rent: 13, furnished: 15, vacancy: 6 }, charges: { condo: 2.8, tax: 1.6 }, airbnb: { nightPrice: 70, occupancy: 62 }, socio: { population: 870731, income: 19800, unemployment: 12.5 }, infra: { schools: 300, university: true, transport: 7 }},
+  { name: "Toulouse", code: "31555", postalCodes: ["31000"], parentDept: "Haute-Garonne", prices: { avg: 3500, median: 3300 }, rental: { rent: 12.5, furnished: 14.5, vacancy: 5 }, charges: { condo: 2.5, tax: 1.4 }, airbnb: { nightPrice: 65, occupancy: 60 }, socio: { population: 498003, income: 22500, unemployment: 8.0 }, infra: { schools: 180, university: true, transport: 8 }},
+  { name: "Bordeaux", code: "33063", postalCodes: ["33000"], parentDept: "Gironde", prices: { avg: 4200, median: 4000 }, rental: { rent: 13.5, furnished: 15.5, vacancy: 5 }, charges: { condo: 3.0, tax: 1.5 }, airbnb: { nightPrice: 80, occupancy: 65 }, socio: { population: 260958, income: 23200, unemployment: 8.5 }, infra: { schools: 120, university: true, transport: 8 }},
+  { name: "Nantes", code: "44109", postalCodes: ["44000"], parentDept: "Loire-Atlantique", prices: { avg: 3800, median: 3600 }, rental: { rent: 12.5, furnished: 14.5, vacancy: 4 }, charges: { condo: 2.8, tax: 1.4 }, airbnb: { nightPrice: 70, occupancy: 62 }, socio: { population: 320732, income: 23000, unemployment: 7.0 }, infra: { schools: 130, university: true, transport: 8 }},
+  { name: "Montpellier", code: "34172", postalCodes: ["34000"], parentDept: "Hérault", prices: { avg: 3300, median: 3100 }, rental: { rent: 13, furnished: 15, vacancy: 6 }, charges: { condo: 2.5, tax: 1.8 }, airbnb: { nightPrice: 65, occupancy: 60 }, socio: { population: 299096, income: 20500, unemployment: 11.0 }, infra: { schools: 100, university: true, transport: 7 }},
+  { name: "Strasbourg", code: "67482", postalCodes: ["67000"], parentDept: "Bas-Rhin", prices: { avg: 3200, median: 3000 }, rental: { rent: 12, furnished: 14, vacancy: 4 }, charges: { condo: 2.5, tax: 1.3 }, airbnb: { nightPrice: 70, occupancy: 60 }, socio: { population: 287228, income: 22000, unemployment: 8.5 }, infra: { schools: 110, university: true, transport: 9 }},
+  { name: "Lille", code: "59350", postalCodes: ["59000"], parentDept: "Nord", prices: { avg: 3200, median: 3000 }, rental: { rent: 13, furnished: 15, vacancy: 5 }, charges: { condo: 2.8, tax: 2.0 }, airbnb: { nightPrice: 65, occupancy: 55 }, socio: { population: 236710, income: 20800, unemployment: 10.5 }, infra: { schools: 100, university: true, transport: 8 }},
+  { name: "Rennes", code: "35238", postalCodes: ["35000"], parentDept: "Ille-et-Vilaine", prices: { avg: 3500, median: 3300 }, rental: { rent: 12, furnished: 14, vacancy: 3 }, charges: { condo: 2.5, tax: 1.3 }, airbnb: { nightPrice: 60, occupancy: 55 }, socio: { population: 222485, income: 23500, unemployment: 6.5 }, infra: { schools: 90, university: true, transport: 8 }},
+  { name: "Saint-Étienne", code: "42218", postalCodes: ["42000"], parentDept: "Loire", prices: { avg: 1200, median: 1100 }, rental: { rent: 8, furnished: 10, vacancy: 9 }, charges: { condo: 2.0, tax: 1.8 }, airbnb: { nightPrice: 40, occupancy: 45 }, socio: { population: 174082, income: 18500, unemployment: 12.0 }, infra: { schools: 60, university: true, transport: 6 }},
+  { name: "Le Mans", code: "72181", postalCodes: ["72000"], parentDept: "Sarthe", prices: { avg: 1600, median: 1500 }, rental: { rent: 9, furnished: 11, vacancy: 7 }, charges: { condo: 2.0, tax: 1.5 }, airbnb: { nightPrice: 45, occupancy: 45 }, socio: { population: 145502, income: 20000, unemployment: 9.0 }, infra: { schools: 50, university: true, transport: 5 }},
+  { name: "Mulhouse", code: "68224", postalCodes: ["68100"], parentDept: "Haut-Rhin", prices: { avg: 1400, median: 1300 }, rental: { rent: 9.5, furnished: 11, vacancy: 8 }, charges: { condo: 2.2, tax: 1.6 }, airbnb: { nightPrice: 45, occupancy: 40 }, socio: { population: 110514, income: 17500, unemployment: 15.0 }, infra: { schools: 40, university: true, transport: 6 }},
+  { name: "Perpignan", code: "66136", postalCodes: ["66000"], parentDept: "Pyrénées-Orientales", prices: { avg: 1600, median: 1500 }, rental: { rent: 9, furnished: 11, vacancy: 9 }, charges: { condo: 2.0, tax: 1.7 }, airbnb: { nightPrice: 50, occupancy: 55 }, socio: { population: 121875, income: 17800, unemployment: 14.5 }, infra: { schools: 45, university: true, transport: 5 }},
+  { name: "Limoges", code: "87085", postalCodes: ["87000"], parentDept: "Haute-Vienne", prices: { avg: 1500, median: 1400 }, rental: { rent: 9, furnished: 10.5, vacancy: 7 }, charges: { condo: 1.8, tax: 1.5 }, airbnb: { nightPrice: 45, occupancy: 45 }, socio: { population: 132175, income: 19500, unemployment: 9.0 }, infra: { schools: 50, university: true, transport: 5 }},
+  { name: "Clermont-Ferrand", code: "63113", postalCodes: ["63000"], parentDept: "Puy-de-Dôme", prices: { avg: 2100, median: 2000 }, rental: { rent: 10, furnished: 12, vacancy: 6 }, charges: { condo: 2.2, tax: 1.5 }, airbnb: { nightPrice: 50, occupancy: 50 }, socio: { population: 147865, income: 21000, unemployment: 8.5 }, infra: { schools: 55, university: true, transport: 6 }},
+  { name: "Angers", code: "49007", postalCodes: ["49000"], parentDept: "Maine-et-Loire", prices: { avg: 2800, median: 2600 }, rental: { rent: 11, furnished: 13, vacancy: 4 }, charges: { condo: 2.2, tax: 1.3 }, airbnb: { nightPrice: 55, occupancy: 50 }, socio: { population: 157175, income: 21500, unemployment: 7.5 }, infra: { schools: 60, university: true, transport: 7 }},
+  { name: "Grenoble", code: "38185", postalCodes: ["38000"], parentDept: "Isère", prices: { avg: 2500, median: 2300 }, rental: { rent: 11, furnished: 13, vacancy: 5 }, charges: { condo: 2.5, tax: 1.5 }, airbnb: { nightPrice: 60, occupancy: 55 }, socio: { population: 158198, income: 21800, unemployment: 8.0 }, infra: { schools: 65, university: true, transport: 7 }},
+  { name: "Dijon", code: "21231", postalCodes: ["21000"], parentDept: "Côte-d'Or", prices: { avg: 2300, median: 2100 }, rental: { rent: 11, furnished: 13, vacancy: 5 }, charges: { condo: 2.3, tax: 1.4 }, airbnb: { nightPrice: 55, occupancy: 50 }, socio: { population: 159346, income: 21500, unemployment: 8.0 }, infra: { schools: 60, university: true, transport: 7 }},
+  { name: "Rouen", code: "76540", postalCodes: ["76000"], parentDept: "Seine-Maritime", prices: { avg: 2400, median: 2200 }, rental: { rent: 11.5, furnished: 13.5, vacancy: 5 }, charges: { condo: 2.5, tax: 1.6 }, airbnb: { nightPrice: 55, occupancy: 48 }, socio: { population: 113000, income: 20500, unemployment: 9.5 }, infra: { schools: 50, university: true, transport: 7 }},
+  { name: "Nice", code: "06088", postalCodes: ["06000"], parentDept: "Alpes-Maritimes", prices: { avg: 4800, median: 4500 }, rental: { rent: 15, furnished: 17, vacancy: 4 }, charges: { condo: 3.5, tax: 1.5 }, airbnb: { nightPrice: 90, occupancy: 70 }, socio: { population: 342669, income: 22000, unemployment: 9.0 }, infra: { schools: 130, university: true, transport: 7 }},
+  { name: "Toulon", code: "83137", postalCodes: ["83000"], parentDept: "Var", prices: { avg: 2800, median: 2600 }, rental: { rent: 11.5, furnished: 13, vacancy: 5 }, charges: { condo: 2.5, tax: 1.5 }, airbnb: { nightPrice: 60, occupancy: 60 }, socio: { population: 178745, income: 20500, unemployment: 10.0 }, infra: { schools: 65, university: true, transport: 6 }},
+  { name: "Metz", code: "57463", postalCodes: ["57000"], parentDept: "Moselle", prices: { avg: 2000, median: 1850 }, rental: { rent: 10.5, furnished: 12, vacancy: 6 }, charges: { condo: 2.3, tax: 1.4 }, airbnb: { nightPrice: 55, occupancy: 48 }, socio: { population: 120205, income: 20800, unemployment: 9.5 }, infra: { schools: 50, university: true, transport: 6 }},
+  { name: "Tours", code: "37261", postalCodes: ["37000"], parentDept: "Indre-et-Loire", prices: { avg: 2600, median: 2400 }, rental: { rent: 11, furnished: 13, vacancy: 5 }, charges: { condo: 2.3, tax: 1.4 }, airbnb: { nightPrice: 55, occupancy: 50 }, socio: { population: 136125, income: 21500, unemployment: 8.0 }, infra: { schools: 55, university: true, transport: 7 }},
+  { name: "Amiens", code: "80021", postalCodes: ["80000"], parentDept: "Somme", prices: { avg: 2100, median: 1900 }, rental: { rent: 10.5, furnished: 12, vacancy: 6 }, charges: { condo: 2.0, tax: 1.6 }, airbnb: { nightPrice: 50, occupancy: 45 }, socio: { population: 135501, income: 20000, unemployment: 10.5 }, infra: { schools: 50, university: true, transport: 6 }},
+  { name: "Besançon", code: "25056", postalCodes: ["25000"], parentDept: "Doubs", prices: { avg: 1800, median: 1650 }, rental: { rent: 9.5, furnished: 11, vacancy: 6 }, charges: { condo: 2.0, tax: 1.4 }, airbnb: { nightPrice: 50, occupancy: 45 }, socio: { population: 119163, income: 20500, unemployment: 9.0 }, infra: { schools: 45, university: true, transport: 6 }},
+  { name: "Orléans", code: "45234", postalCodes: ["45000"], parentDept: "Loiret", prices: { avg: 2400, median: 2200 }, rental: { rent: 11, furnished: 13, vacancy: 5 }, charges: { condo: 2.3, tax: 1.4 }, airbnb: { nightPrice: 55, occupancy: 48 }, socio: { population: 116685, income: 22000, unemployment: 8.5 }, infra: { schools: 50, university: true, transport: 7 }},
+  { name: "Reims", code: "51454", postalCodes: ["51100"], parentDept: "Marne", prices: { avg: 2200, median: 2000 }, rental: { rent: 10.5, furnished: 12.5, vacancy: 6 }, charges: { condo: 2.2, tax: 1.5 }, airbnb: { nightPrice: 55, occupancy: 50 }, socio: { population: 187206, income: 20500, unemployment: 10.0 }, infra: { schools: 70, university: true, transport: 6 }},
+  { name: "Caen", code: "14118", postalCodes: ["14000"], parentDept: "Calvados", prices: { avg: 2300, median: 2100 }, rental: { rent: 11, furnished: 13, vacancy: 5 }, charges: { condo: 2.2, tax: 1.3 }, airbnb: { nightPrice: 55, occupancy: 48 }, socio: { population: 106260, income: 21000, unemployment: 8.5 }, infra: { schools: 45, university: true, transport: 7 }},
+  { name: "Brest", code: "29019", postalCodes: ["29200"], parentDept: "Finistère", prices: { avg: 1700, median: 1550 }, rental: { rent: 9, furnished: 10.5, vacancy: 5 }, charges: { condo: 2.0, tax: 1.3 }, airbnb: { nightPrice: 50, occupancy: 45 }, socio: { population: 142722, income: 20500, unemployment: 8.0 }, infra: { schools: 50, university: true, transport: 6 }},
+  { name: "Le Havre", code: "76351", postalCodes: ["76600"], parentDept: "Seine-Maritime", prices: { avg: 1800, median: 1600 }, rental: { rent: 10, furnished: 11.5, vacancy: 7 }, charges: { condo: 2.0, tax: 1.7 }, airbnb: { nightPrice: 50, occupancy: 45 }, socio: { population: 172366, income: 19000, unemployment: 12.0 }, infra: { schools: 60, university: true, transport: 6 }},
+  { name: "Avignon", code: "84007", postalCodes: ["84000"], parentDept: "Vaucluse", prices: { avg: 2200, median: 2000 }, rental: { rent: 11, furnished: 13, vacancy: 6 }, charges: { condo: 2.2, tax: 1.6 }, airbnb: { nightPrice: 65, occupancy: 60 }, socio: { population: 93671, income: 19500, unemployment: 11.0 }, infra: { schools: 40, university: true, transport: 5 }},
 ];
 
 // Hiérarchie simplifiée: France > ville
@@ -81,8 +86,9 @@ async function seed() {
   });
   console.log("  + France (pays)");
 
-  // 2. Créer les villes directement sous France (hiérarchie plate pour le moment)
+  // 2. Créer les villes et insérer dans les tables thématiques
   const today = new Date().toISOString().slice(0, 10);
+  const source = "import-initial";
 
   for (const city of CITIES) {
     const cityId = `loc_${city.code}`;
@@ -93,20 +99,52 @@ async function seed() {
       args: [cityId, city.name, "ville", FRANCE_ID, city.code, JSON.stringify(city.postalCodes)],
     });
 
-    // Insérer les données de marché
-    const dataId = `ld_${city.code}_seed`;
+    // Prices
     await client.execute({
-      sql: `INSERT INTO locality_data (id, locality_id, valid_from, valid_to, data, created_by)
-            VALUES (?, ?, ?, NULL, ?, ?)`,
-      args: [dataId, cityId, today, JSON.stringify(city.fields), "import-initial"],
+      sql: `INSERT INTO locality_prices (locality_id, valid_from, avg_purchase_price_per_m2, median_purchase_price_per_m2, transaction_count, source)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [cityId, today, city.prices.avg, city.prices.median, city.prices.transactions ?? null, source],
     });
 
-    console.log(`  + ${city.name} (${city.code}) — ${Object.keys(city.fields).length} fields`);
+    // Rental
+    await client.execute({
+      sql: `INSERT INTO locality_rental (locality_id, valid_from, avg_rent_per_m2, avg_rent_furnished_per_m2, vacancy_rate, source)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [cityId, today, city.rental.rent, city.rental.furnished, city.rental.vacancy, source],
+    });
+
+    // Charges
+    await client.execute({
+      sql: `INSERT INTO locality_charges (locality_id, valid_from, avg_condo_charges_per_m2, avg_property_tax_per_m2, source)
+            VALUES (?, ?, ?, ?, ?)`,
+      args: [cityId, today, city.charges.condo, city.charges.tax, source],
+    });
+
+    // Airbnb
+    await client.execute({
+      sql: `INSERT INTO locality_airbnb (locality_id, valid_from, avg_airbnb_night_price, avg_airbnb_occupancy_rate, source)
+            VALUES (?, ?, ?, ?, ?)`,
+      args: [cityId, today, city.airbnb.nightPrice, city.airbnb.occupancy, source],
+    });
+
+    // Socio
+    await client.execute({
+      sql: `INSERT INTO locality_socio (locality_id, valid_from, population, median_income, unemployment_rate, source)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [cityId, today, city.socio.population, city.socio.income, city.socio.unemployment, source],
+    });
+
+    // Infra
+    await client.execute({
+      sql: `INSERT INTO locality_infra (locality_id, valid_from, school_count, university_nearby, public_transport_score, source)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [cityId, today, city.infra.schools, city.infra.university ? 1 : 0, city.infra.transport, source],
+    });
+
+    console.log(`  + ${city.name} (${city.code}) — 7 tables`);
   }
 
-  console.log(`\nDone: ${CITIES.length} cities seeded with market data.`);
-  console.log("Guide pages: /guide will now show the city list.");
-  console.log("Property defaults: new properties in these cities will get locality-based defaults.");
+  console.log(`\nDone: ${CITIES.length} cities seeded with market data in thematic tables.`);
 }
 
 seed().catch(console.error);

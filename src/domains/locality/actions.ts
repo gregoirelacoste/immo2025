@@ -6,12 +6,17 @@ import {
   createLocality,
   updateLocality,
   deleteLocality as repoDeleteLocality,
-  createLocalityData,
-  deleteLocalityData as repoDeleteLocalityData,
+  upsertLocalityData,
+  deleteLocalityDataRow,
   getLocalityById,
 } from "./repository";
 import { resolveLocalityData } from "./resolver";
-import { LOCALITY_TYPES, LOCALITY_DATA_FIELD_KEYS, LocalityDataFields } from "./types";
+import {
+  LOCALITY_TYPES,
+  LOCALITY_DATA_FIELD_KEYS,
+  LocalityDataFields,
+  LocalityTableName,
+} from "./types";
 
 // ─── Public action: fetch locality data for a city ───
 
@@ -113,13 +118,17 @@ export async function removeLocality(id: string): Promise<{ success: boolean; er
   }
 }
 
-// ─── Locality Data (snapshots) ───
+// ─── Locality Data (thematic tables) ───
 
+/**
+ * Import locality data from a JSON object — dispatches fields to thematic tables.
+ * JSON format is the same flat object as before (LocalityDataFields keys).
+ */
 export async function importLocalityData(
   localityId: string,
   validFrom: string,
   jsonData: string
-): Promise<{ success: boolean; id?: string; error?: string }> {
+): Promise<{ success: boolean; error?: string }> {
   try {
     const userId = await requireUserId();
 
@@ -157,25 +166,24 @@ export async function importLocalityData(
       return { success: false, error: "Aucun champ valide trouvé dans le JSON." };
     }
 
-    const id = await createLocalityData({
-      locality_id: localityId,
-      valid_from: validFrom,
-      data: JSON.stringify(cleaned),
-      created_by: userId,
-    });
+    await upsertLocalityData(localityId, validFrom, cleaned, userId);
 
     revalidatePath("/localities");
     revalidatePath("/guide", "layout");
-    return { success: true, id };
+    return { success: true };
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }
 }
 
-export async function removeLocalityData(id: string): Promise<{ success: boolean; error?: string }> {
+export async function removeLocalityData(
+  table: LocalityTableName,
+  localityId: string,
+  validFrom: string
+): Promise<{ success: boolean; error?: string }> {
   try {
     await requireUserId();
-    await repoDeleteLocalityData(id);
+    await deleteLocalityDataRow(table, localityId, validFrom);
     revalidatePath("/localities");
     revalidatePath("/guide", "layout");
     return { success: true };

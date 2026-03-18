@@ -1,15 +1,29 @@
 /**
  * Data Injector — injecte les données extraites d'un article
- * dans la table locality_data pour enrichir l'app.
+ * dans les tables thématiques de localité pour enrichir l'app.
  *
  * Stratégie :
- * - Crée un nouveau snapshot avec created_by = "blog-ai"
+ * - Upsert dans les tables thématiques avec source = "blog-ai"
  * - Ne jamais écraser les données créées par "admin" ou "import-initial"
  * - Merge field-by-field : seuls les champs null/manquants sont complétés
  */
 
-import { findLocalityByCity, getLatestLocalityData, createLocalityData, createLocality, getRootLocalities, getLocalityById } from "@/domains/locality/repository";
-import { LOCALITY_DATA_FIELD_KEYS, LocalityDataFields, Locality } from "@/domains/locality/types";
+import {
+  findLocalityByCity,
+  getLatestLocalityFields,
+  upsertLocalityData,
+  getLatestSource,
+  createLocality,
+  getRootLocalities,
+  getLocalityById,
+} from "@/domains/locality/repository";
+import {
+  LOCALITY_DATA_FIELD_KEYS,
+  LocalityDataFields,
+  FIELD_TO_TABLE,
+  LOCALITY_TABLE_NAMES,
+  Locality,
+} from "@/domains/locality/types";
 import { GeneratedArticle } from "./types";
 import { markDataInjected } from "./repository";
 import { fetchGeoCity, fetchGeoCityByCode } from "./fetchers/geo-fetcher";
@@ -22,7 +36,7 @@ interface InjectionResult {
 }
 
 /**
- * Injecte les données extraites d'un article dans locality_data.
+ * Injecte les données extraites d'un article dans les tables thématiques.
  * Retourne un résumé de ce qui a été injecté.
  */
 export async function injectArticleData(
@@ -61,22 +75,19 @@ export async function injectArticleData(
       }
 
       // Charger les données existantes
-      const existing = await getLatestLocalityData(locality.id);
-      let existingFields: LocalityDataFields = {};
-      if (existing) {
-        try {
-          existingFields = JSON.parse(existing.data);
-        } catch {
-          existingFields = {};
+      const existingFields = await getLatestLocalityFields(locality.id);
+
+      // Check each thematic table for admin protection
+      const protectedTables = new Set<string>();
+      for (const table of LOCALITY_TABLE_NAMES) {
+        const source = await getLatestSource(table, locality.id);
+        if (source === "admin" || source === "import-initial") {
+          protectedTables.add(table);
         }
       }
 
-      // Vérifier que les données existantes ne sont pas "admin" (protégées)
-      const isAdminData =
-        existing?.created_by === "admin" || existing?.created_by === "import-initial";
-
       // Filtrer les champs valides et non-null du extract
-      const newFields: Record<string, unknown> = {};
+      const newFields: Partial<LocalityDataFields> = {};
       let hasNewData = false;
 
       for (const key of LOCALITY_DATA_FIELD_KEYS) {
@@ -85,15 +96,17 @@ export async function injectArticleData(
         // Ignorer les valeurs null/undefined
         if (extractedValue === null || extractedValue === undefined) continue;
 
-        // Si données admin et champ déjà rempli → ne pas écraser
-        if (isAdminData && existingFields[key] !== null && existingFields[key] !== undefined) {
+        // Si la table est protégée (admin) et le champ déjà rempli → ne pas écraser
+        const table = FIELD_TO_TABLE[key];
+        if (protectedTables.has(table) && existingFields[key] !== null && existingFields[key] !== undefined) {
           continue;
         }
 
         // Validation de base : les nombres doivent être des nombres
         if (typeof extractedValue === "number" && !isFinite(extractedValue)) continue;
 
-        newFields[key] = extractedValue;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (newFields as any)[key] = extractedValue;
         hasNewData = true;
       }
 
@@ -102,17 +115,9 @@ export async function injectArticleData(
         continue;
       }
 
-      // Merger avec les données existantes
-      const mergedFields = { ...existingFields, ...newFields };
-
-      // Créer un nouveau snapshot
+      // Upsert into thematic tables
       const today = new Date().toISOString().slice(0, 10);
-      await createLocalityData({
-        locality_id: locality.id,
-        valid_from: today,
-        data: JSON.stringify(mergedFields),
-        created_by: "blog-ai",
-      });
+      await upsertLocalityData(locality.id, today, newFields, "blog-ai");
 
       result.injected++;
     } catch (e) {

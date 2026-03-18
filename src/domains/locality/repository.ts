@@ -1,7 +1,14 @@
 import { InValue } from "@libsql/client";
 import { getDb } from "@/infrastructure/database/client";
 import { rowAs } from "@/infrastructure/database/row-mapper";
-import { Locality, LocalityData } from "./types";
+import {
+  Locality,
+  LocalityDataFields,
+  LocalityTableName,
+  LOCALITY_TABLE_NAMES,
+  FIELD_TO_TABLE,
+  LocalityDataSnapshot,
+} from "./types";
 
 // ─── Localities CRUD ───
 
@@ -27,36 +34,6 @@ export async function getLocalitiesByIds(ids: string[]): Promise<Locality[]> {
     args: ids,
   });
   return result.rows.map((r) => rowAs<Locality>(r));
-}
-
-/** Batch-fetch latest valid data for multiple localities in one query */
-export async function getLatestLocalityDataBatch(
-  localityIds: string[],
-  asOfDate?: string
-): Promise<Map<string, LocalityData>> {
-  if (localityIds.length === 0) return new Map();
-  const db = await getDb();
-  const date = asOfDate || new Date().toISOString().split("T")[0];
-  const placeholders = localityIds.map(() => "?").join(",");
-  // Use a subquery to get the latest valid_from per locality, then join
-  const result = await db.execute({
-    sql: `SELECT ld.* FROM locality_data ld
-          INNER JOIN (
-            SELECT locality_id, MAX(valid_from) as max_vf
-            FROM locality_data
-            WHERE locality_id IN (${placeholders})
-              AND valid_from <= ?
-              AND (valid_to IS NULL OR valid_to >= ?)
-            GROUP BY locality_id
-          ) latest ON ld.locality_id = latest.locality_id AND ld.valid_from = latest.max_vf`,
-    args: [...localityIds, date, date],
-  });
-  const map = new Map<string, LocalityData>();
-  for (const r of result.rows) {
-    const d = rowAs<LocalityData>(r);
-    map.set(d.locality_id, d);
-  }
-  return map;
 }
 
 export async function getLocalityChildren(parentId: string): Promise<Locality[]> {
@@ -168,70 +145,346 @@ export async function updateLocality(
 
 export async function deleteLocality(id: string): Promise<void> {
   const db = await getDb();
-  // Delete associated data first
-  await db.execute({ sql: "DELETE FROM locality_data WHERE locality_id = ?", args: [id] });
+  // CASCADE on FK will delete thematic data, but let's be explicit
+  for (const table of LOCALITY_TABLE_NAMES) {
+    await db.execute({ sql: `DELETE FROM ${table} WHERE locality_id = ?`, args: [id] });
+  }
   await db.execute({ sql: "DELETE FROM localities WHERE id = ?", args: [id] });
 }
 
-// ─── Locality Data CRUD ───
-
-/** Batch-fetch all locality_data rows for multiple locality IDs in a single query */
-export async function getAllLocalityDataForIds(localityIds: string[]): Promise<LocalityData[]> {
-  if (localityIds.length === 0) return [];
-  const db = await getDb();
-  const placeholders = localityIds.map(() => "?").join(",");
-  const result = await db.execute({
-    sql: `SELECT * FROM locality_data WHERE locality_id IN (${placeholders}) ORDER BY valid_from DESC`,
-    args: localityIds,
-  });
-  return result.rows.map((r) => rowAs<LocalityData>(r));
-}
-
-export async function getLocalityDataHistory(localityId: string): Promise<LocalityData[]> {
-  const db = await getDb();
-  const result = await db.execute({
-    sql: "SELECT * FROM locality_data WHERE locality_id = ? ORDER BY valid_from DESC",
-    args: [localityId],
-  });
-  return result.rows.map((r) => rowAs<LocalityData>(r));
-}
+// ─── Thematic Data: Read ───
 
 /**
- * Get the latest valid data snapshot for a locality.
- * valid_from <= today AND (valid_to IS NULL OR valid_to >= today)
+ * Get the latest row from a thematic table for a single locality.
+ * Returns the row with MAX(valid_from) <= asOfDate.
  */
-export async function getLatestLocalityData(
+async function getLatestRow<T>(
+  table: LocalityTableName,
   localityId: string,
   asOfDate?: string
-): Promise<LocalityData | undefined> {
+): Promise<T | undefined> {
   const db = await getDb();
   const date = asOfDate || new Date().toISOString().split("T")[0];
   const result = await db.execute({
-    sql: `SELECT * FROM locality_data
-          WHERE locality_id = ? AND valid_from <= ? AND (valid_to IS NULL OR valid_to >= ?)
-          ORDER BY valid_from DESC LIMIT 1`,
-    args: [localityId, date, date],
+    sql: `SELECT * FROM ${table} WHERE locality_id = ? AND valid_from <= ? ORDER BY valid_from DESC LIMIT 1`,
+    args: [localityId, date],
   });
-  return result.rows[0] ? rowAs<LocalityData>(result.rows[0]) : undefined;
+  return result.rows[0] ? rowAs<T>(result.rows[0]) : undefined;
 }
 
-export async function createLocalityData(data: {
-  locality_id: string;
-  valid_from: string;
-  valid_to?: string | null;
-  data: string; // JSON
-  created_by?: string;
-}): Promise<string> {
+/**
+ * Batch-fetch latest rows from a thematic table for multiple localities.
+ * Returns Map<locality_id, row>.
+ */
+async function getLatestRowBatch<T extends { locality_id: string }>(
+  table: LocalityTableName,
+  localityIds: string[],
+  asOfDate?: string
+): Promise<Map<string, T>> {
+  if (localityIds.length === 0) return new Map();
   const db = await getDb();
-  const id = crypto.randomUUID();
+  const date = asOfDate || new Date().toISOString().split("T")[0];
+  const placeholders = localityIds.map(() => "?").join(",");
+  const result = await db.execute({
+    sql: `SELECT t.* FROM ${table} t
+          INNER JOIN (
+            SELECT locality_id, MAX(valid_from) as max_vf
+            FROM ${table}
+            WHERE locality_id IN (${placeholders})
+              AND valid_from <= ?
+            GROUP BY locality_id
+          ) latest ON t.locality_id = latest.locality_id AND t.valid_from = latest.max_vf`,
+    args: [...localityIds, date],
+  });
+  const map = new Map<string, T>();
+  for (const r of result.rows) {
+    const row = rowAs<T>(r);
+    map.set(row.locality_id, row);
+  }
+  return map;
+}
+
+/**
+ * Get all LocalityDataFields for a single locality, assembled from all thematic tables.
+ */
+export async function getLatestLocalityFields(
+  localityId: string,
+  asOfDate?: string
+): Promise<LocalityDataFields> {
+  const [prices, rental, charges, airbnb, socio, infra, risks] = await Promise.all([
+    getLatestRow<Record<string, unknown>>("locality_prices", localityId, asOfDate),
+    getLatestRow<Record<string, unknown>>("locality_rental", localityId, asOfDate),
+    getLatestRow<Record<string, unknown>>("locality_charges", localityId, asOfDate),
+    getLatestRow<Record<string, unknown>>("locality_airbnb", localityId, asOfDate),
+    getLatestRow<Record<string, unknown>>("locality_socio", localityId, asOfDate),
+    getLatestRow<Record<string, unknown>>("locality_infra", localityId, asOfDate),
+    getLatestRow<Record<string, unknown>>("locality_risks", localityId, asOfDate),
+  ]);
+  return assembleFields(prices, rental, charges, airbnb, socio, infra, risks);
+}
+
+/**
+ * Batch-fetch all LocalityDataFields for multiple localities.
+ * Returns Map<locality_id, LocalityDataFields>.
+ */
+export async function getLatestLocalityFieldsBatch(
+  localityIds: string[],
+  asOfDate?: string
+): Promise<Map<string, LocalityDataFields>> {
+  if (localityIds.length === 0) return new Map();
+
+  const [pricesMap, rentalMap, chargesMap, airbnbMap, socioMap, infraMap, risksMap] = await Promise.all([
+    getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_prices", localityIds, asOfDate),
+    getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_rental", localityIds, asOfDate),
+    getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_charges", localityIds, asOfDate),
+    getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_airbnb", localityIds, asOfDate),
+    getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_socio", localityIds, asOfDate),
+    getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_infra", localityIds, asOfDate),
+    getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_risks", localityIds, asOfDate),
+  ]);
+
+  const result = new Map<string, LocalityDataFields>();
+  const allIds = new Set(localityIds);
+  for (const id of allIds) {
+    result.set(id, assembleFields(
+      pricesMap.get(id),
+      rentalMap.get(id),
+      chargesMap.get(id),
+      airbnbMap.get(id),
+      socioMap.get(id),
+      infraMap.get(id),
+      risksMap.get(id),
+    ));
+  }
+  return result;
+}
+
+/** Assemble a LocalityDataFields object from individual thematic rows */
+function assembleFields(
+  prices?: Record<string, unknown>,
+  rental?: Record<string, unknown>,
+  charges?: Record<string, unknown>,
+  airbnb?: Record<string, unknown>,
+  socio?: Record<string, unknown>,
+  infra?: Record<string, unknown>,
+  risks?: Record<string, unknown>,
+): LocalityDataFields {
+  const f: LocalityDataFields = {};
+
+  if (prices) {
+    f.avg_purchase_price_per_m2 = prices.avg_purchase_price_per_m2 as number ?? null;
+    f.median_purchase_price_per_m2 = prices.median_purchase_price_per_m2 as number ?? null;
+    f.transaction_count = prices.transaction_count as number ?? null;
+  }
+  if (rental) {
+    f.avg_rent_per_m2 = rental.avg_rent_per_m2 as number ?? null;
+    f.avg_rent_furnished_per_m2 = rental.avg_rent_furnished_per_m2 as number ?? null;
+    f.vacancy_rate = rental.vacancy_rate as number ?? null;
+    f.typical_cashflow_per_m2 = rental.typical_cashflow_per_m2 as number ?? null;
+    f.rent_elasticity_alpha = rental.rent_elasticity_alpha as number ?? null;
+    f.rent_reference_surface = rental.rent_reference_surface as number ?? null;
+  }
+  if (charges) {
+    f.avg_condo_charges_per_m2 = charges.avg_condo_charges_per_m2 as number ?? null;
+    f.avg_property_tax_per_m2 = charges.avg_property_tax_per_m2 as number ?? null;
+  }
+  if (airbnb) {
+    f.avg_airbnb_night_price = airbnb.avg_airbnb_night_price as number ?? null;
+    f.avg_airbnb_occupancy_rate = airbnb.avg_airbnb_occupancy_rate as number ?? null;
+  }
+  if (socio) {
+    f.population = socio.population as number ?? null;
+    f.population_growth_pct = socio.population_growth_pct as number ?? null;
+    f.median_income = socio.median_income as number ?? null;
+    f.poverty_rate = socio.poverty_rate as number ?? null;
+    f.unemployment_rate = socio.unemployment_rate as number ?? null;
+  }
+  if (infra) {
+    f.school_count = infra.school_count as number ?? null;
+    f.university_nearby = infra.university_nearby != null ? Boolean(infra.university_nearby) : null;
+    f.public_transport_score = infra.public_transport_score as number ?? null;
+  }
+  if (risks) {
+    f.risk_level = risks.risk_level as LocalityDataFields["risk_level"] ?? null;
+    if (risks.natural_risks) {
+      try {
+        const parsed = typeof risks.natural_risks === "string"
+          ? JSON.parse(risks.natural_risks)
+          : risks.natural_risks;
+        f.natural_risks = Array.isArray(parsed) ? parsed : null;
+      } catch {
+        f.natural_risks = null;
+      }
+    }
+  }
+
+  return f;
+}
+
+// ─── Thematic Data: Write ───
+
+/**
+ * Upsert locality data fields — dispatches each field to its thematic table.
+ * Uses INSERT OR REPLACE so we can update an existing snapshot for the same date.
+ */
+export async function upsertLocalityData(
+  localityId: string,
+  validFrom: string,
+  fields: Partial<LocalityDataFields>,
+  source: string = ""
+): Promise<void> {
+  const db = await getDb();
+
+  // Group fields by table
+  const byTable = new Map<LocalityTableName, Record<string, unknown>>();
+  for (const [key, value] of Object.entries(fields)) {
+    if (value === undefined) continue;
+    const table = FIELD_TO_TABLE[key as keyof LocalityDataFields];
+    if (!table) continue;
+    if (!byTable.has(table)) byTable.set(table, {});
+    byTable.get(table)![key] = value;
+  }
+
+  // Upsert each table
+  for (const [table, tableFields] of byTable) {
+    const columns = Object.keys(tableFields);
+    const values = columns.map((col) => {
+      const v = tableFields[col];
+      // Handle special types
+      if (col === "university_nearby") return v != null ? (v ? 1 : 0) : null;
+      if (col === "natural_risks") return v ? JSON.stringify(v) : null;
+      return v ?? null;
+    });
+
+    const allCols = ["locality_id", "valid_from", ...columns, "source"];
+    const allVals: InValue[] = [localityId, validFrom, ...values as InValue[], source];
+    const placeholders = allCols.map(() => "?").join(",");
+
+    await db.execute({
+      sql: `INSERT OR REPLACE INTO ${table} (${allCols.join(",")}) VALUES (${placeholders})`,
+      args: allVals,
+    });
+  }
+}
+
+/**
+ * Delete all data for a locality from a specific table and date.
+ */
+export async function deleteLocalityDataRow(
+  table: LocalityTableName,
+  localityId: string,
+  validFrom: string
+): Promise<void> {
+  const db = await getDb();
   await db.execute({
-    sql: `INSERT INTO locality_data (id, locality_id, valid_from, valid_to, data, created_by) VALUES (?, ?, ?, ?, ?, ?)`,
-    args: [id, data.locality_id, data.valid_from, data.valid_to ?? null, data.data, data.created_by || ""],
+    sql: `DELETE FROM ${table} WHERE locality_id = ? AND valid_from = ?`,
+    args: [localityId, validFrom],
   });
-  return id;
 }
 
-export async function deleteLocalityData(id: string): Promise<void> {
+/**
+ * Delete all data for a locality across all thematic tables for a given date.
+ */
+export async function deleteLocalityDataForDate(
+  localityId: string,
+  validFrom: string
+): Promise<void> {
+  for (const table of LOCALITY_TABLE_NAMES) {
+    await deleteLocalityDataRow(table, localityId, validFrom);
+  }
+}
+
+// ─── Admin: Snapshots listing ───
+
+/**
+ * Get all data snapshots for a locality across all thematic tables (admin UI).
+ * Returns a list of snapshot summaries grouped by (table, valid_from).
+ */
+export async function getLocalitySnapshots(localityId: string): Promise<LocalityDataSnapshot[]> {
   const db = await getDb();
-  await db.execute({ sql: "DELETE FROM locality_data WHERE id = ?", args: [id] });
+  const snapshots: LocalityDataSnapshot[] = [];
+
+  for (const table of LOCALITY_TABLE_NAMES) {
+    const result = await db.execute({
+      sql: `SELECT * FROM ${table} WHERE locality_id = ? ORDER BY valid_from DESC`,
+      args: [localityId],
+    });
+    for (const row of result.rows) {
+      // Count non-null data fields (exclude locality_id, valid_from, source, created_at)
+      const metaCols = new Set(["locality_id", "valid_from", "source", "created_at"]);
+      let fieldCount = 0;
+      for (const [key, val] of Object.entries(row)) {
+        if (!metaCols.has(key) && val != null) fieldCount++;
+      }
+      snapshots.push({
+        locality_id: row.locality_id as string,
+        table_name: table,
+        valid_from: row.valid_from as string,
+        source: (row.source as string) || "",
+        created_at: (row.created_at as string) || "",
+        field_count: fieldCount,
+      });
+    }
+  }
+
+  // Sort by valid_from DESC
+  snapshots.sort((a, b) => b.valid_from.localeCompare(a.valid_from));
+  return snapshots;
+}
+
+/**
+ * Batch-fetch all snapshots for multiple localities (admin page).
+ */
+export async function getLocalitySnapshotsBatch(
+  localityIds: string[]
+): Promise<Record<string, LocalityDataSnapshot[]>> {
+  if (localityIds.length === 0) return {};
+  const db = await getDb();
+  const result: Record<string, LocalityDataSnapshot[]> = {};
+  const placeholders = localityIds.map(() => "?").join(",");
+
+  for (const table of LOCALITY_TABLE_NAMES) {
+    const rows = await db.execute({
+      sql: `SELECT * FROM ${table} WHERE locality_id IN (${placeholders}) ORDER BY valid_from DESC`,
+      args: localityIds,
+    });
+    for (const row of rows.rows) {
+      const locId = row.locality_id as string;
+      const metaCols = new Set(["locality_id", "valid_from", "source", "created_at"]);
+      let fieldCount = 0;
+      for (const [key, val] of Object.entries(row)) {
+        if (!metaCols.has(key) && val != null) fieldCount++;
+      }
+      (result[locId] ??= []).push({
+        locality_id: locId,
+        table_name: table,
+        valid_from: row.valid_from as string,
+        source: (row.source as string) || "",
+        created_at: (row.created_at as string) || "",
+        field_count: fieldCount,
+      });
+    }
+  }
+
+  // Sort each locality's snapshots
+  for (const locId in result) {
+    result[locId].sort((a, b) => b.valid_from.localeCompare(a.valid_from));
+  }
+  return result;
+}
+
+/**
+ * Get the source of the latest data for a locality in a given table.
+ * Used by data-injector to check if data is admin-protected.
+ */
+export async function getLatestSource(
+  table: LocalityTableName,
+  localityId: string
+): Promise<string | null> {
+  const db = await getDb();
+  const result = await db.execute({
+    sql: `SELECT source FROM ${table} WHERE locality_id = ? ORDER BY valid_from DESC LIMIT 1`,
+    args: [localityId],
+  });
+  return result.rows[0] ? (result.rows[0].source as string) : null;
 }

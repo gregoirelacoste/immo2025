@@ -14,7 +14,7 @@ export function getClient(): Client {
 }
 
 // Bump this when adding new migrations so cold starts re-run them
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints
@@ -301,7 +301,7 @@ async function initializeDatabase(client: Client): Promise<void> {
   const { seedAllReferenceItems } = await import("@/domains/reference/seed");
   await seedAllReferenceItems(client);
 
-  // Localities tables
+  // Localities table
   await client.executeMultiple(`
     CREATE TABLE IF NOT EXISTS localities (
       id TEXT PRIMARY KEY,
@@ -316,22 +316,193 @@ async function initializeDatabase(client: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_localities_type ON localities(type);
     CREATE INDEX IF NOT EXISTS idx_localities_parent ON localities(parent_id);
     CREATE INDEX IF NOT EXISTS idx_localities_code ON localities(code);
-
-    CREATE TABLE IF NOT EXISTS locality_data (
-      id TEXT PRIMARY KEY,
-      locality_id TEXT NOT NULL,
-      valid_from TEXT NOT NULL,
-      valid_to TEXT DEFAULT NULL,
-      data TEXT NOT NULL DEFAULT '{}',
-      created_by TEXT DEFAULT '',
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (locality_id) REFERENCES localities(id)
-    );
-    CREATE INDEX IF NOT EXISTS idx_locality_data_locality ON locality_data(locality_id);
-    CREATE INDEX IF NOT EXISTS idx_locality_data_valid ON locality_data(valid_from, valid_to);
-    CREATE INDEX IF NOT EXISTS idx_locality_data_lookup ON locality_data(locality_id, valid_from DESC);
     CREATE INDEX IF NOT EXISTS idx_localities_name ON localities(name COLLATE NOCASE);
   `);
+
+  // Thematic locality data tables (replace old locality_data JSON blob)
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS locality_prices (
+      locality_id TEXT NOT NULL,
+      valid_from TEXT NOT NULL,
+      avg_purchase_price_per_m2 REAL DEFAULT NULL,
+      median_purchase_price_per_m2 REAL DEFAULT NULL,
+      transaction_count INTEGER DEFAULT NULL,
+      source TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (locality_id, valid_from),
+      FOREIGN KEY (locality_id) REFERENCES localities(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_lp_price ON locality_prices(avg_purchase_price_per_m2);
+    CREATE INDEX IF NOT EXISTS idx_lp_median ON locality_prices(median_purchase_price_per_m2);
+
+    CREATE TABLE IF NOT EXISTS locality_rental (
+      locality_id TEXT NOT NULL,
+      valid_from TEXT NOT NULL,
+      avg_rent_per_m2 REAL DEFAULT NULL,
+      avg_rent_furnished_per_m2 REAL DEFAULT NULL,
+      vacancy_rate REAL DEFAULT NULL,
+      typical_cashflow_per_m2 REAL DEFAULT NULL,
+      rent_elasticity_alpha REAL DEFAULT NULL,
+      rent_reference_surface REAL DEFAULT NULL,
+      source TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (locality_id, valid_from),
+      FOREIGN KEY (locality_id) REFERENCES localities(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_lr_rent ON locality_rental(avg_rent_per_m2);
+    CREATE INDEX IF NOT EXISTS idx_lr_vacancy ON locality_rental(vacancy_rate);
+
+    CREATE TABLE IF NOT EXISTS locality_charges (
+      locality_id TEXT NOT NULL,
+      valid_from TEXT NOT NULL,
+      avg_condo_charges_per_m2 REAL DEFAULT NULL,
+      avg_property_tax_per_m2 REAL DEFAULT NULL,
+      source TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (locality_id, valid_from),
+      FOREIGN KEY (locality_id) REFERENCES localities(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS locality_airbnb (
+      locality_id TEXT NOT NULL,
+      valid_from TEXT NOT NULL,
+      avg_airbnb_night_price REAL DEFAULT NULL,
+      avg_airbnb_occupancy_rate REAL DEFAULT NULL,
+      source TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (locality_id, valid_from),
+      FOREIGN KEY (locality_id) REFERENCES localities(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS locality_socio (
+      locality_id TEXT NOT NULL,
+      valid_from TEXT NOT NULL,
+      population INTEGER DEFAULT NULL,
+      population_growth_pct REAL DEFAULT NULL,
+      median_income REAL DEFAULT NULL,
+      poverty_rate REAL DEFAULT NULL,
+      unemployment_rate REAL DEFAULT NULL,
+      source TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (locality_id, valid_from),
+      FOREIGN KEY (locality_id) REFERENCES localities(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_ls_population ON locality_socio(population);
+
+    CREATE TABLE IF NOT EXISTS locality_infra (
+      locality_id TEXT NOT NULL,
+      valid_from TEXT NOT NULL,
+      school_count INTEGER DEFAULT NULL,
+      university_nearby INTEGER DEFAULT NULL,
+      public_transport_score REAL DEFAULT NULL,
+      source TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (locality_id, valid_from),
+      FOREIGN KEY (locality_id) REFERENCES localities(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS locality_risks (
+      locality_id TEXT NOT NULL,
+      valid_from TEXT NOT NULL,
+      risk_level TEXT DEFAULT NULL,
+      natural_risks TEXT DEFAULT NULL,
+      source TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (locality_id, valid_from),
+      FOREIGN KEY (locality_id) REFERENCES localities(id) ON DELETE CASCADE
+    );
+  `);
+
+  // Migrate old locality_data JSON rows → thematic tables (v5 → v6)
+  try {
+    const oldRows = await client.execute("SELECT * FROM locality_data");
+    for (const row of oldRows.rows) {
+      const locId = row.locality_id as string;
+      const validFrom = row.valid_from as string;
+      const source = (row.created_by as string) || "";
+      let fields: Record<string, unknown>;
+      try { fields = JSON.parse(row.data as string); } catch { continue; }
+
+      // Prices
+      if (fields.avg_purchase_price_per_m2 != null || fields.median_purchase_price_per_m2 != null || fields.transaction_count != null) {
+        try {
+          await client.execute({
+            sql: `INSERT OR IGNORE INTO locality_prices (locality_id, valid_from, avg_purchase_price_per_m2, median_purchase_price_per_m2, transaction_count, source)
+                  VALUES (?, ?, ?, ?, ?, ?)`,
+            args: [locId, validFrom, (fields.avg_purchase_price_per_m2 as number) ?? null, (fields.median_purchase_price_per_m2 as number) ?? null, (fields.transaction_count as number) ?? null, source],
+          });
+        } catch { /* skip duplicates */ }
+      }
+      // Rental
+      if (fields.avg_rent_per_m2 != null || fields.avg_rent_furnished_per_m2 != null || fields.vacancy_rate != null || fields.typical_cashflow_per_m2 != null || fields.rent_elasticity_alpha != null) {
+        try {
+          await client.execute({
+            sql: `INSERT OR IGNORE INTO locality_rental (locality_id, valid_from, avg_rent_per_m2, avg_rent_furnished_per_m2, vacancy_rate, typical_cashflow_per_m2, rent_elasticity_alpha, rent_reference_surface, source)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            args: [locId, validFrom, (fields.avg_rent_per_m2 as number) ?? null, (fields.avg_rent_furnished_per_m2 as number) ?? null, (fields.vacancy_rate as number) ?? null, (fields.typical_cashflow_per_m2 as number) ?? null, (fields.rent_elasticity_alpha as number) ?? null, (fields.rent_reference_surface as number) ?? null, source],
+          });
+        } catch { /* skip duplicates */ }
+      }
+      // Charges
+      if (fields.avg_condo_charges_per_m2 != null || fields.avg_property_tax_per_m2 != null) {
+        try {
+          await client.execute({
+            sql: `INSERT OR IGNORE INTO locality_charges (locality_id, valid_from, avg_condo_charges_per_m2, avg_property_tax_per_m2, source)
+                  VALUES (?, ?, ?, ?, ?)`,
+            args: [locId, validFrom, (fields.avg_condo_charges_per_m2 as number) ?? null, (fields.avg_property_tax_per_m2 as number) ?? null, source],
+          });
+        } catch { /* skip duplicates */ }
+      }
+      // Airbnb
+      if (fields.avg_airbnb_night_price != null || fields.avg_airbnb_occupancy_rate != null) {
+        try {
+          await client.execute({
+            sql: `INSERT OR IGNORE INTO locality_airbnb (locality_id, valid_from, avg_airbnb_night_price, avg_airbnb_occupancy_rate, source)
+                  VALUES (?, ?, ?, ?, ?)`,
+            args: [locId, validFrom, (fields.avg_airbnb_night_price as number) ?? null, (fields.avg_airbnb_occupancy_rate as number) ?? null, source],
+          });
+        } catch { /* skip duplicates */ }
+      }
+      // Socio
+      if (fields.population != null || fields.median_income != null || fields.unemployment_rate != null || fields.poverty_rate != null) {
+        try {
+          await client.execute({
+            sql: `INSERT OR IGNORE INTO locality_socio (locality_id, valid_from, population, population_growth_pct, median_income, poverty_rate, unemployment_rate, source)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            args: [locId, validFrom, (fields.population as number) ?? null, (fields.population_growth_pct as number) ?? null, (fields.median_income as number) ?? null, (fields.poverty_rate as number) ?? null, (fields.unemployment_rate as number) ?? null, source],
+          });
+        } catch { /* skip duplicates */ }
+      }
+      // Infra
+      if (fields.school_count != null || fields.university_nearby != null || fields.public_transport_score != null) {
+        try {
+          await client.execute({
+            sql: `INSERT OR IGNORE INTO locality_infra (locality_id, valid_from, school_count, university_nearby, public_transport_score, source)
+                  VALUES (?, ?, ?, ?, ?, ?)`,
+            args: [locId, validFrom, (fields.school_count as number) ?? null, fields.university_nearby != null ? (fields.university_nearby ? 1 : 0) : null, (fields.public_transport_score as number) ?? null, source],
+          });
+        } catch { /* skip duplicates */ }
+      }
+      // Risks
+      if (fields.risk_level != null || fields.natural_risks != null) {
+        try {
+          await client.execute({
+            sql: `INSERT OR IGNORE INTO locality_risks (locality_id, valid_from, risk_level, natural_risks, source)
+                  VALUES (?, ?, ?, ?, ?)`,
+            args: [locId, validFrom, (fields.risk_level as string) ?? null, fields.natural_risks ? JSON.stringify(fields.natural_risks) : null, source],
+          });
+        } catch { /* skip duplicates */ }
+      }
+    }
+    // Drop old table after successful migration
+    await client.execute("DROP TABLE IF EXISTS locality_data");
+  } catch (e) {
+    // locality_data might not exist on fresh DBs — that's fine
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!msg.includes("no such table")) {
+      console.error("locality_data migration error:", e);
+    }
+  }
 
   // Blog tables
   await client.executeMultiple(`

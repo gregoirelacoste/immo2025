@@ -32,19 +32,97 @@ export interface Locality {
   updated_at: string;
 }
 
-export interface LocalityData {
-  id: string;
+// ─── Thematic table row types ───
+
+export interface LocalityPrices {
   locality_id: string;
-  valid_from: string; // YYYY-MM-DD
-  valid_to: string | null;
-  data: string; // JSON: LocalityDataFields
-  created_by: string;
+  valid_from: string;
+  avg_purchase_price_per_m2: number | null;
+  median_purchase_price_per_m2: number | null;
+  transaction_count: number | null;
+  source: string;
   created_at: string;
 }
 
+export interface LocalityRental {
+  locality_id: string;
+  valid_from: string;
+  avg_rent_per_m2: number | null;
+  avg_rent_furnished_per_m2: number | null;
+  vacancy_rate: number | null;
+  typical_cashflow_per_m2: number | null;
+  rent_elasticity_alpha: number | null;
+  rent_reference_surface: number | null;
+  source: string;
+  created_at: string;
+}
+
+export interface LocalityCharges {
+  locality_id: string;
+  valid_from: string;
+  avg_condo_charges_per_m2: number | null;
+  avg_property_tax_per_m2: number | null;
+  source: string;
+  created_at: string;
+}
+
+export interface LocalityAirbnb {
+  locality_id: string;
+  valid_from: string;
+  avg_airbnb_night_price: number | null;
+  avg_airbnb_occupancy_rate: number | null;
+  source: string;
+  created_at: string;
+}
+
+export interface LocalitySocio {
+  locality_id: string;
+  valid_from: string;
+  population: number | null;
+  population_growth_pct: number | null;
+  median_income: number | null;
+  poverty_rate: number | null;
+  unemployment_rate: number | null;
+  source: string;
+  created_at: string;
+}
+
+export interface LocalityInfra {
+  locality_id: string;
+  valid_from: string;
+  school_count: number | null;
+  university_nearby: number | null; // 0/1 in SQLite
+  public_transport_score: number | null;
+  source: string;
+  created_at: string;
+}
+
+export interface LocalityRisks {
+  locality_id: string;
+  valid_from: string;
+  risk_level: string | null; // "faible" | "moyen" | "élevé"
+  natural_risks: string | null; // JSON array
+  source: string;
+  created_at: string;
+}
+
+/** Names of the 7 thematic tables */
+export const LOCALITY_TABLE_NAMES = [
+  "locality_prices",
+  "locality_rental",
+  "locality_charges",
+  "locality_airbnb",
+  "locality_socio",
+  "locality_infra",
+  "locality_risks",
+] as const;
+
+export type LocalityTableName = (typeof LOCALITY_TABLE_NAMES)[number];
+
 /**
- * All metrics stored per locality snapshot.
+ * All metrics stored per locality — unified view across all thematic tables.
  * Every field is optional — fallback to parent for missing fields.
+ * This interface is unchanged for consumers (market service, scoring, UI).
  */
 export interface LocalityDataFields {
   // Prix immobilier
@@ -116,10 +194,50 @@ export const LOCALITY_DATA_FIELD_KEYS: (keyof LocalityDataFields)[] = [
   "natural_risks",
 ];
 
+/** Mapping: field key → which thematic table it belongs to */
+export const FIELD_TO_TABLE: Record<keyof LocalityDataFields, LocalityTableName> = {
+  avg_purchase_price_per_m2: "locality_prices",
+  median_purchase_price_per_m2: "locality_prices",
+  transaction_count: "locality_prices",
+  avg_rent_per_m2: "locality_rental",
+  avg_rent_furnished_per_m2: "locality_rental",
+  vacancy_rate: "locality_rental",
+  typical_cashflow_per_m2: "locality_rental",
+  rent_elasticity_alpha: "locality_rental",
+  rent_reference_surface: "locality_rental",
+  avg_condo_charges_per_m2: "locality_charges",
+  avg_property_tax_per_m2: "locality_charges",
+  avg_airbnb_night_price: "locality_airbnb",
+  avg_airbnb_occupancy_rate: "locality_airbnb",
+  population: "locality_socio",
+  population_growth_pct: "locality_socio",
+  median_income: "locality_socio",
+  poverty_rate: "locality_socio",
+  unemployment_rate: "locality_socio",
+  school_count: "locality_infra",
+  university_nearby: "locality_infra",
+  public_transport_score: "locality_infra",
+  risk_level: "locality_risks",
+  natural_risks: "locality_risks",
+};
+
 /** Resolved locality data with source tracking per field */
 export interface ResolvedLocalityData {
   locality: Locality;
   fields: LocalityDataFields;
   /** Which locality provided each field (for traceability) */
   fieldSources: Partial<Record<keyof LocalityDataFields, { localityId: string; localityName: string; localityType: LocalityType }>>;
+}
+
+/**
+ * Snapshot summary for admin UI — lightweight representation of data for a locality.
+ * Replaces the old LocalityData type (which had a JSON blob).
+ */
+export interface LocalityDataSnapshot {
+  locality_id: string;
+  table_name: LocalityTableName;
+  valid_from: string;
+  source: string;
+  created_at: string;
+  field_count: number;
 }

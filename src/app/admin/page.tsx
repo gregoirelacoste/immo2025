@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/auth-actions";
-import { getAllLocalities, getAllLocalityDataForIds } from "@/domains/locality/repository";
-import type { LocalityData } from "@/domains/locality/types";
+import { getAllLocalities, getLocalitySnapshotsBatch } from "@/domains/locality/repository";
 import Navbar from "@/components/Navbar";
 import AdminLocalitiesClient from "@/components/admin/AdminLocalitiesClient";
 
@@ -11,12 +10,7 @@ export default async function AdminPage() {
   if (!admin) redirect("/dashboard");
 
   const localities = await getAllLocalities();
-  // Single batch query instead of N+1 per-locality queries
-  const allData = await getAllLocalityDataForIds(localities.map((l) => l.id));
-  const dataMap: Record<string, LocalityData[]> = {};
-  for (const d of allData) {
-    (dataMap[d.locality_id] ??= []).push(d);
-  }
+  const dataMap = await getLocalitySnapshotsBatch(localities.map((l) => l.id));
 
   return (
     <div className="min-h-screen bg-gray-50">
