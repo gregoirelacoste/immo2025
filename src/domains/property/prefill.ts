@@ -81,7 +81,7 @@ export function applyMarketDataToPrefill(
     // property_tax: use real local data if available, otherwise estimate
     if (!prefill.property_tax) {
       if (market.avgPropertyTaxPerM2) {
-        propertyTax = Math.round(market.avgPropertyTaxPerM2 * surface / 12);
+        propertyTax = Math.round(market.avgPropertyTaxPerM2 * surface);
         prefill.property_tax = { source: "Données locales (taxe foncière)", value: propertyTax };
       } else {
         propertyTax = Math.round(monthlyRent * 1.5);
@@ -98,8 +98,8 @@ export function applyMarketDataToPrefill(
       condoCharges = Math.round(market.avgCondoChargesPerM2 * surface);
       prefill.condo_charges = { source: "Données locales (charges copro)", value: condoCharges };
     } else if (propertyType === "ancien") {
-      condoCharges = Math.round(surface * 2.5);
-      prefill.condo_charges = { source: "Estimation (2.5 €/m²)", value: condoCharges };
+      condoCharges = Math.round(surface * 30);
+      prefill.condo_charges = { source: "Estimation (30 €/m²/an)", value: condoCharges };
     }
   } else {
     condoCharges = Number(prefill.condo_charges.value) || 0;

@@ -26,8 +26,8 @@ export default function ClassicRentalSection({ form, onChange, calcs, prefillHin
           {prefillHint("monthly_rent")}
         </div>
         <div>
-          <label className={labelClass}>Charges copro / mois<FieldTooltip text="Charges de copropriété mensuelles (entretien, gardien, ascenseur...). Demandez le PV d'AG pour les connaître." /></label>
-          <input type="number" inputMode="numeric" value={form.condo_charges || ""} onChange={(e) => onChange("condo_charges", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="100" />
+          <label className={labelClass}>Charges copro / an<FieldTooltip text="Charges de copropriété annuelles (entretien, gardien, ascenseur...). Demandez le PV d'AG pour les connaître." /></label>
+          <input type="number" inputMode="numeric" value={form.condo_charges || ""} onChange={(e) => onChange("condo_charges", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="1200" />
           {prefillHint("condo_charges")}
         </div>
         <div>

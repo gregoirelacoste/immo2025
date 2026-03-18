@@ -356,7 +356,7 @@ export default function SimulationEditor({ property, simulation, onUpdated, read
               <div className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-b-0">
                 <span className="text-sm text-gray-500">Charges de copro</span>
                 <span className="text-sm font-medium text-gray-700 font-[family-name:var(--font-mono)]">
-                  {formatCurrency(property.condo_charges)}/mois
+                  {formatCurrency(property.condo_charges)}/an
                 </span>
               </div>
             )}
