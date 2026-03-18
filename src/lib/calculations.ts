@@ -220,10 +220,17 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
  *  - monthly_rent uses simulation override if > 0, otherwise falls back to property value.
  */
 export function calculateSimulation(property: Property, simulation: Simulation): PropertyCalculations {
+  // Always recompute loan_amount from property price + notary + renovation - contribution
+  // to ensure consistency (stored loan_amount may be stale).
+  const notary = simulation.notary_fees > 0
+    ? simulation.notary_fees
+    : calculateNotaryFees(property.purchase_price, property.property_type);
+  const computedLoan = Math.max(0, property.purchase_price + notary + simulation.renovation_cost - simulation.personal_contribution);
+
   const merged: Property = {
     ...property,
-    // Loan params — always from simulation
-    loan_amount: simulation.loan_amount,
+    // Loan params — always from simulation, loan_amount recomputed
+    loan_amount: computedLoan,
     interest_rate: simulation.interest_rate,
     loan_duration: simulation.loan_duration,
     personal_contribution: simulation.personal_contribution,
