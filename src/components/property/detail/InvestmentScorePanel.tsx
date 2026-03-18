@@ -5,7 +5,14 @@ interface ScoreBreakdown {
   netYieldScore: number;
   cashflowScore: number;
   priceVsMarketScore: number;
+  rentVsMarketScore: number;
   financialTotal: number;
+  populationScore: number;
+  incomeScore: number;
+  employmentScore: number;
+  infrastructureScore: number;
+  riskScore: number;
+  localityTotal: number;
   visitScore: number;
   terrainTotal: number;
   total: number;
@@ -16,6 +23,7 @@ interface Props {
   breakdown: ScoreBreakdown | null;
   status: string;
   error?: string;
+  cityName?: string;
   onRefresh?: () => void;
   refreshing?: boolean;
 }
@@ -35,13 +43,22 @@ function getScoreBg(score: number): string {
 }
 
 const FINANCIAL_CRITERIA = [
-  { key: "netYieldScore" as const, label: "Rendement net", max: 25 },
-  { key: "cashflowScore" as const, label: "Cash-flow", max: 25 },
-  { key: "priceVsMarketScore" as const, label: "Prix vs march\u00e9", max: 20 },
+  { key: "netYieldScore" as const, label: "Rendement net", max: 15 },
+  { key: "cashflowScore" as const, label: "Cash-flow", max: 15 },
+  { key: "priceVsMarketScore" as const, label: "Prix vs marché", max: 10 },
+  { key: "rentVsMarketScore" as const, label: "Loyer vs marché", max: 10 },
+];
+
+const LOCALITY_CRITERIA = [
+  { key: "populationScore" as const, label: "Démographie", max: 7 },
+  { key: "incomeScore" as const, label: "Revenus", max: 7 },
+  { key: "employmentScore" as const, label: "Emploi", max: 7 },
+  { key: "infrastructureScore" as const, label: "Infrastructures", max: 7 },
+  { key: "riskScore" as const, label: "Risques", max: 7 },
 ];
 
 const TERRAIN_CRITERIA = [
-  { key: "visitScore" as const, label: "Note de visite", max: 30 },
+  { key: "visitScore" as const, label: "Note de visite", max: 15 },
 ];
 
 function CriteriaBar({ label, value, max }: { label: string; value: number; max: number }) {
@@ -50,7 +67,7 @@ function CriteriaBar({ label, value, max }: { label: string; value: number; max:
     <div>
       <div className="flex justify-between text-xs text-gray-600 mb-0.5">
         <span>{label}</span>
-        <span>{value}/{max}</span>
+        <span>{Math.round(value * 10) / 10}/{max}</span>
       </div>
       <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
         <div
@@ -68,12 +85,12 @@ function SectionTotal({ label, value, max }: { label: string; value: number; max
   return (
     <div className="flex justify-between text-xs font-semibold text-gray-700 mt-1 pt-1 border-t border-tiili-border">
       <span>{label}</span>
-      <span>{value}/{max}</span>
+      <span>{Math.round(value)}/{max}</span>
     </div>
   );
 }
 
-export default function InvestmentScorePanel({ score, breakdown, status, error, onRefresh, refreshing }: Props) {
+export default function InvestmentScorePanel({ score, breakdown, status, error, cityName, onRefresh, refreshing }: Props) {
   if (status === "running") {
     return (
       <section className="bg-gray-50 rounded-xl border border-tiili-border p-4 md:p-6">
@@ -108,7 +125,7 @@ export default function InvestmentScorePanel({ score, breakdown, status, error, 
 
   const pct = Math.round((score / 100) * 283);
   const label = getScoreLabel(score);
-  const hasVisit = breakdown.visitScore !== 15;
+  const hasVisit = breakdown.visitScore !== 8;
 
   return (
     <section className={`bg-gradient-to-br ${getScoreBg(score)} rounded-xl border p-4 md:p-6`}>
@@ -143,14 +160,24 @@ export default function InvestmentScorePanel({ score, breakdown, status, error, 
           </div>
         </div>
 
-        {/* Breakdown — 2 columns */}
-        <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Breakdown — 3 columns */}
+        <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Financier</p>
             {FINANCIAL_CRITERIA.map(({ key, label: l, max }) => (
               <CriteriaBar key={key} label={l} value={breakdown[key] ?? 0} max={max} />
             ))}
-            <SectionTotal label="Sous-total" value={breakdown.financialTotal ?? 0} max={70} />
+            <SectionTotal label="Sous-total" value={breakdown.financialTotal ?? 0} max={50} />
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Localité
+              {cityName && <span className="font-normal normal-case ml-1">({cityName})</span>}
+            </p>
+            {LOCALITY_CRITERIA.map(({ key, label: l, max }) => (
+              <CriteriaBar key={key} label={l} value={breakdown[key] ?? 0} max={max} />
+            ))}
+            <SectionTotal label="Sous-total" value={breakdown.localityTotal ?? 0} max={35} />
           </div>
           <div className="space-y-2">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -160,7 +187,7 @@ export default function InvestmentScorePanel({ score, breakdown, status, error, 
             {TERRAIN_CRITERIA.map(({ key, label: l, max }) => (
               <CriteriaBar key={key} label={l} value={breakdown[key] ?? 0} max={max} />
             ))}
-            <SectionTotal label="Sous-total" value={breakdown.terrainTotal ?? 0} max={30} />
+            <SectionTotal label="Sous-total" value={breakdown.terrainTotal ?? 0} max={15} />
           </div>
         </div>
       </div>

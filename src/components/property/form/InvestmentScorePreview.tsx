@@ -7,24 +7,18 @@ interface Props {
 
 /** Simplified client-side score preview for the form (no market/socio data) */
 export default function InvestmentScorePreview({ calcs }: Props) {
-  // Net yield: 0-20
-  let netYieldScore = 0;
-  if (calcs.net_yield >= 8) netYieldScore = 20;
-  else if (calcs.net_yield >= 6) netYieldScore = 16;
-  else if (calcs.net_yield >= 4) netYieldScore = 12;
-  else if (calcs.net_yield >= 2) netYieldScore = 7;
+  // Net yield: 0-12 (base only, no local context)
+  const netYieldScore = Math.min(12, Math.max(0, ((calcs.net_yield - 1) / 7) * 12));
 
-  // Cashflow: 0-15
-  let cashflowScore = 0;
-  if (calcs.monthly_cashflow >= 200) cashflowScore = 15;
-  else if (calcs.monthly_cashflow >= 0) cashflowScore = 10;
-  else if (calcs.monthly_cashflow >= -100) cashflowScore = 5;
+  // Cashflow: 0-8 (absolute only)
+  const cashflowScore = Math.min(8, Math.max(0, ((calcs.monthly_cashflow + 200) / 500) * 8));
 
   // No market/socio data in form → neutral scores
-  const neutralFinancial = 8 + 5; // priceVsMarket + rentVsMarket
-  const neutralSocio = 5 + 5 + 5 + 5; // demo + income + employment + attractiveness
+  const neutralFinancial = 5 + 5;  // priceVsMarket + rentVsMarket
+  const neutralLocality = 3.5 + 3.5 + 3.5 + 3.5 + 5; // population + income + employment + infra + risk
+  const neutralVisit = 8; // visit neutral
 
-  const total = netYieldScore + cashflowScore + neutralFinancial + neutralSocio;
+  const total = Math.round(netYieldScore + cashflowScore + neutralFinancial + neutralLocality + neutralVisit);
   const label = getScoreLabel(total);
   const pct = Math.round((total / 100) * 283);
 
@@ -57,7 +51,7 @@ export default function InvestmentScorePreview({ calcs }: Props) {
         </div>
         <div className="text-sm text-gray-600">
           <p className="font-semibold text-gray-800">{label}</p>
-          <p className="text-xs text-gray-400 mt-1">Score partiel — les données marché et socio-économiques seront ajoutées après sauvegarde</p>
+          <p className="text-xs text-gray-400 mt-1">Score partiel — les données marché, localité et socio-économiques seront ajoutées après sauvegarde</p>
         </div>
       </div>
     </section>
