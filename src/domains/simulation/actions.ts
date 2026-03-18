@@ -6,7 +6,6 @@ import {
   updateSimulation,
   deleteSimulation,
   getSimulationById,
-  getSimulationsForProperty,
   countSimulationsForProperty,
 } from "./repository";
 import { SimulationFormData } from "./types";
@@ -14,6 +13,7 @@ import { getOptionalUserId } from "@/lib/auth-actions";
 import { getPropertyById } from "@/domains/property/repository";
 import { isAdmin } from "@/lib/auth-actions";
 import { Property } from "@/domains/property/types";
+import { enrichPropertyQuiet } from "@/domains/enrich/actions";
 
 /** Validate simulation data — returns error message or null */
 function validateSimulationData(data: Partial<SimulationFormData>): string | null {
@@ -72,6 +72,10 @@ export async function updateSimulationAction(
     if (validationError) return { success: false, error: validationError };
 
     await updateSimulation(simulationId, existing.user_id, data);
+
+    // Re-score: the updated simulation may be the active one used for scoring
+    enrichPropertyQuiet(existing.property_id).catch(() => {});
+
     revalidatePath(`/property/${existing.property_id}`);
     return { success: true };
   } catch (e) {

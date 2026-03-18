@@ -82,11 +82,16 @@ function parseJson<T>(json: string, fallback: T): T {
 export default function PropertyDetail({ property, isOwner = false, photos = [], simulations = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // Use first simulation's data for KPIs if available, otherwise fall back to property data
+  // Use active (favorite) simulation for KPIs, fall back to first simulation, then property data
+  const activeSim = useMemo(() => {
+    if (!property.active_simulation_id || property.active_simulation_id === "__system__") return null;
+    const found = simulations.find((s) => s.id === property.active_simulation_id);
+    return found ?? (simulations.length > 0 ? simulations[0] : null);
+  }, [property.active_simulation_id, simulations]);
   const firstSim = simulations.length > 0 ? simulations[0] : null;
   const calcs = useMemo(
-    () => firstSim ? calculateSimulation(property, firstSim) : calculateAll(property),
-    [property, firstSim]
+    () => activeSim ? calculateSimulation(property, activeSim) : calculateAll(property),
+    [property, activeSim]
   );
   const [refreshing, setRefreshing] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);

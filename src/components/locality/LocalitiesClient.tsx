@@ -189,7 +189,7 @@ IMPORTANT :
 }
 
 function AddLocalityForm({
-  localities,
+  localities: _localities,
   onSuccess,
   onError,
 }: {
@@ -203,9 +203,6 @@ function AddLocalityForm({
   const [copied, setCopied] = useState<"example" | "prompt" | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout>>(null);
   useEffect(() => () => { if (copiedTimer.current) clearTimeout(copiedTimer.current); }, []);
-
-  // Suppress unused var warning — localities is available for future parent selection
-  void localities;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

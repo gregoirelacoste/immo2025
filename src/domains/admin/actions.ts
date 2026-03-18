@@ -10,7 +10,7 @@ import {
   upsertLocalityData,
   deleteLocalityDataRow,
 } from "@/domains/locality/repository";
-import type { Locality, LocalityDataSnapshot, LocalityTableName, LOCALITY_DATA_FIELD_KEYS, LocalityDataFields } from "@/domains/locality/types";
+import type { Locality, LocalityDataSnapshot, LocalityTableName, LocalityDataFields } from "@/domains/locality/types";
 import {
   createItem,
   updateItem,

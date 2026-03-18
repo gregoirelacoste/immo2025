@@ -79,6 +79,17 @@ export async function saveProperty(
           }
         } catch (e) { console.error("Simulation sync failed (non-fatal):", e); }
       }
+
+      // Re-enrich only if address/city/postal_code changed (triggers geocoding + market data refresh)
+      if (oldProperty) {
+        const locationChanged =
+          oldProperty.city !== payload.city ||
+          oldProperty.address !== payload.address ||
+          oldProperty.postal_code !== payload.postal_code;
+        if (locationChanged) {
+          enrichPropertyQuiet(existingId).catch(() => {});
+        }
+      }
     } else {
       const userId = await getOptionalUserId();
       const newId = await createProperty({ ...payload, user_id: userId });
@@ -117,11 +128,6 @@ export async function saveProperty(
     }
 
     revalidatePath("/dashboard");
-
-    // Re-enrich after save (address/city may have changed)
-    const propId = existingId || undefined;
-    if (propId) enrichPropertyQuiet(propId).catch(() => {});
-
     return { success: true };
   } catch (e) {
     return { success: false, error: (e as Error).message };
@@ -364,6 +370,8 @@ export async function setActiveSimulationAction(
     } else {
       await setActiveSimulation(propertyId, userId, simulationId);
     }
+    // Re-score with the new active simulation
+    enrichPropertyQuiet(propertyId).catch(() => {});
     revalidatePath(`/property/${propertyId}`);
     revalidatePath("/dashboard");
     return { success: true };

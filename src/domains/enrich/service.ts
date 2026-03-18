@@ -4,7 +4,7 @@ import { calculateAll, calculateSimulation } from "@/lib/calculations";
 import { computeInvestmentScore } from "./scoring";
 import { EnrichmentResult } from "./types";
 import { Property } from "@/domains/property/types";
-import { getFirstSimulationForProperty } from "@/domains/simulation/repository";
+import { getActiveSimulationForProperty } from "@/domains/simulation/repository";
 import { SocioEconomicData } from "./socioeconomic-types";
 import { resolveLocalityData } from "@/domains/locality/resolver";
 
@@ -50,7 +50,7 @@ export async function runEnrichmentPipeline(
   const now = new Date().toISOString();
 
   // Steps 1-3 run in parallel (all fail-safe)
-  const [geoResult, marketResult, socioResult, firstSim] = await Promise.all([
+  const [geoResult, marketResult, socioResult, activeSim] = await Promise.all([
     // Step 1: Geocoding
     (async () => {
       try {
@@ -73,8 +73,8 @@ export async function runEnrichmentPipeline(
       } catch (e) { console.warn(`Enrichment socio data failed for "${property.city}":`, e); }
       return null;
     })(),
-    // Step 4: First simulation (needed for score)
-    getFirstSimulationForProperty(property.id),
+    // Step 4: Active (favorite) simulation (needed for score)
+    getActiveSimulationForProperty(property),
   ]);
 
   const latitude = geoResult?.latitude ?? null;
@@ -82,7 +82,7 @@ export async function runEnrichmentPipeline(
   const marketData = marketResult;
   const marketDataJson = marketData ? JSON.stringify(marketData) : "";
   const socioDataJson = socioResult ? JSON.stringify(socioResult) : "";
-  const calcs = firstSim ? calculateSimulation(property, firstSim) : calculateAll(property);
+  const calcs = activeSim ? calculateSimulation(property, activeSim) : calculateAll(property);
   const breakdown = computeInvestmentScore(
     {
       purchase_price: property.purchase_price,

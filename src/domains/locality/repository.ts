@@ -272,35 +272,35 @@ function assembleFields(
   const f: LocalityDataFields = {};
 
   if (prices) {
-    f.avg_purchase_price_per_m2 = prices.avg_purchase_price_per_m2 as number ?? null;
-    f.median_purchase_price_per_m2 = prices.median_purchase_price_per_m2 as number ?? null;
-    f.transaction_count = prices.transaction_count as number ?? null;
+    f.avg_purchase_price_per_m2 = (prices.avg_purchase_price_per_m2 as number | null) ?? null;
+    f.median_purchase_price_per_m2 = (prices.median_purchase_price_per_m2 as number | null) ?? null;
+    f.transaction_count = (prices.transaction_count as number | null) ?? null;
   }
   if (rental) {
-    f.avg_rent_per_m2 = rental.avg_rent_per_m2 as number ?? null;
-    f.avg_rent_furnished_per_m2 = rental.avg_rent_furnished_per_m2 as number ?? null;
-    f.vacancy_rate = rental.vacancy_rate as number ?? null;
-    f.typical_cashflow_per_m2 = rental.typical_cashflow_per_m2 as number ?? null;
-    f.rent_elasticity_alpha = rental.rent_elasticity_alpha as number ?? null;
-    f.rent_reference_surface = rental.rent_reference_surface as number ?? null;
+    f.avg_rent_per_m2 = (rental.avg_rent_per_m2 as number | null) ?? null;
+    f.avg_rent_furnished_per_m2 = (rental.avg_rent_furnished_per_m2 as number | null) ?? null;
+    f.vacancy_rate = (rental.vacancy_rate as number | null) ?? null;
+    f.typical_cashflow_per_m2 = (rental.typical_cashflow_per_m2 as number | null) ?? null;
+    f.rent_elasticity_alpha = (rental.rent_elasticity_alpha as number | null) ?? null;
+    f.rent_reference_surface = (rental.rent_reference_surface as number | null) ?? null;
   }
   if (charges) {
-    f.avg_condo_charges_per_m2 = charges.avg_condo_charges_per_m2 as number ?? null;
-    f.avg_property_tax_per_m2 = charges.avg_property_tax_per_m2 as number ?? null;
+    f.avg_condo_charges_per_m2 = (charges.avg_condo_charges_per_m2 as number | null) ?? null;
+    f.avg_property_tax_per_m2 = (charges.avg_property_tax_per_m2 as number | null) ?? null;
   }
   if (airbnb) {
-    f.avg_airbnb_night_price = airbnb.avg_airbnb_night_price as number ?? null;
-    f.avg_airbnb_occupancy_rate = airbnb.avg_airbnb_occupancy_rate as number ?? null;
+    f.avg_airbnb_night_price = (airbnb.avg_airbnb_night_price as number | null) ?? null;
+    f.avg_airbnb_occupancy_rate = (airbnb.avg_airbnb_occupancy_rate as number | null) ?? null;
   }
   if (socio) {
-    f.population = socio.population as number ?? null;
-    f.population_growth_pct = socio.population_growth_pct as number ?? null;
-    f.median_income = socio.median_income as number ?? null;
-    f.poverty_rate = socio.poverty_rate as number ?? null;
-    f.unemployment_rate = socio.unemployment_rate as number ?? null;
+    f.population = (socio.population as number | null) ?? null;
+    f.population_growth_pct = (socio.population_growth_pct as number | null) ?? null;
+    f.median_income = (socio.median_income as number | null) ?? null;
+    f.poverty_rate = (socio.poverty_rate as number | null) ?? null;
+    f.unemployment_rate = (socio.unemployment_rate as number | null) ?? null;
   }
   if (infra) {
-    f.school_count = infra.school_count as number ?? null;
+    f.school_count = (infra.school_count as number | null) ?? null;
     f.university_nearby = infra.university_nearby != null ? Boolean(infra.university_nearby) : null;
     f.public_transport_score = infra.public_transport_score as number ?? null;
   }
@@ -382,55 +382,7 @@ export async function deleteLocalityDataRow(
   });
 }
 
-/**
- * Delete all data for a locality across all thematic tables for a given date.
- */
-export async function deleteLocalityDataForDate(
-  localityId: string,
-  validFrom: string
-): Promise<void> {
-  for (const table of LOCALITY_TABLE_NAMES) {
-    await deleteLocalityDataRow(table, localityId, validFrom);
-  }
-}
-
 // ─── Admin: Snapshots listing ───
-
-/**
- * Get all data snapshots for a locality across all thematic tables (admin UI).
- * Returns a list of snapshot summaries grouped by (table, valid_from).
- */
-export async function getLocalitySnapshots(localityId: string): Promise<LocalityDataSnapshot[]> {
-  const db = await getDb();
-  const snapshots: LocalityDataSnapshot[] = [];
-
-  for (const table of LOCALITY_TABLE_NAMES) {
-    const result = await db.execute({
-      sql: `SELECT * FROM ${table} WHERE locality_id = ? ORDER BY valid_from DESC`,
-      args: [localityId],
-    });
-    for (const row of result.rows) {
-      // Count non-null data fields (exclude locality_id, valid_from, source, created_at)
-      const metaCols = new Set(["locality_id", "valid_from", "source", "created_at"]);
-      let fieldCount = 0;
-      for (const [key, val] of Object.entries(row)) {
-        if (!metaCols.has(key) && val != null) fieldCount++;
-      }
-      snapshots.push({
-        locality_id: row.locality_id as string,
-        table_name: table,
-        valid_from: row.valid_from as string,
-        source: (row.source as string) || "",
-        created_at: (row.created_at as string) || "",
-        field_count: fieldCount,
-      });
-    }
-  }
-
-  // Sort by valid_from DESC
-  snapshots.sort((a, b) => b.valid_from.localeCompare(a.valid_from));
-  return snapshots;
-}
 
 /**
  * Batch-fetch all snapshots for multiple localities (admin page).
