@@ -39,12 +39,14 @@ const EDITABLE_FIELDS: FieldConfig[] = [
   { field: "gli_rate", label: "GLI (loyers impayés)", step: 0.5, unit: "%", decimals: 1 },
 ];
 
-/** Compute loan_amount from property price, contribution, renovation, notary, loan_fees */
+/** Compute loan_amount from property price, contribution, renovation, notary.
+ *  loan_fees is a separate cost (included in total_project_cost but NOT in the loan itself).
+ */
 function computeLoanAmount(property: Property, form: SimulationFormData): number {
   const notary = form.notary_fees > 0
     ? form.notary_fees
     : calculateNotaryFees(property.purchase_price, property.property_type);
-  return Math.max(0, property.purchase_price + notary + form.renovation_cost + (form.loan_fees || 0) - form.personal_contribution);
+  return Math.max(0, property.purchase_price + notary + form.renovation_cost - form.personal_contribution);
 }
 
 function simFormFromSimulation(sim: Simulation): SimulationFormData {

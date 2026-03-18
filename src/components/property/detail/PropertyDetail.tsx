@@ -125,6 +125,11 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
   const rawTab = searchParams.get("tab") as TabId;
   const activeTab = VALID_TABS.includes(rawTab) ? rawTab : "bien";
 
+  // Clear stale live sim when leaving the simulation tab
+  useEffect(() => {
+    if (activeTab !== "simulation") setLiveSimFromEditor(null);
+  }, [activeTab]);
+
   const marketData = useMemo(() => parseJson<MarketData | null>(property.market_data, null), [property.market_data]);
   const scoreBreakdown = useMemo(() => parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null), [property.score_breakdown]);
   const images: string[] = parseJson(property.image_urls, []);
