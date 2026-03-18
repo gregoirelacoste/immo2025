@@ -11,7 +11,7 @@ interface Props {
   isFavorite?: boolean;
   onSelect: () => void;
   onSetFavorite?: () => void;
-  onDuplicate: () => void;
+  onDuplicate?: () => void;
   onDelete?: () => void;
   canDelete: boolean;
   isSystem?: boolean;
@@ -73,7 +73,7 @@ export default function SimulationCard({
               </svg>
             </button>
           )}
-          {!isSystem && (
+          {!isSystem && onDuplicate && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
@@ -109,7 +109,13 @@ export default function SimulationCard({
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+        <div className="text-center">
+          <p className="text-lg font-bold text-gray-600 font-[family-name:var(--font-mono)]">
+            {calcs.gross_yield.toFixed(2)}%
+          </p>
+          <p className="text-[10px] text-gray-500 font-medium">Renta brute</p>
+        </div>
         <div className="text-center">
           <p className={`text-lg font-bold font-[family-name:var(--font-mono)] ${
             calcs.net_yield >= 6 ? "text-green-600" : calcs.net_yield >= 4 ? "text-blue-600" : calcs.net_yield >= 2 ? "text-amber-600" : "text-red-600"

@@ -257,7 +257,13 @@ export default function SimulationEditor({ property, simulation, onUpdated, read
       )}
 
       {/* Live KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+        <div className="p-3 bg-tiili-surface rounded-xl text-center">
+          <p className="text-xl font-extrabold text-gray-600 font-[family-name:var(--font-mono)]">
+            {calcs.gross_yield.toFixed(2)}%
+          </p>
+          <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Renta brute</p>
+        </div>
         <div className="p-3 bg-tiili-surface rounded-xl text-center">
           <p className={`text-xl font-extrabold font-[family-name:var(--font-mono)] ${
             calcs.net_yield >= 6 ? "text-green-600" : calcs.net_yield >= 4 ? "text-blue-600" : calcs.net_yield >= 2 ? "text-amber-600" : "text-red-600"

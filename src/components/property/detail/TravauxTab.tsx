@@ -5,14 +5,16 @@ import { Property } from "@/domains/property/types";
 import { calculateTravaux, parseTravauxRatings, parseTravauxOverrides } from "@/domains/property/travaux-calculator";
 import { TRAVAUX_POSTES, TRAVAUX_CATEGORIES, RATING_FACTORS, type TravauxPoste } from "@/domains/property/travaux-registry";
 import { updatePropertyField } from "@/domains/property/actions";
+import { syncFieldToSimulations } from "@/domains/simulation/actions";
 import { formatCurrency } from "@/lib/calculations";
 import StarRating from "@/components/ui/StarRating";
 
 interface Props {
   property: Property;
+  isOwner?: boolean;
 }
 
-export default function TravauxTab({ property }: Props) {
+export default function TravauxTab({ property, isOwner = false }: Props) {
   const [isPending, startTransition] = useTransition();
 
   // Local state for optimistic updates
@@ -32,13 +34,14 @@ export default function TravauxTab({ property }: Props) {
   const hasAnyRating = Object.keys(localRatings).length > 0;
   const hasDpe = !!property.dpe_rating;
 
-  // Persist ratings + renovation_cost to DB in real-time
+  // Persist ratings + renovation_cost to DB and sync to all simulations
   const persistRatings = useCallback(
     (newRatings: Record<string, number>) => {
       const newSummary = calculateTravaux(property.surface, JSON.stringify(newRatings), JSON.stringify(localOverrides));
       startTransition(async () => {
         await updatePropertyField(property.id, "travaux_ratings", JSON.stringify(newRatings), "Estimation travaux", "estimated");
         await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
+        await syncFieldToSimulations(property.id, "renovation_cost", newSummary.totalRenovationCost);
       });
     },
     [property.id, property.surface, localOverrides]
@@ -50,6 +53,7 @@ export default function TravauxTab({ property }: Props) {
       startTransition(async () => {
         await updatePropertyField(property.id, "travaux_overrides", JSON.stringify(newOverrides), "Estimation travaux", "declared");
         await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
+        await syncFieldToSimulations(property.id, "renovation_cost", newSummary.totalRenovationCost);
       });
     },
     [property.id, property.surface, localRatings]
@@ -168,7 +172,8 @@ export default function TravauxTab({ property }: Props) {
                         <div className="flex-1" onClick={(e) => e.stopPropagation()}>
                           <StarRating
                             value={item.rating}
-                            onChange={(v) => handleRatingChange(item.key, v)}
+                            onChange={isOwner ? (v) => handleRatingChange(item.key, v) : undefined}
+                            readonly={!isOwner}
                             size="sm"
                           />
                         </div>
@@ -209,18 +214,20 @@ export default function TravauxTab({ property }: Props) {
                           {poste.hint && (
                             <p className="text-xs text-gray-400 italic">{poste.hint}</p>
                           )}
-                          <div className="flex items-center gap-2 mt-1">
-                            <label className="text-xs text-gray-500">Montant personnalisé :</label>
-                            <input
-                              type="number"
-                              inputMode="numeric"
-                              placeholder="—"
-                              value={item.overrideCost ?? ""}
-                              onChange={(e) => handleOverrideChange(item.key, e.target.value)}
-                              className="w-24 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-400"
-                            />
-                            <span className="text-xs text-gray-400">€</span>
-                          </div>
+                          {isOwner && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <label className="text-xs text-gray-500">Montant personnalisé :</label>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                placeholder="—"
+                                value={item.overrideCost ?? ""}
+                                onChange={(e) => handleOverrideChange(item.key, e.target.value)}
+                                className="w-24 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-400"
+                              />
+                              <span className="text-xs text-gray-400">€</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

@@ -13,9 +13,10 @@ import type { MarketData } from "@/domains/market/types";
 interface Props {
   property: Property;
   marketData: MarketData | null;
+  isOwner?: boolean;
 }
 
-export default function EquipementsTab({ property, marketData }: Props) {
+export default function EquipementsTab({ property, marketData, isOwner = false }: Props) {
   const [isPending, startTransition] = useTransition();
 
   // Local state for optimistic toggles
@@ -132,7 +133,8 @@ export default function EquipementsTab({ property, marketData }: Props) {
                       )}
                       <ToggleSwitch
                         checked={item.present}
-                        onChange={(checked) => handleToggle(item.key, checked)}
+                        onChange={isOwner ? (checked) => handleToggle(item.key, checked) : undefined}
+                        disabled={!isOwner}
                         label={item.label}
                       />
                     </div>

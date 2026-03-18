@@ -1,6 +1,6 @@
 import { getMarketData } from "@/domains/market/service";
 import { forwardGeocode } from "@/domains/collect/geocoding";
-import { calculateAll, calculateSimulation } from "@/lib/calculations";
+import { calculateAll, calculateSimulation, calculateExitSimulation } from "@/lib/calculations";
 import { computeInvestmentScore } from "./scoring";
 import { EnrichmentResult } from "./types";
 import { Property } from "@/domains/property/types";
@@ -83,6 +83,7 @@ export async function runEnrichmentPipeline(
   const marketDataJson = marketData ? JSON.stringify(marketData) : "";
   const socioDataJson = socioResult ? JSON.stringify(socioResult) : "";
   const calcs = activeSim ? calculateSimulation(property, activeSim) : calculateAll(property);
+  const exitSim = activeSim ? calculateExitSimulation(property, activeSim, calcs) : null;
   const breakdown = computeInvestmentScore(
     {
       purchase_price: property.purchase_price,
@@ -91,7 +92,9 @@ export async function runEnrichmentPipeline(
     },
     calcs,
     marketData,
-    socioResult
+    socioResult,
+    undefined,
+    exitSim
   );
 
   return {

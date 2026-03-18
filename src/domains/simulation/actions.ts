@@ -202,6 +202,38 @@ export async function createDefaultSimulationAction(
   }
 }
 
+/** Sync a single property field to all user simulations + recalculate loan_amount */
+export async function syncFieldToSimulations(
+  propertyId: string,
+  field: string,
+  value: number
+): Promise<void> {
+  const userId = await getOptionalUserId();
+  const property = await getPropertyById(propertyId, userId ?? undefined);
+  if (!property) return;
+
+  const simulations = await getSimulationsForProperty(propertyId);
+  if (simulations.length === 0) return;
+
+  const { calculateNotaryFees } = await import("@/lib/calculations");
+
+  // Use updated value for the field in loan calculation
+  const updatedProperty = { ...property, [field]: value };
+  const notaryFees = updatedProperty.notary_fees > 0
+    ? updatedProperty.notary_fees
+    : calculateNotaryFees(updatedProperty.purchase_price, updatedProperty.property_type);
+  const loanAmount = Math.max(0, updatedProperty.purchase_price + notaryFees - updatedProperty.personal_contribution);
+
+  for (const sim of simulations) {
+    await updateSimulation(sim.id, sim.user_id, {
+      [field]: value,
+      loan_amount: loanAmount,
+    });
+  }
+
+  revalidatePath(`/property/${propertyId}`);
+}
+
 /** Resync all user simulations with current property data (loan, rent, charges, etc.) */
 export async function resyncSimulationsAction(
   propertyId: string

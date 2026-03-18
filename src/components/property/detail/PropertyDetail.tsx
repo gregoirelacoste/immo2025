@@ -4,10 +4,9 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
-import { calculateSimulation, calculateAll, formatCurrency } from "@/lib/calculations";
+import { calculateSimulation, calculateAll, calculateNotaryFees, formatCurrency } from "@/lib/calculations";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
-import { resyncSimulationsAction } from "@/domains/simulation/actions";
 import type { MarketData } from "@/domains/market/types";
 import type { InvestmentScoreBreakdown } from "@/domains/enrich/types";
 import { getGrade } from "@/lib/grade";
@@ -20,8 +19,6 @@ import StickyHeader from "./StickyHeader";
 import SimulationTab from "./SimulationTab";
 import TravauxTab from "./TravauxTab";
 import EquipementsTab from "./EquipementsTab";
-import CompletionBadge from "./CompletionBadge";
-import { getCompletionSummary } from "@/domains/property/completion";
 import type { Photo } from "@/domains/photo/types";
 import type { Simulation } from "@/domains/simulation/types";
 import PhotoGallery from "./PhotoGallery";
@@ -95,7 +92,6 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
     [property, activeSim]
   );
   const [refreshing, setRefreshing] = useState(false);
-  const [resyncing, setResyncing] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
   const [heroHidden, setHeroHidden] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
@@ -120,8 +116,6 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
   const scoreBreakdown = useMemo(() => parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null), [property.score_breakdown]);
   const images: string[] = parseJson(property.image_urls, []);
 
-  const completionSummary = useMemo(() => getCompletionSummary(property), [property]);
-
   const pricePerM2 = property.surface > 0 ? property.purchase_price / property.surface : 0;
 
   async function handleDelete() {
@@ -141,13 +135,6 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
     router.refresh();
   }
 
-  async function handleResyncSimulations() {
-    setResyncing(true);
-    await resyncSimulationsAction(property.id);
-    setResyncing(false);
-    router.refresh();
-  }
-
   const grade = getGrade(property.investment_score);
 
   return (
@@ -161,7 +148,9 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                 <div>
                   <div className="flex items-center gap-3 mb-1">
                     <h2 className="text-2xl font-extrabold text-[#1a1a2e] tracking-tight">{property.city}</h2>
-                    <StatusSelector propertyId={property.id} currentStatus={(property.property_status || "added") as PropertyStatus} />
+                    {isOwner && (
+                      <StatusSelector propertyId={property.id} currentStatus={(property.property_status || "added") as PropertyStatus} />
+                    )}
                   </div>
                   {property.purchase_price > 0 && (
                     <p className="text-xl font-bold text-[#1a1a2e] font-[family-name:var(--font-mono)]">
@@ -175,22 +164,6 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                   {property.address && (
                     <p className="text-xs text-[#b0b0b8] mt-0.5">{property.address}</p>
                   )}
-                  <div className="flex items-center gap-2 mt-1">
-                    <CompletionBadge percent={completionSummary.globalPercent} />
-                    {isOwner && simulations.length > 0 && (
-                      <button
-                        onClick={handleResyncSimulations}
-                        disabled={resyncing}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-gray-500 bg-gray-100 rounded-full hover:bg-amber-50 hover:text-amber-600 transition-colors disabled:opacity-50"
-                        title="Recalculer les simulations avec les données actuelles du bien"
-                      >
-                        <svg className={`w-3 h-3 ${resyncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182M20.016 4.356v4.992" />
-                        </svg>
-                        {resyncing ? "Recalcul…" : "Recalculer"}
-                      </button>
-                    )}
-                  </div>
                 </div>
                 {/* Score brick (same style as dashboard) — click opens score modal */}
                 <div onClick={() => setScoreModalOpen(true)}>
@@ -233,6 +206,12 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
               <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
                 <span className="text-sm text-gray-500">Type</span>
                 <span className="text-sm font-semibold text-[#1a1a2e] capitalize">{property.property_type}</span>
+              </div>
+              <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                <span className="text-sm text-gray-500">Frais de notaire ({property.property_type === "neuf" ? "2,5%" : "7,5%"})</span>
+                <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)]">
+                  {formatCurrency(property.notary_fees > 0 ? property.notary_fees : calculateNotaryFees(property.purchase_price, property.property_type))}
+                </span>
               </div>
               {property.monthly_rent > 0 && (
                 <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
@@ -297,12 +276,12 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
 
       {/* ═══════════════════ ONGLET TRAVAUX ═══════════════════ */}
       {activeTab === "travaux" && (
-        <TravauxTab property={property} />
+        <TravauxTab property={property} isOwner={isOwner} />
       )}
 
       {/* ═══════════════════ ONGLET ÉQUIPEMENTS ═══════════════════ */}
       {activeTab === "equipements" && (
-        <EquipementsTab property={property} marketData={marketData} />
+        <EquipementsTab property={property} marketData={marketData} isOwner={isOwner} />
       )}
 
       {/* ═══════════════════ ONGLET LOCALITÉ ═══════════════════ */}

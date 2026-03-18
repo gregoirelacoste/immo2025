@@ -1,4 +1,4 @@
-import { PropertyCalculations } from "@/domains/property/types";
+import { PropertyCalculations, ExitSimulation } from "@/domains/property/types";
 import { MarketData } from "@/domains/market/types";
 import { SocioEconomicData } from "./socioeconomic-types";
 import { InvestmentScoreBreakdown } from "./types";
@@ -22,41 +22,33 @@ function lerpInverse(value: number, lowThreshold: number, highThreshold: number,
 // --- Financial criteria (50 pts total) ---
 
 /**
- * Net yield: 0-15 pts
+ * Net yield: 0-12 pts
  * Uses local market context when available to adjust expectations.
- * Base: 2% → 0 pts, 8% → 15 pts (continuous)
- * With market data: bonus/malus if yield is above/below local average yield.
+ * Base: 2% → 0 pts, 8% → 12 pts (continuous)
+ * With market data: bonus/malus via local context.
  */
 function scoreNetYield(netYield: number, marketData: MarketData | null, purchasePrice: number, surface: number): number {
-  // Base score: absolute yield (0-12 pts)
-  const baseScore = lerp(netYield, 1, 8, 12);
+  // Base score: absolute yield (0-9 pts)
+  const baseScore = lerp(netYield, 1, 8, 9);
 
   // Local context bonus (0-3 pts): compare to estimated local yield
   let localBonus = 1.5; // neutral if no market data
   if (marketData?.avgRentPerM2 && marketData.medianPurchasePricePerM2 && surface > 0) {
-    // Estimate local typical yield: (rent/m2 × 12 × 0.9) / price/m2
-    const localAnnualRentPerM2 = marketData.avgRentPerM2 * 12 * 0.9; // 10% vacancy/charges approx
+    const localAnnualRentPerM2 = marketData.avgRentPerM2 * 12 * 0.9;
     const localTypicalYield = (localAnnualRentPerM2 / marketData.medianPurchasePricePerM2) * 100;
-
-    // How does our yield compare? Ratio > 1 = better than local average
     const yieldRatio = localTypicalYield > 0 ? netYield / localTypicalYield : 1;
-    // 0.7x local → 0 pts, 1.3x local → 3 pts
     localBonus = lerp(yieldRatio, 0.7, 1.3, 3);
   }
 
-  return Math.min(15, Math.round((baseScore + localBonus) * 10) / 10);
+  return Math.min(12, Math.round((baseScore + localBonus) * 10) / 10);
 }
 
 /**
- * Monthly cashflow: 0-15 pts
+ * Monthly cashflow: 0-12 pts
  * 3 composantes :
- *  - Absolue (0-5 pts) : cashflow brut, indulgent autour de 0
- *  - Relative au coût projet (0-5 pts) : normalise par prix du bien
- *  - Relative au marché local (0-5 pts) : compare au cashflow typique de la ville
- *
- * Le cashflow typique local est estimé à partir du loyer/m² et prix/m² du marché.
- * Dans les villes où le cashflow est structurellement négatif (prix élevés),
- * un cashflow légèrement négatif reste bien noté s'il est meilleur que la moyenne locale.
+ *  - Absolue (0-4 pts) : cashflow brut, indulgent autour de 0
+ *  - Relative au coût projet (0-4 pts) : normalise par prix du bien
+ *  - Relative au marché local (0-4 pts) : compare au cashflow typique de la ville
  */
 function scoreCashflow(
   monthlyCashflow: number,
@@ -64,30 +56,24 @@ function scoreCashflow(
   surface: number,
   marketData: MarketData | null
 ): number {
-  // 1) Absolute cashflow score (0-5 pts)
-  // Plus indulgent : -100€ → 2 pts (pas 0), 0€ → 3.5 pts, +200€ → 5 pts
-  const absoluteScore = lerp(monthlyCashflow, -300, 200, 5);
+  // 1) Absolute cashflow score (0-4 pts)
+  const absoluteScore = lerp(monthlyCashflow, -300, 200, 4);
 
-  // 2) Relative to project cost (0-5 pts) : cashflow yield annualisé
-  let relativeScore = 2.5; // neutral
+  // 2) Relative to project cost (0-4 pts)
+  let relativeScore = 2; // neutral
   if (totalProjectCost > 0) {
     const cashflowYield = (monthlyCashflow * 12 / totalProjectCost) * 100;
-    // -2% → 0 pts, +1.5% → 5 pts
-    relativeScore = lerp(cashflowYield, -2, 1.5, 5);
+    relativeScore = lerp(cashflowYield, -2, 1.5, 4);
   }
 
-  // 3) Local market comparison (0-5 pts)
-  // Utilise le cashflow typique de la localité si disponible, sinon estime
-  let localScore = 2.5; // neutral if no data
+  // 3) Local market comparison (0-4 pts)
+  let localScore = 2; // neutral if no data
   if (surface > 0 && marketData) {
     let typicalCashflow: number | null = null;
 
-    // Priorité 1 : valeur stockée dans la localité (plus fiable)
     if (marketData.typicalCashflowPerM2 != null) {
       typicalCashflow = marketData.typicalCashflowPerM2 * surface;
-    }
-    // Priorité 2 : estimation à partir de rent/m² et price/m²
-    else if (marketData.avgRentPerM2 && marketData.medianPurchasePricePerM2) {
+    } else if (marketData.avgRentPerM2 && marketData.medianPurchasePricePerM2) {
       const typicalMonthlyRent = marketData.avgRentPerM2 * surface * 0.9;
       const typicalTotalCost = marketData.medianPurchasePricePerM2 * surface * 1.08;
       const refMonthlyRate = 3.5 / 100 / 12;
@@ -101,14 +87,12 @@ function scoreCashflow(
     }
 
     if (typicalCashflow != null) {
-      // Écart par rapport au cashflow local typique
       const delta = monthlyCashflow - typicalCashflow;
-      // -150€ pire que local → 0 pts, +150€ mieux que local → 5 pts
-      localScore = lerp(delta, -150, 150, 5);
+      localScore = lerp(delta, -150, 150, 4);
     }
   }
 
-  return Math.min(15, Math.round((absoluteScore + relativeScore + localScore) * 10) / 10);
+  return Math.min(12, Math.round((absoluteScore + relativeScore + localScore) * 10) / 10);
 }
 
 /**
@@ -160,6 +144,18 @@ function scoreRentVsMarket(
   if (ratio <= 0.7) return 0;
   if (ratio <= 1.0) return lerp(ratio, 0.7, 1.0, 6);
   return Math.min(10, 6 + lerp(ratio, 1.0, 1.2, 4));
+}
+
+/**
+ * Exit profit: 0-6 pts
+ * Based on ROI (return on investment) from exit simulation.
+ * ROI < 0% → 0 pts, ROI >= 60% → 6 pts (continuous)
+ * Neutral (3 pts) when no exit data is available.
+ */
+function scoreExitProfit(exitSim: ExitSimulation | null): number {
+  if (!exitSim) return 3; // neutral
+  // ROI: 0% → 1 pt, 30% → 3 pts, 60%+ → 6 pts
+  return lerp(exitSim.roi, -10, 60, 6);
 }
 
 // --- Locality criteria (35 pts total) ---
@@ -298,14 +294,16 @@ export function computeInvestmentScore(
   calcs: PropertyCalculations,
   marketData: MarketData | null,
   socioData: SocioEconomicData | null,
-  visitRating?: number
+  visitRating?: number,
+  exitSim?: ExitSimulation | null
 ): InvestmentScoreBreakdown {
   // Financial (50 pts)
   const netYieldScore = scoreNetYield(calcs.net_yield, marketData, property.purchase_price, property.surface);
   const cashflowScore = scoreCashflow(calcs.monthly_cashflow, calcs.total_project_cost, property.surface, marketData);
+  const exitProfitScore = scoreExitProfit(exitSim ?? null);
   const priceVsMarketScore = scorePriceVsMarket(property.purchase_price, property.surface, marketData);
   const rentVsMarketScore = scoreRentVsMarket(property.monthly_rent, property.surface, marketData);
-  const financialTotal = Math.round((netYieldScore + cashflowScore + priceVsMarketScore + rentVsMarketScore) * 10) / 10;
+  const financialTotal = Math.round((netYieldScore + cashflowScore + exitProfitScore + priceVsMarketScore + rentVsMarketScore) * 10) / 10;
 
   // Locality (35 pts)
   const populationScore = scorePopulation(socioData);
@@ -324,6 +322,7 @@ export function computeInvestmentScore(
   return {
     netYieldScore,
     cashflowScore,
+    exitProfitScore,
     priceVsMarketScore,
     rentVsMarketScore,
     financialTotal,

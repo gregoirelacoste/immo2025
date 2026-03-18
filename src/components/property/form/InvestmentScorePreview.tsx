@@ -13,8 +13,9 @@ export default function InvestmentScorePreview({ calcs }: Props) {
   // Cashflow: 0-8 (absolute only)
   const cashflowScore = Math.min(8, Math.max(0, ((calcs.monthly_cashflow + 200) / 500) * 8));
 
-  // No market/socio data in form → neutral scores
-  const neutralFinancial = 5 + 5;  // priceVsMarket + rentVsMarket
+  // No market/socio/exit data in form → neutral scores
+  const neutralExitProfit = 3;  // exitProfitScore neutral
+  const neutralFinancial = 5 + 5 + neutralExitProfit;  // priceVsMarket + rentVsMarket + exitProfit
   const neutralLocality = 3.5 + 3.5 + 3.5 + 3.5 + 5; // population + income + employment + infra + risk
   const neutralVisit = 8; // visit neutral
 

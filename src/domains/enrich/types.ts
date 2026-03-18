@@ -1,7 +1,8 @@
 export interface InvestmentScoreBreakdown {
   // Financier (50 pts weighted)
-  netYieldScore: number;         // 0-15 (interpolation continue, ajusté au marché local)
-  cashflowScore: number;         // 0-15 (interpolation continue, relatif au coût projet)
+  netYieldScore: number;         // 0-12 (interpolation continue, ajusté au marché local)
+  cashflowScore: number;         // 0-12 (interpolation continue, relatif au coût projet)
+  exitProfitScore: number;       // 0-6 (ROI sur profit net à la revente)
   priceVsMarketScore: number;    // 0-10 (interpolation continue)
   rentVsMarketScore: number;     // 0-10 (loyer vs loyer moyen local)
   financialTotal: number;        // 0-50

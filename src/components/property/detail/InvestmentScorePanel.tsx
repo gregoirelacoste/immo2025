@@ -4,6 +4,7 @@ import Spinner from "@/components/ui/Spinner";
 interface ScoreBreakdown {
   netYieldScore: number;
   cashflowScore: number;
+  exitProfitScore?: number;
   priceVsMarketScore: number;
   rentVsMarketScore: number;
   financialTotal: number;
@@ -43,8 +44,9 @@ function getScoreBg(score: number): string {
 }
 
 const FINANCIAL_CRITERIA = [
-  { key: "netYieldScore" as const, label: "Rendement net", max: 15 },
-  { key: "cashflowScore" as const, label: "Cash-flow", max: 15 },
+  { key: "netYieldScore" as const, label: "Rendement net", max: 12 },
+  { key: "cashflowScore" as const, label: "Cash-flow", max: 12 },
+  { key: "exitProfitScore" as const, label: "Profit net (revente)", max: 6 },
   { key: "priceVsMarketScore" as const, label: "Prix vs marché", max: 10 },
   { key: "rentVsMarketScore" as const, label: "Loyer vs marché", max: 10 },
 ];

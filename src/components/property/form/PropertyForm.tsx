@@ -298,18 +298,20 @@ export default function PropertyForm({ existingProperty, defaultInputs, equipmen
       )}
 
       <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} />
-      <AmenitiesSection
-        selected={parseAmenities(form.amenities)}
-        onChange={(keys: string[]) => updateField("amenities", JSON.stringify(keys))}
-        equipments={equipments}
-      />
+      {!isEditing && (
+        <AmenitiesSection
+          selected={parseAmenities(form.amenities)}
+          onChange={(keys: string[]) => updateField("amenities", JSON.stringify(keys))}
+          equipments={equipments}
+        />
+      )}
 
       {/* Financial sections: full set when creating, key property data when editing */}
       {!isEditing ? (
         <>
           <LoanSection form={form} onChange={updateField} onLoanChange={handleLoanChange} calcs={calcs} monthlyPaymentPreview={monthlyPaymentPreview} prefillHint={prefillHint} loanAutoCalc={!loanManuallySet} />
           <FeesSection form={form} onChange={updateField} calcs={calcs} effectiveNotary={effectiveNotary} />
-          <ClassicRentalSection form={form} onChange={handleRentChange} calcs={calcs} prefillHint={prefillHint} />
+          <ClassicRentalSection form={form} onChange={handleRentChange} prefillHint={prefillHint} />
           <RenovationSection form={form} onChange={updateField} prefillHint={prefillHint} />
           <FiscalSection calcs={calcs} fiscalRegime={form.fiscal_regime || "micro_bic"} />
 
@@ -330,7 +332,7 @@ export default function PropertyForm({ existingProperty, defaultInputs, equipmen
         </>
       ) : (
         /* Edit mode: only show factual property data (rent, charges, tax) */
-        <ClassicRentalSection form={form} onChange={handleRentChange} calcs={calcs} prefillHint={prefillHint} />
+        <ClassicRentalSection form={form} onChange={handleRentChange} prefillHint={prefillHint} />
       )}
 
       <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">

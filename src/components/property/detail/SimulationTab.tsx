@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Property } from "@/domains/property/types";
 import { Simulation } from "@/domains/simulation/types";
-import { duplicateSimulation, removeSimulation, createDefaultSimulationAction } from "@/domains/simulation/actions";
+import { duplicateSimulation, removeSimulation, createDefaultSimulationAction, resyncSimulationsAction } from "@/domains/simulation/actions";
 import { setActiveSimulationAction } from "@/domains/property/actions";
 import { buildSystemSimulation } from "@/domains/simulation/system";
 import SimulationCard from "./SimulationCard";
@@ -81,8 +81,32 @@ export default function SimulationTab({ property, simulations, isOwner }: Props)
     router.refresh();
   }
 
+  async function handleResync() {
+    setLoading(true);
+    await resyncSimulationsAction(property.id);
+    setLoading(false);
+    router.refresh();
+  }
+
   return (
     <div className="space-y-4 mt-4">
+      {/* Resync button (owner only) */}
+      {isOwner && simulations.length > 0 && (
+        <div className="flex justify-end">
+          <button
+            onClick={handleResync}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-amber-50 hover:text-amber-600 transition-colors disabled:opacity-50"
+            title="Recalculer les simulations avec les données actuelles du bien"
+          >
+            <svg className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182M20.016 4.356v4.992" />
+            </svg>
+            Recalculer les simulations
+          </button>
+        </div>
+      )}
+
       {/* Simulation cards row */}
       <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x">
         {/* System simulation card (always first) */}
@@ -94,7 +118,7 @@ export default function SimulationTab({ property, simulations, isOwner }: Props)
             isFavorite={favoriteSimId === "__system__"}
             onSelect={() => setSelectedSimId("__system__")}
             onSetFavorite={isOwner ? () => handleSetFavorite("__system__") : undefined}
-            onDuplicate={() => handleDuplicateSystem()}
+            onDuplicate={isOwner ? () => handleDuplicateSystem() : undefined}
             canDelete={false}
             isSystem
           />
@@ -110,9 +134,9 @@ export default function SimulationTab({ property, simulations, isOwner }: Props)
               isFavorite={favoriteSimId === sim.id}
               onSelect={() => setSelectedSimId(sim.id)}
               onSetFavorite={isOwner ? () => handleSetFavorite(sim.id) : undefined}
-              onDuplicate={() => handleDuplicate(sim.id)}
+              onDuplicate={isOwner ? () => handleDuplicate(sim.id) : undefined}
               onDelete={isOwner ? () => handleDelete(sim.id) : undefined}
-              canDelete={true}
+              canDelete={isOwner}
             />
           </div>
         ))}
