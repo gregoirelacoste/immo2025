@@ -1,12 +1,23 @@
 export interface InvestmentScoreBreakdown {
-  // Financier (70 pts weighted)
-  netYieldScore: number;         // 0-25
-  cashflowScore: number;         // 0-25
-  priceVsMarketScore: number;    // 0-20
-  financialTotal: number;        // 0-70
-  // Terrain (30 pts weighted)
-  visitScore: number;            // 0-30 (from visit overall_rating, neutral if no visit)
-  terrainTotal: number;          // 0-30
+  // Financier (50 pts weighted)
+  netYieldScore: number;         // 0-15 (interpolation continue, ajusté au marché local)
+  cashflowScore: number;         // 0-15 (interpolation continue, relatif au coût projet)
+  priceVsMarketScore: number;    // 0-10 (interpolation continue)
+  rentVsMarketScore: number;     // 0-10 (loyer vs loyer moyen local)
+  financialTotal: number;        // 0-50
+
+  // Localité (35 pts weighted)
+  populationScore: number;       // 0-7 (croissance démographique)
+  incomeScore: number;           // 0-7 (revenu médian → solvabilité locataires)
+  employmentScore: number;       // 0-7 (taux de chômage inversé)
+  infrastructureScore: number;   // 0-7 (transport, écoles, université)
+  riskScore: number;             // 0-7 (risques naturels inversé)
+  localityTotal: number;         // 0-35
+
+  // Terrain (15 pts weighted)
+  visitScore: number;            // 0-15 (from visit overall_rating, neutral if no visit)
+  terrainTotal: number;          // 0-15
+
   total: number;                 // 0-100
   label: "Faible" | "Moyen" | "Bon" | "Excellent";
 }
