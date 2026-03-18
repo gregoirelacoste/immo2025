@@ -6,7 +6,6 @@ import {
   updateSimulation,
   deleteSimulation,
   getSimulationById,
-  getSimulationsForProperty,
   countSimulationsForProperty,
 } from "./repository";
 import { SimulationFormData } from "./types";
