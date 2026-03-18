@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const cityName = await findCityNameBySlug(slug);
   if (!cityName) return { title: "Ville non trouvée" };
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io";
   const year = new Date().getFullYear();
 
   return {

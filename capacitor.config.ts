@@ -1,11 +1,11 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.immo2025.app',
-  appName: 'Immo2025',
+  appId: 'io.tiili.app',
+  appName: 'tiili',
   webDir: 'out',
   server: {
-    url: 'https://immo2025.vercel.app',
+    url: 'https://tiili.io',
     cleartext: false,
   },
   plugins: {

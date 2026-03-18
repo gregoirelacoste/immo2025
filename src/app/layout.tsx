@@ -4,6 +4,7 @@ import Providers from "@/components/Providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io"),
   title: "tiili — Simulateur d'investissement locatif",
   description:
     "Calculez la rentabilité de vos investissements immobiliers : cash-flow, rendement, mensualités de crédit.",
