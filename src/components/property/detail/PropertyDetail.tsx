@@ -7,6 +7,7 @@ import { Property, type PropertyStatus } from "@/domains/property/types";
 import { calculateSimulation, calculateAll, formatCurrency } from "@/lib/calculations";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
+import { resyncSimulationsAction } from "@/domains/simulation/actions";
 import type { MarketData } from "@/domains/market/types";
 import type { InvestmentScoreBreakdown } from "@/domains/enrich/types";
 import { getGrade } from "@/lib/grade";
@@ -88,12 +89,13 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
     const found = simulations.find((s) => s.id === property.active_simulation_id);
     return found ?? (simulations.length > 0 ? simulations[0] : null);
   }, [property.active_simulation_id, simulations]);
-  const firstSim = simulations.length > 0 ? simulations[0] : null;
+
   const calcs = useMemo(
     () => activeSim ? calculateSimulation(property, activeSim) : calculateAll(property),
     [property, activeSim]
   );
   const [refreshing, setRefreshing] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
   const [heroHidden, setHeroHidden] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
@@ -121,9 +123,6 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
   const completionSummary = useMemo(() => getCompletionSummary(property), [property]);
 
   const pricePerM2 = property.surface > 0 ? property.purchase_price / property.surface : 0;
-  const marketDiff = marketData?.medianPurchasePricePerM2 && pricePerM2
-    ? ((pricePerM2 - marketData.medianPurchasePricePerM2) / marketData.medianPurchasePricePerM2) * 100
-    : null;
 
   async function handleDelete() {
     if (!confirm("Supprimer ce bien ?")) return;
@@ -142,6 +141,13 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
     router.refresh();
   }
 
+  async function handleResyncSimulations() {
+    setResyncing(true);
+    await resyncSimulationsAction(property.id);
+    setResyncing(false);
+    router.refresh();
+  }
+
   const grade = getGrade(property.investment_score);
 
   return (
@@ -157,6 +163,11 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                     <h2 className="text-2xl font-extrabold text-[#1a1a2e] tracking-tight">{property.city}</h2>
                     <StatusSelector propertyId={property.id} currentStatus={(property.property_status || "added") as PropertyStatus} />
                   </div>
+                  {property.purchase_price > 0 && (
+                    <p className="text-xl font-bold text-[#1a1a2e] font-[family-name:var(--font-mono)]">
+                      {formatCurrency(property.purchase_price)}
+                    </p>
+                  )}
                   <p className="text-[13px] text-[#9ca3af] font-medium">
                     {property.property_type === "neuf" ? "Neuf" : "Ancien"} · {property.surface} m²
                     {pricePerM2 > 0 && <> · {formatCurrency(pricePerM2)}/m²</>}
@@ -164,7 +175,22 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                   {property.address && (
                     <p className="text-xs text-[#b0b0b8] mt-0.5">{property.address}</p>
                   )}
-                  <CompletionBadge percent={completionSummary.globalPercent} />
+                  <div className="flex items-center gap-2 mt-1">
+                    <CompletionBadge percent={completionSummary.globalPercent} />
+                    {isOwner && simulations.length > 0 && (
+                      <button
+                        onClick={handleResyncSimulations}
+                        disabled={resyncing}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-gray-500 bg-gray-100 rounded-full hover:bg-amber-50 hover:text-amber-600 transition-colors disabled:opacity-50"
+                        title="Recalculer les simulations avec les données actuelles du bien"
+                      >
+                        <svg className={`w-3 h-3 ${resyncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182M20.016 4.356v4.992" />
+                        </svg>
+                        {resyncing ? "Recalcul…" : "Recalculer"}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {/* Score brick (same style as dashboard) — click opens score modal */}
                 <div onClick={() => setScoreModalOpen(true)}>
@@ -208,21 +234,6 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                 <span className="text-sm text-gray-500">Type</span>
                 <span className="text-sm font-semibold text-[#1a1a2e] capitalize">{property.property_type}</span>
               </div>
-              <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
-                <span className="text-sm text-gray-500">Écart marché</span>
-                <span className={`text-sm font-semibold ${
-                  marketDiff == null ? "text-gray-400" :
-                  marketDiff <= 0 ? "text-green-600" : "text-red-600"
-                }`}>
-                  {marketDiff != null ? `${marketDiff > 0 ? "+" : ""}${marketDiff.toFixed(1)}%` : "—"}
-                </span>
-              </div>
-              {(firstSim?.renovation_cost ?? property.renovation_cost) > 0 && (
-                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
-                  <span className="text-sm text-gray-500">Travaux</span>
-                  <span className="text-sm font-semibold text-orange-600">{formatCurrency(firstSim?.renovation_cost ?? property.renovation_cost)}</span>
-                </div>
-              )}
               {property.monthly_rent > 0 && (
                 <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
                   <span className="text-sm text-gray-500">Loyer</span>

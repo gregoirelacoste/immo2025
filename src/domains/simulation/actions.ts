@@ -7,6 +7,7 @@ import {
   deleteSimulation,
   getSimulationById,
   countSimulationsForProperty,
+  getSimulationsForProperty,
 } from "./repository";
 import { SimulationFormData } from "./types";
 import { getOptionalUserId } from "@/lib/auth-actions";
@@ -196,6 +197,47 @@ export async function createDefaultSimulationAction(
     const id = await createDefaultSimulation(property);
     revalidatePath(`/property/${propertyId}`);
     return { success: true, simulationId: id };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+/** Resync all user simulations with current property data (loan, rent, charges, etc.) */
+export async function resyncSimulationsAction(
+  propertyId: string
+): Promise<{ success: boolean; count?: number; error?: string }> {
+  try {
+    const userId = await getOptionalUserId();
+    const property = await getPropertyById(propertyId, userId ?? undefined);
+    if (!property) return { success: false, error: "Bien introuvable." };
+
+    const simulations = await getSimulationsForProperty(propertyId);
+    if (simulations.length === 0) return { success: true, count: 0 };
+
+    const { calculateNotaryFees } = await import("@/lib/calculations");
+    const notaryFees = property.notary_fees > 0
+      ? property.notary_fees
+      : calculateNotaryFees(property.purchase_price, property.property_type);
+    const loanAmount = Math.max(0, property.purchase_price + notaryFees - property.personal_contribution);
+
+    for (const sim of simulations) {
+      await updateSimulation(sim.id, sim.user_id, {
+        loan_amount: loanAmount,
+        interest_rate: property.interest_rate,
+        loan_duration: property.loan_duration,
+        personal_contribution: property.personal_contribution,
+        insurance_rate: property.insurance_rate,
+        loan_fees: property.loan_fees,
+        notary_fees: property.notary_fees,
+        condo_charges: property.condo_charges,
+        property_tax: property.property_tax,
+        renovation_cost: property.renovation_cost,
+      });
+    }
+
+    enrichPropertyQuiet(propertyId).catch(() => {});
+    revalidatePath(`/property/${propertyId}`);
+    return { success: true, count: simulations.length };
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }
