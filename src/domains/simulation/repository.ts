@@ -111,6 +111,26 @@ export async function getFirstSimulationForProperty(propertyId: string): Promise
 }
 
 /**
+ * Get the active (favorite) simulation for a single property.
+ * If active_simulation_id is set and valid → returns that simulation.
+ * If active_simulation_id is "" or "__system__" → returns null (= system simulation).
+ * Otherwise falls back to the first (oldest) simulation.
+ */
+export async function getActiveSimulationForProperty(property: { id: string; active_simulation_id: string }): Promise<Simulation | null> {
+  // System simulation → no DB simulation
+  if (!property.active_simulation_id || property.active_simulation_id === "__system__") {
+    return null;
+  }
+
+  // Try to load the specific active simulation
+  const sim = await getSimulationById(property.active_simulation_id);
+  if (sim) return sim;
+
+  // Fallback to first simulation if active_simulation_id points to a deleted sim
+  return getFirstSimulationForProperty(property.id);
+}
+
+/**
  * Get the first (oldest) simulation for each property in a batch.
  * Returns a map of property_id → Simulation.
  */
