@@ -164,6 +164,20 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                   {property.address && (
                     <p className="text-xs text-[#b0b0b8] mt-0.5">{property.address}</p>
                   )}
+                  {calcs.net_yield > 0 && (
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className={`text-sm font-bold font-[family-name:var(--font-mono)] ${
+                        calcs.net_yield >= 6 ? "text-green-600" : calcs.net_yield >= 4 ? "text-blue-600" : calcs.net_yield >= 2 ? "text-amber-600" : "text-red-600"
+                      }`}>
+                        {calcs.net_yield.toFixed(2)}% net
+                      </span>
+                      <span className={`text-sm font-bold font-[family-name:var(--font-mono)] ${
+                        calcs.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"
+                      }`}>
+                        {calcs.monthly_cashflow > 0 ? "+" : ""}{Math.round(calcs.monthly_cashflow)}{"\u202f"}€/mois
+                      </span>
+                    </div>
+                  )}
                 </div>
                 {/* Score brick (same style as dashboard) — click opens score modal */}
                 <div onClick={() => setScoreModalOpen(true)}>
