@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Property } from "@/domains/property/types";
 import { Simulation, SimulationFormData } from "@/domains/simulation/types";
 import { calculateSimulation, calculateExitSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent } from "@/lib/calculations";
@@ -92,7 +92,6 @@ function StepperField({
 }) {
   const [editing, setEditing] = useState(false);
   const [textValue, setTextValue] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
 
   function startEdit() {
     setTextValue(config.decimals ? value.toFixed(config.decimals) : String(value));
@@ -130,7 +129,6 @@ function StepperField({
         </button>
         {editing ? (
           <input
-            ref={inputRef}
             type="text"
             inputMode="decimal"
             value={textValue}

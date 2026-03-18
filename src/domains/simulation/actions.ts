@@ -14,6 +14,7 @@ import { getOptionalUserId } from "@/lib/auth-actions";
 import { getPropertyById } from "@/domains/property/repository";
 import { isAdmin } from "@/lib/auth-actions";
 import { Property } from "@/domains/property/types";
+import { calculateNotaryFees } from "@/lib/calculations";
 import { enrichPropertyQuiet } from "@/domains/enrich/actions";
 
 /** Validate simulation data — returns error message or null */
@@ -207,31 +208,33 @@ export async function syncFieldToSimulations(
   propertyId: string,
   field: string,
   value: number
-): Promise<void> {
-  const userId = await getOptionalUserId();
-  const property = await getPropertyById(propertyId, userId ?? undefined);
-  if (!property) return;
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const userId = await getOptionalUserId();
+    const property = await getPropertyById(propertyId, userId ?? undefined);
+    if (!property) return { success: false, error: "Bien introuvable." };
 
-  const simulations = await getSimulationsForProperty(propertyId);
-  if (simulations.length === 0) return;
+    const simulations = await getSimulationsForProperty(propertyId);
+    if (simulations.length === 0) return { success: true };
 
-  const { calculateNotaryFees } = await import("@/lib/calculations");
+    const updatedProperty = { ...property, [field]: value };
+    const notaryFees = updatedProperty.notary_fees > 0
+      ? updatedProperty.notary_fees
+      : calculateNotaryFees(updatedProperty.purchase_price, updatedProperty.property_type);
+    const loanAmount = Math.max(0, updatedProperty.purchase_price + notaryFees - updatedProperty.personal_contribution);
 
-  // Use updated value for the field in loan calculation
-  const updatedProperty = { ...property, [field]: value };
-  const notaryFees = updatedProperty.notary_fees > 0
-    ? updatedProperty.notary_fees
-    : calculateNotaryFees(updatedProperty.purchase_price, updatedProperty.property_type);
-  const loanAmount = Math.max(0, updatedProperty.purchase_price + notaryFees - updatedProperty.personal_contribution);
+    for (const sim of simulations) {
+      await updateSimulation(sim.id, sim.user_id, {
+        [field]: value,
+        loan_amount: loanAmount,
+      });
+    }
 
-  for (const sim of simulations) {
-    await updateSimulation(sim.id, sim.user_id, {
-      [field]: value,
-      loan_amount: loanAmount,
-    });
+    revalidatePath(`/property/${propertyId}`);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
   }
-
-  revalidatePath(`/property/${propertyId}`);
 }
 
 /** Resync all user simulations with current property data (loan, rent, charges, etc.) */
@@ -246,7 +249,6 @@ export async function resyncSimulationsAction(
     const simulations = await getSimulationsForProperty(propertyId);
     if (simulations.length === 0) return { success: true, count: 0 };
 
-    const { calculateNotaryFees } = await import("@/lib/calculations");
     const notaryFees = property.notary_fees > 0
       ? property.notary_fees
       : calculateNotaryFees(property.purchase_price, property.property_type);

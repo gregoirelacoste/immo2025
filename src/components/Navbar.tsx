@@ -85,45 +85,50 @@ export default function Navbar() {
             </svg>
           </button>
         </div>
-        <nav className="py-2">
-          {drawerLink("/dashboard", "Dashboard")}
-          {drawerLink("/property/new", "+ Nouveau bien")}
-          <div className="border-t border-gray-100 my-1" />
-          {drawerLink("/compare", "Comparer")}
-          {drawerLink("/portfolio", "Patrimoine")}
-          <div className="border-t border-gray-100 my-1" />
-          {drawerLink("/guide", "Guides villes")}
-          {drawerLink("/blog", "Blog")}
-          {session?.user && drawerLink("/profile", "Profil")}
-          {isUserAdmin && (
-            <>
-              <div className="border-t border-gray-100 my-1" />
-              <Link
-                href="/admin"
-                className={`block px-6 py-3 text-sm font-medium transition-colors ${
-                  isActive("/admin")
-                    ? "text-red-600 bg-red-50"
-                    : "text-red-600 hover:bg-red-50"
-                }`}
+        <nav className="py-2 flex flex-col h-[calc(100%-4rem)]">
+          <div className="flex-1">
+            {drawerLink("/dashboard", "Dashboard")}
+            {drawerLink("/property/new", "+ Nouveau bien")}
+            <div className="border-t border-gray-100 my-1" />
+            {drawerLink("/compare", "Comparer")}
+            {drawerLink("/portfolio", "Patrimoine")}
+            <div className="border-t border-gray-100 my-1" />
+            {drawerLink("/guide", "Guides villes")}
+            {drawerLink("/blog", "Blog")}
+            {session?.user && drawerLink("/profile", "Profil")}
+            {isUserAdmin && (
+              <>
+                <div className="border-t border-gray-100 my-1" />
+                <Link
+                  href="/admin"
+                  className={`block px-6 py-3 text-sm font-medium transition-colors ${
+                    isActive("/admin")
+                      ? "text-red-600 bg-red-50"
+                      : "text-red-600 hover:bg-red-50"
+                  }`}
+                >
+                  Admin
+                </Link>
+              </>
+            )}
+            <div className="border-t border-gray-100 my-1" />
+            {session?.user ? (
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="block w-full text-left px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                Admin
-              </Link>
-            </>
-          )}
-          <div className="border-t border-gray-100 my-1" />
-          {session?.user ? (
-            <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="block w-full text-left px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Deconnexion
-            </button>
-          ) : (
-            <>
-              {drawerLink("/login", "Se connecter")}
-              {drawerLink("/register", "Creer un compte")}
-            </>
-          )}
+                Deconnexion
+              </button>
+            ) : (
+              <>
+                {drawerLink("/login", "Se connecter")}
+                {drawerLink("/register", "Creer un compte")}
+              </>
+            )}
+          </div>
+          <div className="border-t border-gray-100 px-6 py-3">
+            <AppVersion />
+          </div>
         </nav>
       </div>
     </>
@@ -233,13 +238,7 @@ export default function Navbar() {
             <span className="text-[9px] font-semibold tracking-wide text-[#b0b0b8]">Nouveau</span>
           </Link>
         </div>
-        <AppVersion />
       </nav>
-
-      {/* Desktop footer version */}
-      <div className="hidden md:block fixed bottom-0 right-0 p-2">
-        <AppVersion />
-      </div>
     </>
   );
 }
