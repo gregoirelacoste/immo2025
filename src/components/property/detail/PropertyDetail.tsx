@@ -318,6 +318,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
               breakdown={scoreBreakdown}
               status={property.enrichment_status}
               error={property.enrichment_error}
+              cityName={marketData?.communeName || property.city || undefined}
               onRefresh={handleRefreshEnrichment}
               refreshing={refreshing}
             />

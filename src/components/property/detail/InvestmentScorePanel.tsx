@@ -23,6 +23,7 @@ interface Props {
   breakdown: ScoreBreakdown | null;
   status: string;
   error?: string;
+  cityName?: string;
   onRefresh?: () => void;
   refreshing?: boolean;
 }
@@ -89,7 +90,7 @@ function SectionTotal({ label, value, max }: { label: string; value: number; max
   );
 }
 
-export default function InvestmentScorePanel({ score, breakdown, status, error, onRefresh, refreshing }: Props) {
+export default function InvestmentScorePanel({ score, breakdown, status, error, cityName, onRefresh, refreshing }: Props) {
   if (status === "running") {
     return (
       <section className="bg-gray-50 rounded-xl border border-tiili-border p-4 md:p-6">
@@ -169,7 +170,10 @@ export default function InvestmentScorePanel({ score, breakdown, status, error, 
             <SectionTotal label="Sous-total" value={breakdown.financialTotal ?? 0} max={50} />
           </div>
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Localité</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Localité
+              {cityName && <span className="font-normal normal-case ml-1">({cityName})</span>}
+            </p>
             {LOCALITY_CRITERIA.map(({ key, label: l, max }) => (
               <CriteriaBar key={key} label={l} value={breakdown[key] ?? 0} max={max} />
             ))}
