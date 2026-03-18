@@ -1,4 +1,4 @@
-const CACHE_NAME = "immo2025-v5";
+const CACHE_NAME = "tiili-v6";
 
 // Only precache truly static shell assets
 const PRECACHE_URLS = ["/manifest.json", "/favicon.png"];

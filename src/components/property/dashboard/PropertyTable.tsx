@@ -76,9 +76,7 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
                     >
                       {p.is_favorite ? "\u2605" : "\u2606"}
                     </button>
-                  ) : (
-                    <span className="text-gray-300 text-lg">{p.is_favorite ? "\u2605" : ""}</span>
-                  )}
+                  ) : null}
                 </td>
                 <td className="px-3 py-4 text-sm font-semibold text-[#1a1a2e]">
                   <div className="flex items-center gap-3">

@@ -72,7 +72,7 @@ export default function DashboardClient({ properties: initialProperties, current
     : ownerFiltered.filter((p) => statusFilter.has((p.property_status || "added") as PropertyStatus));
 
   const filteredProperties = favoriteFilter
-    ? statusFiltered.filter((p) => p.is_favorite)
+    ? statusFiltered.filter((p) => p.is_favorite && p.user_id === currentUserId)
     : statusFiltered;
 
   const propertiesWithCalcs = useMemo(
@@ -169,14 +169,16 @@ export default function DashboardClient({ properties: initialProperties, current
   }
 
   const mineCount = currentUserId ? properties.filter(p => p.user_id === currentUserId).length : 0;
-  const favCount = properties.filter(p => p.is_favorite).length;
+  const favCount = currentUserId ? properties.filter(p => p.is_favorite && p.user_id === currentUserId).length : 0;
 
   const tabs = [
     { key: "all" as const, label: "Tous", count: properties.length },
     ...(currentUserId && properties.some(p => p.user_id !== currentUserId)
       ? [{ key: "mine" as const, label: "Mes biens", count: mineCount }]
       : []),
-    { key: "fav" as const, label: "\u2605", count: favCount },
+    ...(currentUserId
+      ? [{ key: "fav" as const, label: "\u2605", count: favCount }]
+      : []),
   ];
 
   return (

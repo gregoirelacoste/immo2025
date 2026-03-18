@@ -24,7 +24,8 @@ export default function PropertyHeader({ property, isOwner, onDelete }: Props) {
       property.purchase_price > 0 ? formatCurrency(property.purchase_price) : null,
       property.surface > 0 ? `${property.surface} m²` : null,
     ].filter(Boolean).join(" — ");
-    const url = window.location.href;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io";
+    const url = `${baseUrl}/property/${property.id}`;
 
     if (navigator.share) {
       try {
