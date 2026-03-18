@@ -218,12 +218,15 @@ export async function syncFieldToSimulations(
     if (simulations.length === 0) return { success: true };
 
     const updatedProperty = { ...property, [field]: value };
-    const notaryFees = updatedProperty.notary_fees > 0
-      ? updatedProperty.notary_fees
-      : calculateNotaryFees(updatedProperty.purchase_price, updatedProperty.property_type);
-    const loanAmount = Math.max(0, updatedProperty.purchase_price + notaryFees - updatedProperty.personal_contribution);
 
     for (const sim of simulations) {
+      // Use each simulation's own values for loan recalculation
+      const updatedSim = { ...sim, [field]: value };
+      const simNotary = updatedSim.notary_fees > 0
+        ? updatedSim.notary_fees
+        : calculateNotaryFees(updatedProperty.purchase_price, updatedProperty.property_type);
+      const loanAmount = Math.max(0, updatedProperty.purchase_price + simNotary + updatedSim.renovation_cost - updatedSim.personal_contribution);
+
       await updateSimulation(sim.id, sim.user_id, {
         [field]: value,
         loan_amount: loanAmount,
@@ -237,7 +240,11 @@ export async function syncFieldToSimulations(
   }
 }
 
-/** Resync all user simulations with current property data (loan, rent, charges, etc.) */
+/** Resync all user simulations: recalculate loan_amount from current property price
+ *  while preserving each simulation's user-customized parameters
+ *  (personal_contribution, interest_rate, loan_duration, vacancy_rate, etc.).
+ *  Only updates fields that are strictly property-derived (charges, tax, notary).
+ */
 export async function resyncSimulationsAction(
   propertyId: string
 ): Promise<{ success: boolean; count?: number; error?: string }> {
@@ -249,23 +256,18 @@ export async function resyncSimulationsAction(
     const simulations = await getSimulationsForProperty(propertyId);
     if (simulations.length === 0) return { success: true, count: 0 };
 
-    const notaryFees = property.notary_fees > 0
-      ? property.notary_fees
-      : calculateNotaryFees(property.purchase_price, property.property_type);
-    const loanAmount = Math.max(0, property.purchase_price + notaryFees - property.personal_contribution);
-
     for (const sim of simulations) {
+      // Use each simulation's own notary_fees / personal_contribution / renovation_cost
+      const simNotary = sim.notary_fees > 0
+        ? sim.notary_fees
+        : calculateNotaryFees(property.purchase_price, property.property_type);
+      const loanAmount = Math.max(0, property.purchase_price + simNotary + sim.renovation_cost - sim.personal_contribution);
+
+      // Only sync property-derived fields that the user cannot customize per-simulation
       await updateSimulation(sim.id, sim.user_id, {
         loan_amount: loanAmount,
-        interest_rate: property.interest_rate,
-        loan_duration: property.loan_duration,
-        personal_contribution: property.personal_contribution,
-        insurance_rate: property.insurance_rate,
-        loan_fees: property.loan_fees,
-        notary_fees: property.notary_fees,
         condo_charges: property.condo_charges,
         property_tax: property.property_tax,
-        renovation_cost: property.renovation_cost,
       });
     }
 

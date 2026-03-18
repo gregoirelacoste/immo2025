@@ -87,9 +87,22 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
     return found ?? (simulations.length > 0 ? simulations[0] : null);
   }, [property.active_simulation_id, simulations]);
 
+  // Live simulation from SimulationTab editor (instant updates before server roundtrip)
+  const [liveSimFromEditor, setLiveSimFromEditor] = useState<Simulation | null>(null);
+
+  // Use live simulation if it matches the active favorite, otherwise server data
+  const effectiveSim = useMemo(() => {
+    if (liveSimFromEditor) {
+      // If the live sim matches the active/favorite sim, use it for hero/sticky
+      const favId = property.active_simulation_id || "__system__";
+      if (liveSimFromEditor.id === favId) return liveSimFromEditor;
+    }
+    return activeSim;
+  }, [liveSimFromEditor, activeSim, property.active_simulation_id]);
+
   const calcs = useMemo(
-    () => activeSim ? calculateSimulation(property, activeSim) : calculateAll(property),
-    [property, activeSim]
+    () => effectiveSim ? calculateSimulation(property, effectiveSim) : calculateAll(property),
+    [property, effectiveSim]
   );
   const [refreshing, setRefreshing] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
@@ -285,6 +298,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
           property={property}
           simulations={simulations}
           isOwner={isOwner}
+          onLiveCalcsChange={setLiveSimFromEditor}
         />
       )}
 

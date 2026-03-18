@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Property } from "@/domains/property/types";
 import { Simulation } from "@/domains/simulation/types";
@@ -16,9 +16,11 @@ interface Props {
   property: Property;
   simulations: Simulation[];
   isOwner: boolean;
+  /** Emit live calcs so parent (PropertyDetail) can update hero/sticky header */
+  onLiveCalcsChange?: (sim: Simulation | null) => void;
 }
 
-export default function SimulationTab({ property, simulations, isOwner }: Props) {
+export default function SimulationTab({ property, simulations, isOwner, onLiveCalcsChange }: Props) {
   const router = useRouter();
   const [localityFields, setLocalityFields] = useState<LocalityDataFields | null>(null);
 
@@ -44,7 +46,11 @@ export default function SimulationTab({ property, simulations, isOwner }: Props)
   );
   const [loading, setLoading] = useState(false);
   // Live simulation state: reflects instant editor changes before server roundtrip
-  const [liveSim, setLiveSim] = useState<Simulation | null>(null);
+  const [liveSim, setLiveSimLocal] = useState<Simulation | null>(null);
+  const setLiveSim = useCallback((sim: Simulation | null) => {
+    setLiveSimLocal(sim);
+    onLiveCalcsChange?.(sim);
+  }, [onLiveCalcsChange]);
 
   const isSystemSelected = selectedSimId === "__system__";
   const serverActiveSim = isSystemSelected
