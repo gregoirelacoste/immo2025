@@ -81,6 +81,9 @@ export interface LocalityDataFields {
   university_nearby?: boolean | null;
   public_transport_score?: number | null;
 
+  // Indicateur de rentabilité locale
+  typical_cashflow_per_m2?: number | null; // €/m²/mois — cashflow mensuel typique (négatif = marché tendu)
+
   // Risques
   risk_level?: "faible" | "moyen" | "élevé" | null;
   natural_risks?: Array<{ type: string; level: string }> | null;
@@ -108,6 +111,7 @@ export const LOCALITY_DATA_FIELD_KEYS: (keyof LocalityDataFields)[] = [
   "school_count",
   "university_nearby",
   "public_transport_score",
+  "typical_cashflow_per_m2",
   "risk_level",
   "natural_risks",
 ];

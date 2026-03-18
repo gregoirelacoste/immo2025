@@ -77,29 +77,35 @@ function scoreCashflow(
   }
 
   // 3) Local market comparison (0-5 pts)
-  // Estime le cashflow typique de la ville à partir de rent/m² et price/m²
+  // Utilise le cashflow typique de la localité si disponible, sinon estime
   let localScore = 2.5; // neutral if no data
-  if (marketData?.avgRentPerM2 && marketData.medianPurchasePricePerM2 && surface > 0) {
-    // Cashflow typique local simplifié :
-    // loyer mensuel typique = rent/m² × surface × 0.9 (vacance)
-    const typicalMonthlyRent = marketData.avgRentPerM2 * surface * 0.9;
-    // prix typique = price/m² × surface × 1.08 (frais notaire + frais)
-    const typicalTotalCost = marketData.medianPurchasePricePerM2 * surface * 1.08;
-    // mensualité typique sur 20 ans à 3.5% + assurance 0.34%
-    const refMonthlyRate = 3.5 / 100 / 12;
-    const refMonths = 20 * 12;
-    const typicalPayment = (typicalTotalCost * refMonthlyRate * Math.pow(1 + refMonthlyRate, refMonths))
-      / (Math.pow(1 + refMonthlyRate, refMonths) - 1);
-    const typicalInsurance = typicalTotalCost * (0.34 / 100) / 12;
-    // charges typiques (copro + taxe foncière) estimées
-    const typicalCharges = (marketData.avgCondoChargesPerM2 ?? 15) * surface / 12
-      + (marketData.avgPropertyTaxPerM2 ?? 8) * surface / 12;
-    const typicalCashflow = typicalMonthlyRent - typicalPayment - typicalInsurance - typicalCharges;
+  if (surface > 0 && marketData) {
+    let typicalCashflow: number | null = null;
 
-    // Écart par rapport au cashflow local typique
-    const delta = monthlyCashflow - typicalCashflow;
-    // -150€ pire que local → 0 pts, +150€ mieux que local → 5 pts
-    localScore = lerp(delta, -150, 150, 5);
+    // Priorité 1 : valeur stockée dans la localité (plus fiable)
+    if (marketData.typicalCashflowPerM2 != null) {
+      typicalCashflow = marketData.typicalCashflowPerM2 * surface;
+    }
+    // Priorité 2 : estimation à partir de rent/m² et price/m²
+    else if (marketData.avgRentPerM2 && marketData.medianPurchasePricePerM2) {
+      const typicalMonthlyRent = marketData.avgRentPerM2 * surface * 0.9;
+      const typicalTotalCost = marketData.medianPurchasePricePerM2 * surface * 1.08;
+      const refMonthlyRate = 3.5 / 100 / 12;
+      const refMonths = 20 * 12;
+      const typicalPayment = (typicalTotalCost * refMonthlyRate * Math.pow(1 + refMonthlyRate, refMonths))
+        / (Math.pow(1 + refMonthlyRate, refMonths) - 1);
+      const typicalInsurance = typicalTotalCost * (0.34 / 100) / 12;
+      const typicalCharges = (marketData.avgCondoChargesPerM2 ?? 15) * surface / 12
+        + (marketData.avgPropertyTaxPerM2 ?? 8) * surface / 12;
+      typicalCashflow = typicalMonthlyRent - typicalPayment - typicalInsurance - typicalCharges;
+    }
+
+    if (typicalCashflow != null) {
+      // Écart par rapport au cashflow local typique
+      const delta = monthlyCashflow - typicalCashflow;
+      // -150€ pire que local → 0 pts, +150€ mieux que local → 5 pts
+      localScore = lerp(delta, -150, 150, 5);
+    }
   }
 
   return Math.min(15, Math.round((absoluteScore + relativeScore + localScore) * 10) / 10);

@@ -15,4 +15,6 @@ export interface MarketData {
   // Dégressivité loyer (loi de puissance)
   rentElasticityAlpha: number | null;
   rentReferenceSurface: number | null;
+  // Cashflow local typique
+  typicalCashflowPerM2: number | null; // €/m²/mois — négatif dans marchés tendus
 }
