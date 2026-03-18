@@ -92,7 +92,7 @@ export function buildSystemSimulation(
     gli_rate: 0,
     // Exit
     holding_duration: 0, // 0 = use loan_duration
-    annual_appreciation: 1.5,
+    annual_appreciation: loc.price_trend_pct ?? 1.5, // from locality data (can be negative), fallback 1.5%
     // Timestamps (virtual)
     created_at: "",
     updated_at: "",

@@ -55,6 +55,7 @@ export interface LocalityDataFields {
   avg_purchase_price_per_m2?: number | null;
   median_purchase_price_per_m2?: number | null;
   transaction_count?: number | null;
+  price_trend_pct?: number | null; // évolution annuelle des prix en % (peut être négatif)
 
   // Marche locatif
   avg_rent_per_m2?: number | null;
@@ -98,6 +99,7 @@ export const LOCALITY_DATA_FIELD_KEYS: (keyof LocalityDataFields)[] = [
   "avg_purchase_price_per_m2",
   "median_purchase_price_per_m2",
   "transaction_count",
+  "price_trend_pct",
   "avg_rent_per_m2",
   "avg_rent_furnished_per_m2",
   "vacancy_rate",
@@ -125,6 +127,7 @@ export const FIELD_TO_TABLE: Record<keyof LocalityDataFields, LocalityTableName>
   avg_purchase_price_per_m2: "locality_prices",
   median_purchase_price_per_m2: "locality_prices",
   transaction_count: "locality_prices",
+  price_trend_pct: "locality_prices",
   avg_rent_per_m2: "locality_rental",
   avg_rent_furnished_per_m2: "locality_rental",
   vacancy_rate: "locality_rental",

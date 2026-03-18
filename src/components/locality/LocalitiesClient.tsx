@@ -121,9 +121,14 @@ const ADD_LOCALITY_EXAMPLE = `{
     "fields": {
       "avg_purchase_price_per_m2": 2500,
       "median_purchase_price_per_m2": 2300,
+      "transaction_count": 450,
+      "price_trend_pct": -1.2,
       "avg_rent_per_m2": 10.5,
       "avg_rent_furnished_per_m2": 13,
       "vacancy_rate": 7,
+      "typical_cashflow_per_m2": -2.5,
+      "rent_elasticity_alpha": 0.72,
+      "rent_reference_surface": 45,
       "avg_condo_charges_per_m2": 2.5,
       "avg_property_tax_per_m2": 12,
       "avg_airbnb_night_price": 65,
@@ -136,7 +141,8 @@ const ADD_LOCALITY_EXAMPLE = `{
       "school_count": 35,
       "university_nearby": true,
       "public_transport_score": 6,
-      "risk_level": "faible"
+      "risk_level": "faible",
+      "natural_risks": [{"type": "inondation", "level": "moyen"}]
     }
   }
 }`;
@@ -160,9 +166,13 @@ Format JSON attendu :
       "avg_purchase_price_per_m2": <number|null>,
       "median_purchase_price_per_m2": <number|null>,
       "transaction_count": <number|null>,
+      "price_trend_pct": <number en % annuel, peut être négatif|null>,
       "avg_rent_per_m2": <number|null>,
       "avg_rent_furnished_per_m2": <number|null>,
       "vacancy_rate": <number en %|null>,
+      "typical_cashflow_per_m2": <number €/m²/mois, négatif si marché tendu|null>,
+      "rent_elasticity_alpha": <number 0.6-0.8, exposant dégressivité loyer/surface|null>,
+      "rent_reference_surface": <number m², surface de référence du loyer moyen|null>,
       "avg_condo_charges_per_m2": <number|null>,
       "avg_property_tax_per_m2": <number|null>,
       "avg_airbnb_night_price": <number|null>,
@@ -175,7 +185,8 @@ Format JSON attendu :
       "school_count": <number|null>,
       "university_nearby": <boolean|null>,
       "public_transport_score": <1-10|null>,
-      "risk_level": <"faible"|"moyen"|"élevé"|null>
+      "risk_level": <"faible"|"moyen"|"élevé"|null>,
+      "natural_risks": [{"type": "<type de risque>", "level": "<faible|moyen|élevé>"}]
     }
   }
 }
@@ -468,13 +479,28 @@ function LocalityNode({
 const EXAMPLE_JSON = `{
   "avg_purchase_price_per_m2": 2500,
   "median_purchase_price_per_m2": 2300,
+  "transaction_count": 450,
+  "price_trend_pct": -1.2,
   "avg_rent_per_m2": 10.5,
+  "avg_rent_furnished_per_m2": 13,
   "vacancy_rate": 7,
+  "typical_cashflow_per_m2": -2.5,
+  "rent_elasticity_alpha": 0.72,
+  "rent_reference_surface": 45,
   "avg_condo_charges_per_m2": 2.5,
   "avg_property_tax_per_m2": 12,
+  "avg_airbnb_night_price": 65,
+  "avg_airbnb_occupancy_rate": 55,
   "population": 50000,
+  "population_growth_pct": 0.3,
   "median_income": 21000,
-  "unemployment_rate": 9.5
+  "poverty_rate": 15,
+  "unemployment_rate": 9.5,
+  "school_count": 35,
+  "university_nearby": true,
+  "public_transport_score": 6,
+  "risk_level": "faible",
+  "natural_risks": [{"type": "inondation", "level": "moyen"}]
 }`;
 
 function DataImportForm({
