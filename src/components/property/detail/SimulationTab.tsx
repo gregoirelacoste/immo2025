@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Property } from "@/domains/property/types";
 import { Simulation } from "@/domains/simulation/types";
+import type { LocalityDataFields } from "@/domains/locality/types";
 import { duplicateSimulation, removeSimulation, createDefaultSimulationAction, resyncSimulationsAction } from "@/domains/simulation/actions";
 import { setActiveSimulationAction } from "@/domains/property/actions";
+import { fetchLocalityFields } from "@/domains/locality/actions";
 import { buildSystemSimulation } from "@/domains/simulation/system";
 import SimulationCard from "./SimulationCard";
 import SimulationEditor from "./SimulationEditor";
@@ -18,7 +20,19 @@ interface Props {
 
 export default function SimulationTab({ property, simulations, isOwner }: Props) {
   const router = useRouter();
-  const systemSim = buildSystemSimulation(property);
+  const [localityFields, setLocalityFields] = useState<LocalityDataFields | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const result = await fetchLocalityFields(property.city, property.postal_code || undefined);
+      if (!cancelled && result) setLocalityFields(result.fields);
+    }
+    if (property.city) load();
+    return () => { cancelled = true; };
+  }, [property.city, property.postal_code]);
+
+  const systemSim = buildSystemSimulation(property, localityFields);
 
   // Determine initial active card: system sim or a user sim
   const activeSimId = property.active_simulation_id || "__system__";

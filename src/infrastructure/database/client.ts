@@ -218,6 +218,7 @@ async function initializeDatabase(client: Client): Promise<void> {
     "ALTER TABLE properties ADD COLUMN travaux_overrides TEXT DEFAULT '{}'",
     "ALTER TABLE properties ADD COLUMN equipment_costs TEXT DEFAULT '{}'",
     "ALTER TABLE properties ADD COLUMN rent_mode TEXT NOT NULL DEFAULT 'auto'",
+    "ALTER TABLE locality_prices ADD COLUMN price_trend_pct REAL DEFAULT NULL",
   ];
   const migrationErrors: Array<{ stmt: string; error: unknown }> = [];
   await Promise.all(
@@ -424,12 +425,12 @@ async function initializeDatabase(client: Client): Promise<void> {
       try { fields = JSON.parse(row.data as string); } catch { continue; }
 
       // Prices
-      if (fields.avg_purchase_price_per_m2 != null || fields.median_purchase_price_per_m2 != null || fields.transaction_count != null) {
+      if (fields.avg_purchase_price_per_m2 != null || fields.median_purchase_price_per_m2 != null || fields.transaction_count != null || fields.price_trend_pct != null) {
         try {
           await client.execute({
-            sql: `INSERT OR IGNORE INTO locality_prices (locality_id, valid_from, avg_purchase_price_per_m2, median_purchase_price_per_m2, transaction_count, source)
-                  VALUES (?, ?, ?, ?, ?, ?)`,
-            args: [locId, validFrom, (fields.avg_purchase_price_per_m2 as number) ?? null, (fields.median_purchase_price_per_m2 as number) ?? null, (fields.transaction_count as number) ?? null, source],
+            sql: `INSERT OR IGNORE INTO locality_prices (locality_id, valid_from, avg_purchase_price_per_m2, median_purchase_price_per_m2, transaction_count, price_trend_pct, source)
+                  VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            args: [locId, validFrom, (fields.avg_purchase_price_per_m2 as number) ?? null, (fields.median_purchase_price_per_m2 as number) ?? null, (fields.transaction_count as number) ?? null, (fields.price_trend_pct as number) ?? null, source],
           });
         } catch { /* skip duplicates */ }
       }
