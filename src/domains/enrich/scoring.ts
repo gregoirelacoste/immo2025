@@ -49,23 +49,60 @@ function scoreNetYield(netYield: number, marketData: MarketData | null, purchase
 
 /**
  * Monthly cashflow: 0-15 pts
- * Relative to project cost to normalize across price ranges.
- * Also considers absolute cashflow.
+ * 3 composantes :
+ *  - Absolue (0-5 pts) : cashflow brut, indulgent autour de 0
+ *  - Relative au coût projet (0-5 pts) : normalise par prix du bien
+ *  - Relative au marché local (0-5 pts) : compare au cashflow typique de la ville
+ *
+ * Le cashflow typique local est estimé à partir du loyer/m² et prix/m² du marché.
+ * Dans les villes où le cashflow est structurellement négatif (prix élevés),
+ * un cashflow légèrement négatif reste bien noté s'il est meilleur que la moyenne locale.
  */
-function scoreCashflow(monthlyCashflow: number, totalProjectCost: number): number {
-  // Absolute cashflow score (0-8 pts): -200€ → 0, +300€ → 8
-  const absoluteScore = lerp(monthlyCashflow, -200, 300, 8);
+function scoreCashflow(
+  monthlyCashflow: number,
+  totalProjectCost: number,
+  surface: number,
+  marketData: MarketData | null
+): number {
+  // 1) Absolute cashflow score (0-5 pts)
+  // Plus indulgent : -100€ → 2 pts (pas 0), 0€ → 3.5 pts, +200€ → 5 pts
+  const absoluteScore = lerp(monthlyCashflow, -300, 200, 5);
 
-  // Relative cashflow score (0-7 pts): cashflow as % of monthly project cost
-  // (annualized: cashflow×12 / totalProjectCost × 100)
-  let relativeScore = 3.5; // neutral
+  // 2) Relative to project cost (0-5 pts) : cashflow yield annualisé
+  let relativeScore = 2.5; // neutral
   if (totalProjectCost > 0) {
     const cashflowYield = (monthlyCashflow * 12 / totalProjectCost) * 100;
-    // -1% → 0 pts, +2% → 7 pts
-    relativeScore = lerp(cashflowYield, -1, 2, 7);
+    // -2% → 0 pts, +1.5% → 5 pts
+    relativeScore = lerp(cashflowYield, -2, 1.5, 5);
   }
 
-  return Math.min(15, Math.round((absoluteScore + relativeScore) * 10) / 10);
+  // 3) Local market comparison (0-5 pts)
+  // Estime le cashflow typique de la ville à partir de rent/m² et price/m²
+  let localScore = 2.5; // neutral if no data
+  if (marketData?.avgRentPerM2 && marketData.medianPurchasePricePerM2 && surface > 0) {
+    // Cashflow typique local simplifié :
+    // loyer mensuel typique = rent/m² × surface × 0.9 (vacance)
+    const typicalMonthlyRent = marketData.avgRentPerM2 * surface * 0.9;
+    // prix typique = price/m² × surface × 1.08 (frais notaire + frais)
+    const typicalTotalCost = marketData.medianPurchasePricePerM2 * surface * 1.08;
+    // mensualité typique sur 20 ans à 3.5% + assurance 0.34%
+    const refMonthlyRate = 3.5 / 100 / 12;
+    const refMonths = 20 * 12;
+    const typicalPayment = (typicalTotalCost * refMonthlyRate * Math.pow(1 + refMonthlyRate, refMonths))
+      / (Math.pow(1 + refMonthlyRate, refMonths) - 1);
+    const typicalInsurance = typicalTotalCost * (0.34 / 100) / 12;
+    // charges typiques (copro + taxe foncière) estimées
+    const typicalCharges = (marketData.avgCondoChargesPerM2 ?? 15) * surface / 12
+      + (marketData.avgPropertyTaxPerM2 ?? 8) * surface / 12;
+    const typicalCashflow = typicalMonthlyRent - typicalPayment - typicalInsurance - typicalCharges;
+
+    // Écart par rapport au cashflow local typique
+    const delta = monthlyCashflow - typicalCashflow;
+    // -150€ pire que local → 0 pts, +150€ mieux que local → 5 pts
+    localScore = lerp(delta, -150, 150, 5);
+  }
+
+  return Math.min(15, Math.round((absoluteScore + relativeScore + localScore) * 10) / 10);
 }
 
 /**
@@ -259,7 +296,7 @@ export function computeInvestmentScore(
 ): InvestmentScoreBreakdown {
   // Financial (50 pts)
   const netYieldScore = scoreNetYield(calcs.net_yield, marketData, property.purchase_price, property.surface);
-  const cashflowScore = scoreCashflow(calcs.monthly_cashflow, calcs.total_project_cost);
+  const cashflowScore = scoreCashflow(calcs.monthly_cashflow, calcs.total_project_cost, property.surface, marketData);
   const priceVsMarketScore = scorePriceVsMarket(property.purchase_price, property.surface, marketData);
   const rentVsMarketScore = scoreRentVsMarket(property.monthly_rent, property.surface, marketData);
   const financialTotal = Math.round((netYieldScore + cashflowScore + priceVsMarketScore + rentVsMarketScore) * 10) / 10;
