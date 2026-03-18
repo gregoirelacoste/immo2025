@@ -6,11 +6,11 @@ import {
   getAllLocalities,
   createLocality,
   deleteLocality,
-  getLocalityDataHistory,
-  createLocalityData,
-  deleteLocalityData,
+  getLocalitySnapshotsBatch,
+  upsertLocalityData,
+  deleteLocalityDataRow,
 } from "@/domains/locality/repository";
-import type { Locality, LocalityData } from "@/domains/locality/types";
+import type { Locality, LocalityDataSnapshot, LocalityTableName, LOCALITY_DATA_FIELD_KEYS, LocalityDataFields } from "@/domains/locality/types";
 import {
   createItem,
   updateItem,
@@ -22,23 +22,13 @@ import type { ReferenceItemType } from "@/domains/reference/types";
 
 export async function adminGetLocalities(): Promise<{
   localities: Locality[];
-  dataMap: Record<string, LocalityData[]>;
+  dataMap: Record<string, LocalityDataSnapshot[]>;
 }> {
   await requireAdmin();
   const localities = await getAllLocalities();
 
-  // Batch-fetch all locality data in one query instead of N+1
   const localityIds = localities.map((l) => l.id);
-  const dataMap: Record<string, LocalityData[]> = {};
-
-  if (localityIds.length > 0) {
-    const { getAllLocalityDataForIds } = await import("@/domains/locality/repository");
-    const allData = await getAllLocalityDataForIds(localityIds);
-    for (const entry of allData) {
-      if (!dataMap[entry.locality_id]) dataMap[entry.locality_id] = [];
-      dataMap[entry.locality_id].push(entry);
-    }
-  }
+  const dataMap = await getLocalitySnapshotsBatch(localityIds);
 
   // Ensure every locality has an entry (even if empty)
   for (const loc of localities) {
@@ -80,11 +70,17 @@ export async function adminDeleteLocality(id: string): Promise<{ success: boolea
 export async function adminCreateLocalityData(data: {
   locality_id: string;
   valid_from: string;
-  data: string;
+  data: string; // JSON of LocalityDataFields
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const userId = await requireAdmin();
-    await createLocalityData({ ...data, created_by: userId });
+    let fields: Partial<LocalityDataFields>;
+    try {
+      fields = JSON.parse(data.data);
+    } catch {
+      return { success: false, error: "JSON invalide" };
+    }
+    await upsertLocalityData(data.locality_id, data.valid_from, fields, userId);
     revalidatePath("/admin");
     return { success: true };
   } catch (e) {
@@ -92,10 +88,14 @@ export async function adminCreateLocalityData(data: {
   }
 }
 
-export async function adminDeleteLocalityData(id: string): Promise<{ success: boolean; error?: string }> {
+export async function adminDeleteLocalityData(
+  table: LocalityTableName,
+  localityId: string,
+  validFrom: string
+): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAdmin();
-    await deleteLocalityData(id);
+    await deleteLocalityDataRow(table, localityId, validFrom);
     revalidatePath("/admin");
     return { success: true };
   } catch (e) {

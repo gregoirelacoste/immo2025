@@ -7,14 +7,14 @@ import {
 import {
   findLocalityByCity,
   getLocalityById,
-  getLatestLocalityDataBatch,
+  getLatestLocalityFieldsBatch,
 } from "./repository";
 
 /**
  * Resolve locality data for a property, with field-by-field fallback up the hierarchy.
  *
  * 1. Find the most specific locality matching the property (by code INSEE, postal code, or city name)
- * 2. Load the latest valid snapshot
+ * 2. Load the latest valid data from all thematic tables
  * 3. For each missing field, walk up the parent chain until found or root reached
  */
 export async function resolveLocalityData(
@@ -37,28 +37,21 @@ export async function resolveLocalityData(
     if (current) chain.push(current);
   }
 
-  // Phase 2: Batch-fetch all locality data snapshots in ONE query
+  // Phase 2: Batch-fetch all locality fields from thematic tables in ONE set of queries
   const chainIds = chain.map((l) => l.id);
-  const dataMap = await getLatestLocalityDataBatch(chainIds);
+  const dataMap = await getLatestLocalityFieldsBatch(chainIds);
 
   // Phase 3: Merge fields from most specific → least specific
   const fields: LocalityDataFields = {};
   const fieldSources: ResolvedLocalityData["fieldSources"] = {};
 
   for (const loc of chain) {
-    const snapshot = dataMap.get(loc.id);
-    if (!snapshot) continue;
-
-    let data: LocalityDataFields;
-    try {
-      data = JSON.parse(snapshot.data);
-    } catch {
-      continue;
-    }
+    const locFields = dataMap.get(loc.id);
+    if (!locFields) continue;
 
     for (const key of LOCALITY_DATA_FIELD_KEYS) {
       if (fields[key] === undefined || fields[key] === null) {
-        const value = data[key];
+        const value = locFields[key];
         if (value !== undefined && value !== null) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (fields as any)[key] = value;

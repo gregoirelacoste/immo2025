@@ -2,11 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Locality, LocalityData, LocalityType } from "@/domains/locality/types";
+import { Locality, LocalityDataSnapshot, LocalityTableName } from "@/domains/locality/types";
 import { addLocality, removeLocality, importLocalityData, removeLocalityData } from "@/domains/locality/actions";
 import Alert from "@/components/ui/Alert";
 
-const TYPE_LABELS: Record<LocalityType, string> = {
+const TYPE_LABELS: Record<string, string> = {
   pays: "Pays",
   region: "Région",
   departement: "Département",
@@ -16,9 +16,19 @@ const TYPE_LABELS: Record<LocalityType, string> = {
   rue: "Rue",
 };
 
+const TABLE_LABELS: Record<LocalityTableName, string> = {
+  locality_prices: "Prix",
+  locality_rental: "Locatif",
+  locality_charges: "Charges",
+  locality_airbnb: "Airbnb",
+  locality_socio: "Socio",
+  locality_infra: "Infra",
+  locality_risks: "Risques",
+};
+
 interface Props {
   localities: Locality[];
-  dataMap: Record<string, LocalityData[]>;
+  dataMap: Record<string, LocalityDataSnapshot[]>;
 }
 
 export default function LocalitiesClient({ localities, dataMap }: Props) {
@@ -194,6 +204,9 @@ function AddLocalityForm({
   const copiedTimer = useRef<ReturnType<typeof setTimeout>>(null);
   useEffect(() => () => { if (copiedTimer.current) clearTimeout(copiedTimer.current); }, []);
 
+  // Suppress unused var warning — localities is available for future parent selection
+  void localities;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -223,7 +236,7 @@ function AddLocalityForm({
         return;
       }
 
-      // If data is provided, import it
+      // If data is provided, import it into thematic tables
       if (data?.fields && result.id) {
         const dataResult = await importLocalityData(
           result.id,
@@ -333,7 +346,7 @@ function LocalityNode({
 }: {
   locality: Locality;
   childrenOf: (id: string) => Locality[];
-  dataMap: Record<string, LocalityData[]>;
+  dataMap: Record<string, LocalityDataSnapshot[]>;
   depth: number;
   expandedLocality: string | null;
   setExpandedLocality: (id: string | null) => void;
@@ -413,10 +426,10 @@ function LocalityNode({
             ) : (
               snapshots.map((snap) => (
                 <SnapshotRow
-                  key={snap.id}
+                  key={`${snap.table_name}-${snap.valid_from}`}
                   snapshot={snap}
                   onDelete={async () => {
-                    const r = await removeLocalityData(snap.id);
+                    const r = await removeLocalityData(snap.table_name, snap.locality_id, snap.valid_from);
                     if (r.success) onDataDeleted();
                     else onError(r.error || "Erreur");
                   }}
@@ -544,42 +557,27 @@ function SnapshotRow({
   snapshot,
   onDelete,
 }: {
-  snapshot: LocalityData;
+  snapshot: LocalityDataSnapshot;
   onDelete: () => void;
 }) {
-  const [showData, setShowData] = useState(false);
-  let data: Record<string, unknown> = {};
-  try { data = JSON.parse(snapshot.data); } catch { /* */ }
-  const fieldCount = Object.keys(data).length;
-
   return (
     <div className="bg-gray-50 rounded-lg p-2">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs">
           <span className="font-medium text-gray-700">{snapshot.valid_from}</span>
-          {snapshot.valid_to && <span className="text-gray-400">→ {snapshot.valid_to}</span>}
-          <span className="text-gray-400">{fieldCount} champs</span>
+          <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium">
+            {TABLE_LABELS[snapshot.table_name]}
+          </span>
+          <span className="text-gray-400">{snapshot.field_count} champ{snapshot.field_count !== 1 ? "s" : ""}</span>
+          {snapshot.source && <span className="text-gray-400">({snapshot.source})</span>}
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setShowData(!showData)}
-            className="px-2 py-0.5 text-xs text-gray-600 hover:text-amber-600 rounded"
-          >
-            {showData ? "Masquer" : "Voir"}
-          </button>
-          <button
-            onClick={onDelete}
-            className="px-2 py-0.5 text-xs text-red-500 hover:bg-red-50 rounded"
-          >
-            Suppr.
-          </button>
-        </div>
+        <button
+          onClick={onDelete}
+          className="px-2 py-0.5 text-xs text-red-500 hover:bg-red-50 rounded"
+        >
+          Suppr.
+        </button>
       </div>
-      {showData && (
-        <pre className="mt-2 text-xs text-gray-600 bg-white rounded p-2 overflow-x-auto">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      )}
     </div>
   );
 }

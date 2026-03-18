@@ -1,11 +1,11 @@
 "use client";
 
 import LocalitiesClient from "@/components/locality/LocalitiesClient";
-import type { Locality, LocalityData } from "@/domains/locality/types";
+import type { Locality, LocalityDataSnapshot } from "@/domains/locality/types";
 
 interface Props {
   localities: Locality[];
-  dataMap: Record<string, LocalityData[]>;
+  dataMap: Record<string, LocalityDataSnapshot[]>;
 }
 
 export default function AdminLocalitiesClient({ localities, dataMap }: Props) {

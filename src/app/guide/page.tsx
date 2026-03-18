@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { getAllLocalities, getLatestLocalityDataBatch } from "@/domains/locality/repository";
-import { LocalityDataFields } from "@/domains/locality/types";
+import { getAllLocalities, getLatestLocalityFieldsBatch } from "@/domains/locality/repository";
 
 export const metadata: Metadata = {
   title: "Guides villes — Investissement immobilier locatif",
@@ -28,18 +27,14 @@ export default async function GuidePage() {
   const localities = await getAllLocalities();
   const cities = localities.filter((l) => l.type === "ville");
 
-  // Batch-fetch toutes les données localité
+  // Batch-fetch toutes les données localité from thematic tables
   const cityIds = cities.map((c) => c.id);
-  const dataMap = await getLatestLocalityDataBatch(cityIds);
+  const fieldsMap = await getLatestLocalityFieldsBatch(cityIds);
 
   // Construire les lignes du tableau
   const rows = cities
     .map((city) => {
-      const snapshot = dataMap.get(city.id);
-      let fields: LocalityDataFields = {};
-      if (snapshot) {
-        try { fields = JSON.parse(snapshot.data); } catch { /* */ }
-      }
+      const fields = fieldsMap.get(city.id) ?? {};
 
       const price = fields.avg_purchase_price_per_m2 ?? null;
       const rent = fields.avg_rent_per_m2 ?? null;

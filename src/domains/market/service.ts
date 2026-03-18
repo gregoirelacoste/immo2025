@@ -32,5 +32,6 @@ export async function getMarketData(
     avgAirbnbOccupancyRate: f.avg_airbnb_occupancy_rate ?? null,
     rentElasticityAlpha: f.rent_elasticity_alpha ?? null,
     rentReferenceSurface: f.rent_reference_surface ?? null,
+    typicalCashflowPerM2: f.typical_cashflow_per_m2 ?? null,
   };
 }
