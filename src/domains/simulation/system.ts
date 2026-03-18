@@ -31,7 +31,7 @@ export function buildSystemSimulation(
   // --- Charges ---
   const condoCharges = property.condo_charges > 0
     ? property.condo_charges
-    : (loc.avg_condo_charges_per_m2 && surface > 0 ? Math.round(loc.avg_condo_charges_per_m2 * surface) : 0);
+    : (loc.avg_condo_charges_per_m2 && surface > 0 ? Math.round(loc.avg_condo_charges_per_m2 * surface * 12) : 0);
 
   const propertyTax = property.property_tax > 0
     ? property.property_tax

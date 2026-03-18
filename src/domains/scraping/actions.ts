@@ -152,7 +152,7 @@ export async function scrapeAndSaveProperty(
           prefill.property_tax = { source: src, value: propertyTax };
         }
         if (condoCharges === 0 && f.avg_condo_charges_per_m2) {
-          condoCharges = Math.round(f.avg_condo_charges_per_m2 * surface);
+          condoCharges = Math.round(f.avg_condo_charges_per_m2 * surface * 12);
           prefill.condo_charges = { source: src, value: condoCharges };
         }
       }
@@ -334,7 +334,7 @@ export async function createPropertyFromText(
             prefill.property_tax = { source: src, value: propertyTax };
           }
           if (condoCharges === 0 && f.avg_condo_charges_per_m2) {
-            condoCharges = Math.round(f.avg_condo_charges_per_m2 * surface);
+            condoCharges = Math.round(f.avg_condo_charges_per_m2 * surface * 12);
             prefill.condo_charges = { source: src, value: condoCharges };
           }
         }

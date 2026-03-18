@@ -95,7 +95,7 @@ export function applyMarketDataToPrefill(
   // condo_charges: use real local data if available, otherwise estimate
   if (!prefill.condo_charges) {
     if (market.avgCondoChargesPerM2) {
-      condoCharges = Math.round(market.avgCondoChargesPerM2 * surface);
+      condoCharges = Math.round(market.avgCondoChargesPerM2 * surface * 12);
       prefill.condo_charges = { source: "Données locales (charges copro)", value: condoCharges };
     } else if (propertyType === "ancien") {
       condoCharges = Math.round(surface * 30);
