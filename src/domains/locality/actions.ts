@@ -10,7 +10,10 @@ import {
   deleteLocalityDataRow,
   getLocalityById,
   getSnapshotFields,
+  findLocalityByCity,
+  getRootLocalities,
 } from "./repository";
+import { fetchGeoCity } from "@/infrastructure/data-sources/geo-client";
 import { resolveLocalityData } from "./resolver";
 import {
   LOCALITY_TYPES,
@@ -54,7 +57,6 @@ export async function addAndEnrichLocality(
     if (!cityName.trim()) return { success: false, error: "Le nom de la ville est requis." };
 
     // Check if already exists
-    const { findLocalityByCity, getRootLocalities } = await import("./repository");
     const existing = await findLocalityByCity(cityName.trim());
     if (existing) {
       // Already exists — just enrich
@@ -65,7 +67,6 @@ export async function addAndEnrichLocality(
     }
 
     // Resolve via geo API
-    const { fetchGeoCity } = await import("@/infrastructure/data-sources/geo-client");
     const geo = await fetchGeoCity(cityName.trim());
     if (!geo) return { success: false, error: `Ville "${cityName}" introuvable via geo.api.gouv.fr.` };
 
