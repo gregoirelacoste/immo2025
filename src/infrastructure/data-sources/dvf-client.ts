@@ -1,31 +1,26 @@
 /**
  * DVF (Demandes de Valeurs Foncières) data collection.
- * Source: api.cquest.org (open data micro-API, no auth required).
+ * Source: Cerema DVF OpenData API (apidf-preprod.cerema.fr) — no auth required.
+ * Fallback from api.cquest.org which is frequently down.
  */
 
 import { DvfCityData } from "./types";
 
-interface DvfMutation {
-  id_mutation: string;
-  date_mutation: string;
-  nature_mutation: string;
-  valeur_fonciere: number;
-  code_postal: string;
-  code_commune: string;
-  nom_commune: string;
-  type_local: string;
-  surface_reelle_bati: number;
-  nombre_pieces_principales: number;
-  longitude: number;
-  latitude: number;
+interface CeremaMutation {
+  datemut: string;
+  valeurfonc: string;
+  sbati: string;
+  libtypbien: string;
+  libnatmut: string;
 }
 
-interface DvfApiResponse {
-  resultats: DvfMutation[];
-  nb_resultats: number;
+interface CeremaResponse {
+  count: number;
+  results: CeremaMutation[];
+  next: string | null;
 }
 
-const DVF_API_BASE = "https://api.cquest.org/dvf";
+const CEREMA_API = "https://apidf-preprod.cerema.fr/dvf_opendata/mutations/";
 
 /**
  * Fetch and aggregate DVF data for a city.
@@ -49,39 +44,43 @@ export async function fetchDvfData(
     lastMutationDate: null,
   };
 
-  const url = new URL(DVF_API_BASE);
-  url.searchParams.set("code_commune", codeInsee);
-  url.searchParams.set("nature_mutation", "Vente");
+  const anneeMin = options?.anneeMin ?? new Date().getFullYear() - 2;
 
-  const response = await fetch(url.toString(), {
-    headers: { "User-Agent": "tiili.io/locality-enrichment/1.0" },
+  // Fetch up to 500 recent sales
+  const params = new URLSearchParams({
+    code_insee: codeInsee,
+    libnatmut: "Vente",
+    anneemut_min: String(anneeMin),
+    page_size: "500",
+    ordering: "-datemut",
+  });
+
+  const res = await fetch(`${CEREMA_API}?${params}`, {
     signal: AbortSignal.timeout(15_000),
   });
 
-  if (!response.ok) {
-    throw new Error(`DVF API ${response.status}: ${response.statusText}`);
+  if (!res.ok) {
+    console.warn(`[dvf-client] ${res.status} for ${codeInsee}`);
+    return empty;
   }
 
-  const data: DvfApiResponse = await response.json();
-  const mutations = data.resultats.filter(
-    (m) => m.surface_reelle_bati > 0 && m.valeur_fonciere > 0
-  );
+  const data: CeremaResponse = await res.json();
+  const mutations = data.results.filter((m) => {
+    const surface = parseFloat(m.sbati);
+    const price = parseFloat(m.valeurfonc);
+    return surface > 0 && price > 0;
+  });
 
-  // Filtrer par année
-  const anneeMin = options?.anneeMin ?? new Date().getFullYear() - 2;
-  const filtered = mutations.filter(
-    (m) => new Date(m.date_mutation).getFullYear() >= anneeMin
-  );
+  if (mutations.length === 0) return empty;
 
-  if (filtered.length === 0) return empty;
-
-  // Calculer prix/m² par mutation
-  const withPrice = filtered.map((m) => ({
+  // Compute price per m²
+  const withPrice = mutations.map((m) => ({
     ...m,
-    pricePerM2: m.valeur_fonciere / m.surface_reelle_bati,
+    pricePerM2: parseFloat(m.valeurfonc) / parseFloat(m.sbati),
+    surface: parseFloat(m.sbati),
   }));
 
-  // Exclure outliers (P5-P95)
+  // Exclude outliers (P5-P95)
   const prices = withPrice.map((m) => m.pricePerM2).sort((a, b) => a - b);
   const p5 = prices[Math.floor(prices.length * 0.05)];
   const p95 = prices[Math.floor(prices.length * 0.95)];
@@ -91,7 +90,6 @@ export async function fetchDvfData(
 
   if (cleaned.length === 0) return empty;
 
-  // Helpers statistiques
   const avg = (arr: number[]) =>
     arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : null;
   const median = (arr: number[]) => {
@@ -104,23 +102,17 @@ export async function fetchDvfData(
   };
   const round = (v: number | null) => (v != null ? Math.round(v) : null);
 
-  // Prix par type de bien
   const allPrices = cleaned.map((m) => m.pricePerM2);
-  const studios = cleaned.filter(
-    (m) => m.type_local === "Appartement" && m.nombre_pieces_principales === 1
-  );
-  const smallApts = cleaned.filter(
-    (m) =>
-      m.type_local === "Appartement" &&
-      m.nombre_pieces_principales >= 2 &&
-      m.nombre_pieces_principales <= 3
-  );
-  const largeApts = cleaned.filter(
-    (m) => m.type_local === "Appartement" && m.nombre_pieces_principales >= 4
-  );
-  const houses = cleaned.filter((m) => m.type_local === "Maison");
 
-  // Tendance 1 an
+  // By property type (Cerema uses libtypbien)
+  const isApt = (m: typeof cleaned[0]) => m.libtypbien?.includes("APPARTEMENT");
+  const isHouse = (m: typeof cleaned[0]) => m.libtypbien?.includes("MAISON");
+  const studios = cleaned.filter((m) => isApt(m) && m.surface <= 35);
+  const smallApts = cleaned.filter((m) => isApt(m) && m.surface > 35 && m.surface <= 70);
+  const largeApts = cleaned.filter((m) => isApt(m) && m.surface > 70);
+  const houses = cleaned.filter((m) => isHouse(m));
+
+  // 1-year trend
   const now = new Date();
   const oneYearAgo = new Date(now);
   oneYearAgo.setFullYear(now.getFullYear() - 1);
@@ -128,11 +120,11 @@ export async function fetchDvfData(
   twoYearsAgo.setFullYear(now.getFullYear() - 2);
 
   const recentPrices = cleaned
-    .filter((m) => new Date(m.date_mutation) >= oneYearAgo)
+    .filter((m) => new Date(m.datemut) >= oneYearAgo)
     .map((m) => m.pricePerM2);
   const previousPrices = cleaned
     .filter((m) => {
-      const d = new Date(m.date_mutation);
+      const d = new Date(m.datemut);
       return d >= twoYearsAgo && d < oneYearAgo;
     })
     .map((m) => m.pricePerM2);
@@ -144,16 +136,10 @@ export async function fetchDvfData(
       ? Math.round(((avgRecent - avgPrevious) / avgPrevious) * 1000) / 10
       : null;
 
-  // Date dernière mutation
-  const sorted = [...filtered].sort(
-    (a, b) =>
-      new Date(b.date_mutation).getTime() - new Date(a.date_mutation).getTime()
-  );
-
   return {
     avgPricePerM2: round(avg(allPrices)),
     medianPricePerM2: round(median(allPrices)),
-    transactionCount: filtered.length,
+    transactionCount: data.count,
     avgPriceStudioPerM2: round(avg(studios.map((m) => m.pricePerM2))),
     avgPriceSmallAptPerM2: round(avg(smallApts.map((m) => m.pricePerM2))),
     avgPriceLargeAptPerM2: round(avg(largeApts.map((m) => m.pricePerM2))),
@@ -161,6 +147,6 @@ export async function fetchDvfData(
     priceTrend1yPct: trend,
     pricePerM2Min: round(p5),
     pricePerM2Max: round(p95),
-    lastMutationDate: sorted[0]?.date_mutation ?? null,
+    lastMutationDate: cleaned[0]?.datemut ?? null,
   };
 }
