@@ -14,6 +14,7 @@ export default function LocaliteTab({ property }: Props) {
   const [loading, setLoading] = useState(true);
   const [cityName, setCityName] = useState<string | null>(null);
   const [fields, setFields] = useState<LocalityDataFields | null>(null);
+  const [dataSources, setDataSources] = useState<Partial<Record<keyof LocalityDataFields, string>>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -24,6 +25,7 @@ export default function LocaliteTab({ property }: Props) {
       if (result) {
         setCityName(result.cityName);
         setFields(result.fields);
+        setDataSources(result.dataSources);
       }
       setLoading(false);
     }
@@ -59,6 +61,7 @@ export default function LocaliteTab({ property }: Props) {
       <LocalityDataView
         cityName={cityName || property.city}
         fields={fields}
+        dataSources={dataSources}
         propertyComparison={{ pricePerM2, rentPerM2 }}
       />
     </div>

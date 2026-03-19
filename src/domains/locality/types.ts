@@ -201,6 +201,8 @@ export interface ResolvedLocalityData {
   fields: LocalityDataFields;
   /** Which locality provided each field (for traceability) */
   fieldSources: Partial<Record<keyof LocalityDataFields, { localityId: string; localityName: string; localityType: LocalityType }>>;
+  /** Which data source provided each field (e.g. "api:dvf", "admin", "import-initial") */
+  dataSources: Partial<Record<keyof LocalityDataFields, string>>;
 }
 
 /**

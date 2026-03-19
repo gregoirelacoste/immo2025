@@ -2,12 +2,14 @@ import {
   Locality,
   LocalityDataFields,
   LOCALITY_DATA_FIELD_KEYS,
+  FIELD_TO_TABLE,
   ResolvedLocalityData,
 } from "./types";
 import {
   findLocalityByCity,
   getLocalityById,
   getLatestLocalityFieldsBatch,
+  getLatestSourcesBatch,
 } from "./repository";
 
 /**
@@ -37,17 +39,23 @@ export async function resolveLocalityData(
     if (current) chain.push(current);
   }
 
-  // Phase 2: Batch-fetch all locality fields from thematic tables in ONE set of queries
+  // Phase 2: Batch-fetch all locality fields + sources from thematic tables
   const chainIds = chain.map((l) => l.id);
-  const dataMap = await getLatestLocalityFieldsBatch(chainIds);
+  const [dataMap, sourcesMap] = await Promise.all([
+    getLatestLocalityFieldsBatch(chainIds),
+    getLatestSourcesBatch(chainIds),
+  ]);
 
   // Phase 3: Merge fields from most specific → least specific
   const fields: LocalityDataFields = {};
   const fieldSources: ResolvedLocalityData["fieldSources"] = {};
+  const dataSources: ResolvedLocalityData["dataSources"] = {};
 
   for (const loc of chain) {
     const locFields = dataMap.get(loc.id);
     if (!locFields) continue;
+
+    const locSources = sourcesMap.get(loc.id);
 
     for (const key of LOCALITY_DATA_FIELD_KEYS) {
       if (fields[key] === undefined || fields[key] === null) {
@@ -60,10 +68,16 @@ export async function resolveLocalityData(
             localityName: loc.name,
             localityType: loc.type,
           };
+          // Track data source (e.g. "api:dvf", "admin", "import-initial")
+          const table = FIELD_TO_TABLE[key];
+          const source = locSources?.get(table);
+          if (source) {
+            dataSources[key] = source;
+          }
         }
       }
     }
   }
 
-  return { locality, fields, fieldSources };
+  return { locality, fields, fieldSources, dataSources };
 }

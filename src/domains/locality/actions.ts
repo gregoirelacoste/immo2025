@@ -25,13 +25,18 @@ import type { EnrichLocalityResult } from "./enrichment/types";
 export async function fetchLocalityFields(
   city: string,
   postalCode?: string
-): Promise<{ cityName: string; fields: LocalityDataFields } | null> {
+): Promise<{
+  cityName: string;
+  fields: LocalityDataFields;
+  dataSources: Partial<Record<keyof LocalityDataFields, string>>;
+} | null> {
   try {
     const resolved = await resolveLocalityData(city, postalCode);
     if (!resolved) return null;
     return {
       cityName: resolved.locality.name,
       fields: resolved.fields,
+      dataSources: resolved.dataSources,
     };
   } catch {
     return null;

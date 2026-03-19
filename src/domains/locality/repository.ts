@@ -262,6 +262,46 @@ export async function getLatestLocalityFieldsBatch(
   return result;
 }
 
+/**
+ * Batch-fetch the source string for each thematic table for multiple localities.
+ * Returns Map<locality_id, Map<table_name, source>>.
+ */
+export async function getLatestSourcesBatch(
+  localityIds: string[],
+  asOfDate?: string
+): Promise<Map<string, Map<LocalityTableName, string>>> {
+  if (localityIds.length === 0) return new Map();
+  const db = await getDb();
+  const date = asOfDate || new Date().toISOString().split("T")[0];
+  const placeholders = localityIds.map(() => "?").join(",");
+
+  const result = new Map<string, Map<LocalityTableName, string>>();
+
+  await Promise.all(
+    LOCALITY_TABLE_NAMES.map(async (table) => {
+      const rows = await db.execute({
+        sql: `SELECT t.locality_id, t.source FROM ${table} t
+              INNER JOIN (
+                SELECT locality_id, MAX(valid_from) as max_vf
+                FROM ${table}
+                WHERE locality_id IN (${placeholders})
+                  AND valid_from <= ?
+                GROUP BY locality_id
+              ) latest ON t.locality_id = latest.locality_id AND t.valid_from = latest.max_vf`,
+        args: [...localityIds, date],
+      });
+      for (const r of rows.rows) {
+        const locId = r.locality_id as string;
+        const source = (r.source as string) || "";
+        if (!result.has(locId)) result.set(locId, new Map());
+        result.get(locId)!.set(table, source);
+      }
+    })
+  );
+
+  return result;
+}
+
 /** Assemble a LocalityDataFields object from individual thematic rows */
 function assembleFields(
   prices?: Record<string, unknown>,

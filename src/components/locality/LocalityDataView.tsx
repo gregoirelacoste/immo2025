@@ -3,6 +3,8 @@ import type { LocalityDataFields } from "@/domains/locality/types";
 interface Props {
   cityName: string;
   fields: LocalityDataFields;
+  /** Data source per field (e.g. "api:dvf", "admin", "import-initial") */
+  dataSources?: Partial<Record<keyof LocalityDataFields, string>>;
   /** Comparaison bien vs marché (optionnel — uniquement sur la page propriété) */
   propertyComparison?: {
     pricePerM2: number | null;
@@ -15,11 +17,45 @@ function fmt(n: number | null | undefined, suffix = ""): string {
   return n.toLocaleString("fr-FR") + suffix;
 }
 
-function DataRow({ label, value }: { label: string; value: string }) {
+/** Human-readable source label */
+const SOURCE_LABELS: Record<string, string> = {
+  "api:dvf": "DVF",
+  "api:insee": "INSEE",
+  "api:georisques": "Géorisques",
+  "api:taxe-fonciere": "DGFiP",
+  "api:dpe": "ADEME",
+  "api:education": "Éducation nat.",
+  "api:health": "BPE INSEE",
+  "admin": "Admin",
+  "import-initial": "Import initial",
+  "blog-ai": "Blog IA",
+};
+
+function sourceLabel(source?: string): string | null {
+  if (!source) return null;
+  if (SOURCE_LABELS[source]) return SOURCE_LABELS[source];
+  if (source.startsWith("import:")) return source.replace("import:", "Import ");
+  return source;
+}
+
+function SourceBadge({ source }: { source?: string }) {
+  const label = sourceLabel(source);
+  if (!label) return null;
   return (
-    <div className="flex justify-between py-2 border-b border-gray-100 last:border-b-0">
+    <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-50 text-blue-600 whitespace-nowrap">
+      {label}
+    </span>
+  );
+}
+
+function DataRow({ label, value, source }: { label: string; value: string; source?: string }) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
       <span className="text-sm text-gray-600">{label}</span>
-      <span className="text-sm font-medium text-gray-900 font-[family-name:var(--font-mono)]">{value}</span>
+      <div className="flex items-center">
+        <span className="text-sm font-medium text-gray-900 font-[family-name:var(--font-mono)]">{value}</span>
+        <SourceBadge source={source} />
+      </div>
     </div>
   );
 }
@@ -66,7 +102,26 @@ function ComparisonRow({ label, propertyValue, marketValue, unit, lowerIsBetter 
   );
 }
 
-export default function LocalityDataView({ cityName, fields: f, propertyComparison }: Props) {
+/** Deduplicated source badges for a section header */
+function SectionSources({ fields, dataSources }: { fields: (keyof LocalityDataFields)[]; dataSources: Partial<Record<keyof LocalityDataFields, string>> }) {
+  const uniqueSources = new Set<string>();
+  for (const key of fields) {
+    const src = dataSources[key];
+    if (src) uniqueSources.add(src);
+  }
+  if (uniqueSources.size === 0) return null;
+  return (
+    <span className="ml-2 inline-flex gap-1">
+      {[...uniqueSources].map((src) => (
+        <span key={src} className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-50 text-blue-600">
+          {sourceLabel(src)}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+export default function LocalityDataView({ cityName, fields: f, dataSources: ds = {}, propertyComparison }: Props) {
   const grossYield =
     f.avg_purchase_price_per_m2 && f.avg_rent_per_m2
       ? Math.round((f.avg_rent_per_m2 * 12 / f.avg_purchase_price_per_m2) * 1000) / 10
@@ -110,75 +165,97 @@ export default function LocalityDataView({ cityName, fields: f, propertyComparis
 
       {/* Marché immobilier */}
       <div className="bg-gray-50 rounded-xl p-4">
-        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Marché immobilier</h3>
-        <DataRow label="Prix moyen au m²" value={fmt(f.avg_purchase_price_per_m2, " €")} />
-        <DataRow label="Prix médian au m²" value={fmt(f.median_purchase_price_per_m2, " €")} />
-        <DataRow label="Transactions" value={fmt(f.transaction_count)} />
+        <div className="flex items-center mb-2">
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Marché immobilier</h3>
+          <SectionSources fields={["avg_purchase_price_per_m2", "median_purchase_price_per_m2", "transaction_count", "price_trend_pct"]} dataSources={ds} />
+        </div>
+        <DataRow label="Prix moyen au m²" value={fmt(f.avg_purchase_price_per_m2, " €")} source={ds.avg_purchase_price_per_m2} />
+        <DataRow label="Prix médian au m²" value={fmt(f.median_purchase_price_per_m2, " €")} source={ds.median_purchase_price_per_m2} />
+        <DataRow label="Transactions" value={fmt(f.transaction_count)} source={ds.transaction_count} />
+        {f.price_trend_pct != null && <DataRow label="Tendance prix (1 an)" value={`${f.price_trend_pct > 0 ? "+" : ""}${f.price_trend_pct} %`} source={ds.price_trend_pct} />}
       </div>
 
       {/* Marché locatif */}
       <div className="bg-gray-50 rounded-xl p-4">
-        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Marché locatif</h3>
-        <DataRow label="Loyer moyen nu (€/m²)" value={fmt(f.avg_rent_per_m2, " €")} />
-        <DataRow label="Loyer meublé (€/m²)" value={fmt(f.avg_rent_furnished_per_m2, " €")} />
-        <DataRow label="Vacance locative" value={f.vacancy_rate != null ? `${f.vacancy_rate} %` : "\u2014"} />
+        <div className="flex items-center mb-2">
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Marché locatif</h3>
+          <SectionSources fields={["avg_rent_per_m2", "avg_rent_furnished_per_m2", "vacancy_rate"]} dataSources={ds} />
+        </div>
+        <DataRow label="Loyer moyen nu (€/m²)" value={fmt(f.avg_rent_per_m2, " €")} source={ds.avg_rent_per_m2} />
+        <DataRow label="Loyer meublé (€/m²)" value={fmt(f.avg_rent_furnished_per_m2, " €")} source={ds.avg_rent_furnished_per_m2} />
+        <DataRow label="Vacance locative" value={f.vacancy_rate != null ? `${f.vacancy_rate} %` : "\u2014"} source={ds.vacancy_rate} />
       </div>
 
       {/* Charges */}
       {(f.avg_condo_charges_per_m2 != null || f.avg_property_tax_per_m2 != null || f.property_tax_rate_pct != null) && (
         <div className="bg-gray-50 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Charges et taxes</h3>
-          <DataRow label="Charges copro/m²" value={fmt(f.avg_condo_charges_per_m2, " €")} />
-          <DataRow label="Taxe foncière/m²" value={fmt(f.avg_property_tax_per_m2, " €")} />
-          {f.property_tax_rate_pct != null && <DataRow label="Taux TFB (%)" value={`${f.property_tax_rate_pct} %`} />}
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Charges et taxes</h3>
+            <SectionSources fields={["avg_condo_charges_per_m2", "avg_property_tax_per_m2", "property_tax_rate_pct"]} dataSources={ds} />
+          </div>
+          <DataRow label="Charges copro/m²" value={fmt(f.avg_condo_charges_per_m2, " €")} source={ds.avg_condo_charges_per_m2} />
+          <DataRow label="Taxe foncière/m²" value={fmt(f.avg_property_tax_per_m2, " €")} source={ds.avg_property_tax_per_m2} />
+          {f.property_tax_rate_pct != null && <DataRow label="Taux TFB (%)" value={`${f.property_tax_rate_pct} %`} source={ds.property_tax_rate_pct} />}
         </div>
       )}
 
       {/* Airbnb */}
       {(f.avg_airbnb_night_price != null || f.avg_airbnb_occupancy_rate != null) && (
         <div className="bg-gray-50 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Location courte durée (Airbnb)</h3>
-          <DataRow label="Prix moyen/nuit" value={fmt(f.avg_airbnb_night_price, " €")} />
-          <DataRow label="Taux d'occupation" value={f.avg_airbnb_occupancy_rate != null ? `${f.avg_airbnb_occupancy_rate} %` : "\u2014"} />
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Location courte durée (Airbnb)</h3>
+            <SectionSources fields={["avg_airbnb_night_price", "avg_airbnb_occupancy_rate"]} dataSources={ds} />
+          </div>
+          <DataRow label="Prix moyen/nuit" value={fmt(f.avg_airbnb_night_price, " €")} source={ds.avg_airbnb_night_price} />
+          <DataRow label="Taux d'occupation" value={f.avg_airbnb_occupancy_rate != null ? `${f.avg_airbnb_occupancy_rate} %` : "\u2014"} source={ds.avg_airbnb_occupancy_rate} />
         </div>
       )}
 
       {/* Socio-économique */}
       <div className="bg-gray-50 rounded-xl p-4">
-        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Démographie et économie</h3>
-        <DataRow label="Population" value={fmt(f.population)} />
+        <div className="flex items-center mb-2">
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Démographie et économie</h3>
+          <SectionSources fields={["population", "median_income", "unemployment_rate", "poverty_rate", "vacant_housing_pct", "owner_occupier_pct"]} dataSources={ds} />
+        </div>
+        <DataRow label="Population" value={fmt(f.population)} source={ds.population} />
         {f.population_growth_pct != null && (
-          <DataRow label="Croissance démographique" value={`${f.population_growth_pct > 0 ? "+" : ""}${f.population_growth_pct} %`} />
+          <DataRow label="Croissance démographique" value={`${f.population_growth_pct > 0 ? "+" : ""}${f.population_growth_pct} %`} source={ds.population_growth_pct} />
         )}
-        <DataRow label="Revenu médian" value={fmt(f.median_income, " €")} />
-        {f.poverty_rate != null && <DataRow label="Taux de pauvreté" value={`${f.poverty_rate} %`} />}
-        {f.unemployment_rate != null && <DataRow label="Taux de chômage" value={`${f.unemployment_rate} %`} />}
-        {f.vacant_housing_pct != null && <DataRow label="Logements vacants" value={`${f.vacant_housing_pct} %`} />}
-        {f.owner_occupier_pct != null && <DataRow label="Propriétaires" value={`${f.owner_occupier_pct} %`} />}
+        <DataRow label="Revenu médian" value={fmt(f.median_income, " €")} source={ds.median_income} />
+        {f.poverty_rate != null && <DataRow label="Taux de pauvreté" value={`${f.poverty_rate} %`} source={ds.poverty_rate} />}
+        {f.unemployment_rate != null && <DataRow label="Taux de chômage" value={`${f.unemployment_rate} %`} source={ds.unemployment_rate} />}
+        {f.vacant_housing_pct != null && <DataRow label="Logements vacants" value={`${f.vacant_housing_pct} %`} source={ds.vacant_housing_pct} />}
+        {f.owner_occupier_pct != null && <DataRow label="Propriétaires" value={`${f.owner_occupier_pct} %`} source={ds.owner_occupier_pct} />}
       </div>
 
       {/* Infrastructure */}
       {(f.school_count || f.public_transport_score != null || f.doctor_count != null || f.pharmacy_count != null || f.supermarket_count != null) && (
         <div className="bg-gray-50 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Infrastructure</h3>
-          <DataRow label="Écoles" value={fmt(f.school_count)} />
-          <DataRow label="Université à proximité" value={f.university_nearby ? "Oui" : f.university_nearby === false ? "Non" : "\u2014"} />
-          {f.public_transport_score != null && <DataRow label="Score transports" value={`${f.public_transport_score}/10`} />}
-          {f.doctor_count != null && <DataRow label="Médecins" value={fmt(f.doctor_count)} />}
-          {f.pharmacy_count != null && <DataRow label="Pharmacies" value={fmt(f.pharmacy_count)} />}
-          {f.supermarket_count != null && <DataRow label="Supermarchés" value={fmt(f.supermarket_count)} />}
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Infrastructure</h3>
+            <SectionSources fields={["school_count", "university_nearby", "doctor_count", "pharmacy_count", "supermarket_count"]} dataSources={ds} />
+          </div>
+          <DataRow label="Écoles" value={fmt(f.school_count)} source={ds.school_count} />
+          <DataRow label="Université à proximité" value={f.university_nearby ? "Oui" : f.university_nearby === false ? "Non" : "\u2014"} source={ds.university_nearby} />
+          {f.public_transport_score != null && <DataRow label="Score transports" value={`${f.public_transport_score}/10`} source={ds.public_transport_score} />}
+          {f.doctor_count != null && <DataRow label="Médecins" value={fmt(f.doctor_count)} source={ds.doctor_count} />}
+          {f.pharmacy_count != null && <DataRow label="Pharmacies" value={fmt(f.pharmacy_count)} source={ds.pharmacy_count} />}
+          {f.supermarket_count != null && <DataRow label="Supermarchés" value={fmt(f.supermarket_count)} source={ds.supermarket_count} />}
         </div>
       )}
 
       {/* Risques */}
       {(f.risk_level || risks.length > 0 || f.flood_risk_level || f.seismic_zone != null || f.radon_level != null || f.industrial_risk != null) && (
         <div className="bg-gray-50 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Risques</h3>
-          {f.risk_level && <DataRow label="Niveau de risque global" value={f.risk_level} />}
-          {f.flood_risk_level && <DataRow label="Inondation" value={f.flood_risk_level} />}
-          {f.seismic_zone != null && <DataRow label="Zone sismique" value={String(f.seismic_zone)} />}
-          {f.radon_level != null && <DataRow label="Radon" value={`Classe ${f.radon_level}`} />}
-          {f.industrial_risk != null && <DataRow label="Risque industriel" value={f.industrial_risk ? "Oui" : "Non"} />}
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Risques</h3>
+            <SectionSources fields={["risk_level", "flood_risk_level", "seismic_zone", "radon_level", "industrial_risk"]} dataSources={ds} />
+          </div>
+          {f.risk_level && <DataRow label="Niveau de risque global" value={f.risk_level} source={ds.risk_level} />}
+          {f.flood_risk_level && <DataRow label="Inondation" value={f.flood_risk_level} source={ds.flood_risk_level} />}
+          {f.seismic_zone != null && <DataRow label="Zone sismique" value={String(f.seismic_zone)} source={ds.seismic_zone} />}
+          {f.radon_level != null && <DataRow label="Radon" value={`Classe ${f.radon_level}`} source={ds.radon_level} />}
+          {f.industrial_risk != null && <DataRow label="Risque industriel" value={f.industrial_risk ? "Oui" : "Non"} source={ds.industrial_risk} />}
           {risks.length > 0 && (
             <div className="mt-2">
               <ul className="text-sm text-gray-700 list-disc list-inside">
@@ -194,11 +271,14 @@ export default function LocalityDataView({ cityName, fields: f, propertyComparis
       {/* Énergie (DPE) */}
       {(f.avg_dpe_class || f.avg_energy_consumption != null || f.avg_ges_class || f.dpe_count != null) && (
         <div className="bg-gray-50 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Énergie</h3>
-          {f.avg_dpe_class && <DataRow label="Classe DPE moy." value={f.avg_dpe_class} />}
-          {f.avg_energy_consumption != null && <DataRow label="Conso énergie (kWh/m²)" value={fmt(f.avg_energy_consumption)} />}
-          {f.avg_ges_class && <DataRow label="Classe GES moy." value={f.avg_ges_class} />}
-          {f.dpe_count != null && <DataRow label="Nb DPE analysés" value={fmt(f.dpe_count)} />}
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Énergie</h3>
+            <SectionSources fields={["avg_dpe_class", "avg_energy_consumption", "avg_ges_class", "dpe_count"]} dataSources={ds} />
+          </div>
+          {f.avg_dpe_class && <DataRow label="Classe DPE moy." value={f.avg_dpe_class} source={ds.avg_dpe_class} />}
+          {f.avg_energy_consumption != null && <DataRow label="Conso énergie (kWh/m²)" value={fmt(f.avg_energy_consumption)} source={ds.avg_energy_consumption} />}
+          {f.avg_ges_class && <DataRow label="Classe GES moy." value={f.avg_ges_class} source={ds.avg_ges_class} />}
+          {f.dpe_count != null && <DataRow label="Nb DPE analysés" value={fmt(f.dpe_count)} source={ds.dpe_count} />}
         </div>
       )}
     </div>
