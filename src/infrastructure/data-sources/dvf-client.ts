@@ -46,18 +46,18 @@ export async function fetchDvfData(
 
   const anneeMin = options?.anneeMin ?? new Date().getFullYear() - 2;
 
-  // Fetch up to 500 recent sales
+  // Fetch up to 200 recent sales (2 pages of 100 to stay under timeout)
   const params = new URLSearchParams({
     code_insee: codeInsee,
     libnatmut: "Vente",
     anneemut_min: String(anneeMin),
-    page_size: "500",
+    page_size: "100",
     ordering: "-datemut",
   });
 
   const url = `${CEREMA_API}?${params}`;
   const res = await fetch(url, {
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!res.ok) {
@@ -65,7 +65,24 @@ export async function fetchDvfData(
   }
 
   const data: CeremaResponse = await res.json();
-  const mutations = data.results.filter((m) => {
+  let allResults = data.results;
+
+  // Fetch page 2 if available (get up to 200 mutations total)
+  if (data.next) {
+    try {
+      const res2 = await fetch(data.next.replace("http://", "https://"), {
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (res2.ok) {
+        const data2: CeremaResponse = await res2.json();
+        allResults = [...allResults, ...data2.results];
+      }
+    } catch {
+      // Non-blocking — first page is enough
+    }
+  }
+
+  const mutations = allResults.filter((m) => {
     const surface = parseFloat(m.sbati);
     const price = parseFloat(m.valeurfonc);
     return surface > 0 && price > 0;

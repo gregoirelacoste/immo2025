@@ -1,170 +1,162 @@
 /**
- * INSEE socio-economic data collection (Données Locales).
- * Source: api.insee.fr — requires OAuth2 authentication.
- *
- * Required env vars: INSEE_CONSUMER_KEY, INSEE_CONSUMER_SECRET
+ * INSEE socio-economic data collection via Melodi API.
+ * Source: api.insee.fr/melodi — open access, no auth required.
+ * Rate limit: 30 requests/minute.
  */
 
 import { InseeCityData } from "./types";
 
-interface InseeTokenResponse {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-}
-
-interface InseeCellule {
-  Zone: { codgeo: string; libgeo: string };
-  Mesure: { code: string; libelle: string };
-  Modalite: { code: string; libelle: string };
-  ValeurCellule: string;
-  Millesime: string;
-}
-
-interface InseeDonneesResponse {
-  Cellule: InseeCellule[];
-}
-
-const INSEE_API_BASE = "https://api.insee.fr/donnees-locales/V0.1";
-const INSEE_TOKEN_URL = "https://api.insee.fr/token";
-
-let cachedToken: { token: string; expiresAt: number } | null = null;
-
-/** Check if INSEE credentials are configured */
-export function isInseeConfigured(): boolean {
-  return !!(process.env.INSEE_CONSUMER_KEY && process.env.INSEE_CONSUMER_SECRET);
-}
-
-async function getInseeToken(): Promise<string> {
-  if (cachedToken && Date.now() < cachedToken.expiresAt - 60_000) {
-    return cachedToken.token;
-  }
-
-  const key = process.env.INSEE_CONSUMER_KEY;
-  const secret = process.env.INSEE_CONSUMER_SECRET;
-  if (!key || !secret) {
-    throw new Error("INSEE_CONSUMER_KEY ou INSEE_CONSUMER_SECRET manquante");
-  }
-
-  const credentials = Buffer.from(`${key}:${secret}`).toString("base64");
-  const response = await fetch(INSEE_TOKEN_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
-    signal: AbortSignal.timeout(10_000),
-  });
-
-  if (!response.ok) {
-    throw new Error(`INSEE token error: ${response.status}`);
-  }
-
-  const data: InseeTokenResponse = await response.json();
-  cachedToken = {
-    token: data.access_token,
-    expiresAt: Date.now() + data.expires_in * 1000,
+interface MelodiObservation {
+  dimensions: Record<string, string>;
+  measures: {
+    OBS_VALUE_NIVEAU: { value: number | null };
   };
-  return cachedToken.token;
 }
 
-async function fetchCroisement(
-  source: string,
-  croisement: string,
-  codeGeo: string
-): Promise<InseeCellule[]> {
-  const token = await getInseeToken();
-  const url = `${INSEE_API_BASE}/donnees/geo-${source}@${croisement}/COM-${codeGeo}`;
+interface MelodiResponse {
+  observations: MelodiObservation[];
+  identifier: string;
+}
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-    },
+const MELODI_BASE = "https://api.insee.fr/melodi/data";
+
+async function fetchMelodiDataset(
+  dataset: string,
+  codeInsee: string
+): Promise<MelodiObservation[]> {
+  const url = `${MELODI_BASE}/${dataset}?GEO=COM-${codeInsee}`;
+  const res = await fetch(url, {
     signal: AbortSignal.timeout(15_000),
   });
-
-  if (!response.ok) {
-    if (response.status === 404) return [];
-    throw new Error(`INSEE API ${response.status}: ${url}`);
-  }
-
-  const data: InseeDonneesResponse = await response.json();
-  return data.Cellule ?? [];
+  if (!res.ok) return [];
+  const data: MelodiResponse = await res.json();
+  return data.observations ?? [];
 }
 
-function extractValue(
-  cells: InseeCellule[],
-  mesureCode: string,
-  modaliteCode?: string
+function findValue(
+  observations: MelodiObservation[],
+  measureCode: string,
+  filters?: Record<string, string>
 ): number | null {
-  const cell = cells.find(
-    (c) =>
-      c.Mesure.code === mesureCode &&
-      (!modaliteCode || c.Modalite.code === modaliteCode)
-  );
-  if (!cell) return null;
-  const v = parseFloat(cell.ValeurCellule);
-  return isNaN(v) ? null : v;
+  const match = observations.find((o) => {
+    const dims = o.dimensions;
+    // Check measure dimension (various dataset-specific dimension names)
+    const matchesMeasure = Object.values(dims).includes(measureCode);
+    if (!matchesMeasure) return false;
+    // Check additional filters
+    if (filters) {
+      for (const [key, val] of Object.entries(filters)) {
+        if (dims[key] !== val) return false;
+      }
+    }
+    return true;
+  });
+  return match?.measures?.OBS_VALUE_NIVEAU?.value ?? null;
+}
+
+/** @deprecated — INSEE Melodi is open access, no credentials needed */
+export function isInseeConfigured(): boolean {
+  return true;
 }
 
 /**
- * Fetch INSEE socio-economic data for a city.
- * Returns null if credentials are not configured.
+ * Fetch INSEE socio-economic data for a city via Melodi API.
+ * No auth required — open access with 30 req/min limit.
  */
 export async function fetchInseeData(
   codeInsee: string
 ): Promise<InseeCityData | null> {
-  if (!isInseeConfigured()) return null;
+  try {
+    // Fetch 3 datasets in parallel: population, income/poverty, housing
+    const [popObs, filosofiObs, logementObs, emploiObs] = await Promise.allSettled([
+      fetchMelodiDataset("DS_POPULATIONS_REFERENCE", codeInsee),
+      fetchMelodiDataset("DS_FILOSOFI_CC", codeInsee),
+      fetchMelodiDataset("DS_RP_LOGEMENT_PRINC", codeInsee),
+      fetchMelodiDataset("DS_RP_EMPLOI_LR_PRINC", codeInsee),
+    ]);
 
-  const [popCells, logCells, revCells, actCells] = await Promise.allSettled([
-    fetchCroisement("GEO2021RP2020", "POPLEG-POPLEG", codeInsee),
-    fetchCroisement("GEO2021RP2020", "LOG-T1", codeInsee),
-    fetchCroisement("GEO2021FILOSOFI2020", "REVDISP-MEDDISP", codeInsee),
-    fetchCroisement("GEO2021RP2020", "ACT-T1", codeInsee),
-  ]);
+    const safe = <T>(r: PromiseSettledResult<T>): T | null =>
+      r.status === "fulfilled" ? r.value : null;
 
-  const safe = <T>(r: PromiseSettledResult<T>): T | null =>
-    r.status === "fulfilled" ? r.value : null;
+    const pop = safe(popObs) ?? [];
+    const filosofi = safe(filosofiObs) ?? [];
+    const logement = safe(logementObs) ?? [];
+    const emploi = safe(emploiObs) ?? [];
 
-  const pop = safe(popCells) ?? [];
-  const log = safe(logCells) ?? [];
-  const rev = safe(revCells) ?? [];
-  const act = safe(actCells) ?? [];
+    // Population (DS_POPULATIONS_REFERENCE)
+    const population = findValue(pop, "PMUN");
 
-  const population = extractValue(pop, "POP_T", "ENS");
-  const totalLogements = extractValue(log, "LOG_T1", "ENS");
-  const logVacants = extractValue(log, "LOG_T1", "3");
-  const logProp = extractValue(log, "LOG_T7", "10");
-  const medianIncome = extractValue(rev, "MED", "ENS");
-  const povertyRate = extractValue(rev, "TP60", "ENS");
-  const actifs = extractValue(act, "ACT_T1", "11");
-  const chomeurs = extractValue(act, "ACT_T1", "12");
+    // Income & poverty (DS_FILOSOFI_CC)
+    const medianIncome = findValue(filosofi, "MED_SL");
+    const povertyRate = findValue(filosofi, "PR_MD60");
+    const numHouseholds = findValue(filosofi, "NUM_HH");
 
-  const unemploymentRate =
-    actifs != null && chomeurs != null && actifs + chomeurs > 0
-      ? Math.round((chomeurs / (actifs + chomeurs)) * 1000) / 10
-      : null;
+    // Housing (DS_RP_LOGEMENT_PRINC)
+    // Total dwellings: OCS=_T (all), TSH=_T, TDW=_T, all other dims = _T
+    const totalDwellings = findValue(logement, "DWELLINGS", {
+      OCS: "_T",  // no occupation filter (should not exist for total)
+    });
+    // Vacant: OCS=DW_VAC
+    const vacantDwellings = findValue(logement, "DWELLINGS", {
+      OCS: "DW_VAC",
+    });
+    // Main residence (owner-occupied): TSH=OWN
+    const ownerDwellings = findValue(logement, "DWELLINGS", {
+      OCS: "DW_MAIN",
+      TSH: "OWN",
+    });
+    const mainDwellings = findValue(logement, "DWELLINGS", {
+      OCS: "DW_MAIN",
+      TSH: "_T",
+    });
 
-  return {
-    population,
-    medianIncome,
-    povertyRate,
-    unemploymentRate,
-    vacantHousingPct:
-      totalLogements && logVacants
-        ? Math.round((logVacants / totalLogements) * 1000) / 10
-        : null,
-    ownerOccupierPct:
-      totalLogements && logProp
-        ? Math.round((logProp / totalLogements) * 1000) / 10
-        : null,
-    housingStockCount: totalLogements,
-    householdSizeAvg: null,
-    studentPopulationPct: null,
-    seniorPopulationPct: null,
-    totalJobs: null,
-    millesime: pop[0]?.Millesime ?? null,
-  };
+    // Employment (DS_RP_EMPLOI_LR_PRINC)
+    // Total active 15+: EMPSTA_ENQ=_T, SEX=_T, AGE=Y_GE15
+    const totalActive = findValue(emploi, "POP", {
+      EMPSTA_ENQ: "_T",
+      SEX: "_T",
+      AGE: "Y_GE15",
+    });
+    // Unemployed (ILO definition): EMPSTA_ENQ=2, SEX=_T, AGE=Y_GE15
+    const unemployed = findValue(emploi, "POP", {
+      EMPSTA_ENQ: "2",
+      SEX: "_T",
+      AGE: "Y_GE15",
+    });
+
+    const unemploymentRate =
+      totalActive != null && unemployed != null && totalActive > 0
+        ? Math.round((unemployed / totalActive) * 1000) / 10
+        : null;
+
+    // Compute vacancy and owner-occupancy rates
+    const totalForVacancy = totalDwellings ??
+      ((mainDwellings ?? 0) + (vacantDwellings ?? 0));
+    const vacantHousingPct =
+      totalForVacancy > 0 && vacantDwellings != null
+        ? Math.round((vacantDwellings / totalForVacancy) * 1000) / 10
+        : null;
+
+    const ownerOccupierPct =
+      mainDwellings != null && mainDwellings > 0 && ownerDwellings != null
+        ? Math.round((ownerDwellings / mainDwellings) * 1000) / 10
+        : null;
+
+    return {
+      population: population != null ? Math.round(population) : null,
+      medianIncome,
+      povertyRate,
+      unemploymentRate,
+      vacantHousingPct,
+      ownerOccupierPct,
+      housingStockCount: totalDwellings != null ? Math.round(totalDwellings) : null,
+      householdSizeAvg: null,
+      studentPopulationPct: null,
+      seniorPopulationPct: null,
+      totalJobs: null,
+      millesime: pop[0]?.dimensions?.TIME_PERIOD ?? null,
+    };
+  } catch {
+    return null;
+  }
 }
