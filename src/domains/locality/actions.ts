@@ -24,6 +24,41 @@ import {
 import { enrichLocality } from "./enrichment/pipeline";
 import type { EnrichLocalityResult } from "./enrichment/types";
 
+// ─── Public action: check if a locality exists in DB ───
+
+export async function checkLocalityExists(
+  name: string,
+  type: "ville" | "quartier",
+  parentId?: string
+): Promise<{ found: boolean; name?: string; postalCodes?: string[] } | null> {
+  try {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+
+    if (type === "ville") {
+      const loc = await findLocalityByCity(trimmed);
+      if (!loc) return { found: false };
+      const postalCodes = (() => {
+        try { return JSON.parse(loc.postal_codes); } catch { return []; }
+      })();
+      return { found: true, name: loc.name, postalCodes };
+    }
+
+    // Quartier: search by name + parent_id
+    if (!parentId) return { found: false };
+    const db = await (await import("@/infrastructure/database/client")).getDb();
+    const result = await db.execute({
+      sql: "SELECT * FROM localities WHERE LOWER(name) = LOWER(?) AND parent_id = ? AND type = 'quartier' LIMIT 1",
+      args: [trimmed, parentId],
+    });
+    if (!result.rows[0]) return { found: false };
+    const row = result.rows[0];
+    return { found: true, name: row.name as string };
+  } catch {
+    return null;
+  }
+}
+
 // ─── Public action: fetch locality data for a city ───
 
 export async function fetchLocalityFields(

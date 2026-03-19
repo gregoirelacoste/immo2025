@@ -1,7 +1,10 @@
+"use client";
+
 import { ReactNode } from "react";
 import { PropertyFormData } from "@/domains/property/types";
 import { formatCurrency } from "@/lib/calculations";
 import FieldTooltip from "@/components/ui/FieldTooltip";
+import { useLocalityCheck } from "./useLocalityCheck";
 
 interface Props {
   form: PropertyFormData;
@@ -16,9 +19,21 @@ const selectClass =
   "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px] bg-white";
 const valueClass = "text-base font-medium text-[#1a1a2e] py-2";
 
+function LocalityBadge({ status }: { status: "unknown" | "checking" | "found" | "not-found" }) {
+  if (status === "unknown") return null;
+  if (status === "checking") {
+    return <span className="ml-2 inline-block w-3 h-3 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />;
+  }
+  if (status === "found") {
+    return <span className="ml-2 text-xs text-green-600" title="Ville connue">✓</span>;
+  }
+  return <span className="ml-2 text-xs text-gray-400" title="Ville inconnue">?</span>;
+}
+
 export default function PropertyInfoSection({ form, onChange, prefillHint }: Props) {
   const dpe = form.dpe_rating;
   const isDpeAlert = dpe === "F" || dpe === "G";
+  const { cityStatus, neighborhoodStatus, checkCity, checkNeighborhood } = useLocalityCheck(form.city, form.neighborhood ?? "");
 
   return (
     <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
@@ -36,22 +51,24 @@ export default function PropertyInfoSection({ form, onChange, prefillHint }: Pro
           {prefillHint("address")}
         </div>
         <div>
-          <label className={labelClass}>Ville</label>
+          <label className={labelClass}>Ville<LocalityBadge status={cityStatus} /></label>
           <input
             type="text"
             value={form.city}
             onChange={(e) => onChange("city", e.target.value)}
+            onBlur={checkCity}
             className={inputClass}
             placeholder="Paris"
           />
           {prefillHint("city")}
         </div>
         <div>
-          <label className={labelClass}>Quartier</label>
+          <label className={labelClass}>Quartier<LocalityBadge status={neighborhoodStatus} /></label>
           <input
             type="text"
             value={form.neighborhood}
             onChange={(e) => onChange("neighborhood", e.target.value)}
+            onBlur={checkNeighborhood}
             className={inputClass}
             placeholder="Centre historique"
           />
