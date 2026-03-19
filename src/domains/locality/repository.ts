@@ -429,6 +429,30 @@ export async function upsertLocalityData(
 }
 
 /**
+ * Get the raw field values for a specific snapshot row.
+ * Returns key-value pairs excluding meta columns (locality_id, valid_from, source, created_at).
+ */
+export async function getSnapshotFields(
+  table: LocalityTableName,
+  localityId: string,
+  validFrom: string
+): Promise<Record<string, unknown> | undefined> {
+  const db = await getDb();
+  const result = await db.execute({
+    sql: `SELECT * FROM ${table} WHERE locality_id = ? AND valid_from = ?`,
+    args: [localityId, validFrom],
+  });
+  if (!result.rows[0]) return undefined;
+  const row = result.rows[0];
+  const meta = new Set(["locality_id", "valid_from", "source", "created_at"]);
+  const fields: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(row)) {
+    if (!meta.has(key)) fields[key] = val;
+  }
+  return fields;
+}
+
+/**
  * Delete all data for a locality from a specific table and date.
  */
 export async function deleteLocalityDataRow(

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Locality, LocalityDataSnapshot, LocalityTableName } from "@/domains/locality/types";
-import { addLocality, removeLocality, importLocalityData, removeLocalityData, enrichLocalityAction } from "@/domains/locality/actions";
+import { addLocality, removeLocality, importLocalityData, removeLocalityData, enrichLocalityAction, fetchSnapshotFields } from "@/domains/locality/actions";
 import Alert from "@/components/ui/Alert";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -610,6 +610,62 @@ function DataImportForm({
 
 // ─── Snapshot Row ───
 
+const FIELD_LABELS: Record<string, string> = {
+  avg_purchase_price_per_m2: "Prix moyen/m²",
+  median_purchase_price_per_m2: "Prix médian/m²",
+  transaction_count: "Transactions",
+  price_trend_pct: "Tendance prix (%)",
+  avg_rent_per_m2: "Loyer moyen/m²",
+  avg_rent_furnished_per_m2: "Loyer meublé/m²",
+  vacancy_rate: "Vacance locative (%)",
+  typical_cashflow_per_m2: "Cashflow/m²",
+  rent_elasticity_alpha: "Élasticité loyer (α)",
+  rent_reference_surface: "Surface réf. loyer",
+  avg_condo_charges_per_m2: "Charges copro/m²",
+  avg_property_tax_per_m2: "TF/m²",
+  property_tax_rate_pct: "Taux TFB (%)",
+  avg_airbnb_night_price: "Airbnb prix/nuit",
+  avg_airbnb_occupancy_rate: "Airbnb occupation (%)",
+  population: "Population",
+  population_growth_pct: "Croissance pop. (%)",
+  median_income: "Revenu médian",
+  poverty_rate: "Taux pauvreté (%)",
+  unemployment_rate: "Taux chômage (%)",
+  vacant_housing_pct: "Logements vacants (%)",
+  owner_occupier_pct: "Propriétaires (%)",
+  school_count: "Écoles",
+  university_nearby: "Université",
+  public_transport_score: "Score transports",
+  doctor_count: "Médecins",
+  pharmacy_count: "Pharmacies",
+  supermarket_count: "Supermarchés",
+  risk_level: "Niveau risque",
+  natural_risks: "Risques naturels",
+  flood_risk_level: "Inondation",
+  seismic_zone: "Zone sismique",
+  radon_level: "Radon",
+  industrial_risk: "Risque industriel",
+  avg_dpe_class: "Classe DPE moy.",
+  avg_energy_consumption: "Conso énergie (kWh/m²)",
+  avg_ges_class: "Classe GES moy.",
+  dpe_count: "Nb DPE",
+};
+
+function formatFieldValue(key: string, value: unknown): string {
+  if (value == null) return "—";
+  if (key === "university_nearby") return value ? "Oui" : "Non";
+  if (key === "industrial_risk") return value ? "Oui" : "Non";
+  if (key === "natural_risks") {
+    try {
+      const arr = typeof value === "string" ? JSON.parse(value) : value;
+      if (Array.isArray(arr)) return arr.map((r: { type: string }) => r.type).join(", ") || "—";
+    } catch { /* fallthrough */ }
+    return String(value);
+  }
+  if (typeof value === "number") return value.toLocaleString("fr-FR");
+  return String(value);
+}
+
 function SnapshotRow({
   snapshot,
   onDelete,
@@ -617,24 +673,68 @@ function SnapshotRow({
   snapshot: LocalityDataSnapshot;
   onDelete: () => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const [fields, setFields] = useState<Record<string, unknown> | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleToggle() {
+    if (expanded) {
+      setExpanded(false);
+      return;
+    }
+    if (!fields) {
+      setLoading(true);
+      const data = await fetchSnapshotFields(snapshot.table_name, snapshot.locality_id, snapshot.valid_from);
+      setFields(data);
+      setLoading(false);
+    }
+    setExpanded(true);
+  }
+
   return (
     <div className="bg-gray-50 rounded-lg p-2">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs">
+        <button
+          onClick={handleToggle}
+          className="flex items-center gap-2 text-xs text-left min-w-0"
+        >
+          <span className="text-gray-400">{expanded ? "▼" : "▶"}</span>
           <span className="font-medium text-gray-700">{snapshot.valid_from}</span>
           <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium">
             {TABLE_LABELS[snapshot.table_name]}
           </span>
           <span className="text-gray-400">{snapshot.field_count} champ{snapshot.field_count !== 1 ? "s" : ""}</span>
           {snapshot.source && <span className="text-gray-400">({snapshot.source})</span>}
-        </div>
+        </button>
         <button
           onClick={onDelete}
-          className="px-2 py-0.5 text-xs text-red-500 hover:bg-red-50 rounded"
+          className="px-2 py-0.5 text-xs text-red-500 hover:bg-red-50 rounded shrink-0"
         >
           Suppr.
         </button>
       </div>
+      {expanded && (
+        <div className="mt-2 border-t border-gray-200 pt-2">
+          {loading ? (
+            <span className="text-xs text-gray-400">Chargement...</span>
+          ) : fields ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5">
+              {Object.entries(fields).map(([key, value]) => (
+                value != null && (
+                  <div key={key} className="flex justify-between py-0.5 text-xs">
+                    <span className="text-gray-500">{FIELD_LABELS[key] || key}</span>
+                    <span className="font-medium text-gray-800 font-[family-name:var(--font-mono)]">
+                      {formatFieldValue(key, value)}
+                    </span>
+                  </div>
+                )
+              ))}
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400">Aucune donnée</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

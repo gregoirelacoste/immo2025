@@ -9,6 +9,7 @@ import {
   upsertLocalityData,
   deleteLocalityDataRow,
   getLocalityById,
+  getSnapshotFields,
 } from "./repository";
 import { resolveLocalityData } from "./resolver";
 import {
@@ -196,6 +197,19 @@ export async function importLocalityData(
     return { success: true };
   } catch (e) {
     return { success: false, error: (e as Error).message };
+  }
+}
+
+export async function fetchSnapshotFields(
+  table: LocalityTableName,
+  localityId: string,
+  validFrom: string
+): Promise<Record<string, unknown> | null> {
+  try {
+    const fields = await getSnapshotFields(table, localityId, validFrom);
+    return fields ?? null;
+  } catch {
+    return null;
   }
 }
 
