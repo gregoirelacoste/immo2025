@@ -55,7 +55,7 @@ export function buildSystemSimulation(
   const notaryFees = property.notary_fees > 0
     ? property.notary_fees
     : calculateNotaryFees(property.purchase_price, property.property_type);
-  const loanAmount = Math.max(0, property.purchase_price + notaryFees - property.personal_contribution);
+  const loanAmount = Math.max(0, property.purchase_price + notaryFees + property.renovation_cost - property.personal_contribution);
 
   // --- Maintenance defaults ---
   const maintenancePerM2 = property.property_type === "neuf" ? 8 : 12;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Property } from "@/domains/property/types";
 import { Simulation, SimulationFormData } from "@/domains/simulation/types";
 import { calculateSimulation, calculateExitSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent } from "@/lib/calculations";
@@ -39,7 +39,9 @@ const EDITABLE_FIELDS: FieldConfig[] = [
   { field: "gli_rate", label: "GLI (loyers impayés)", step: 0.5, unit: "%", decimals: 1 },
 ];
 
-/** Compute loan_amount from property price, contribution, renovation, notary */
+/** Compute loan_amount from property price, contribution, renovation, notary.
+ *  loan_fees is a separate cost (included in total_project_cost but NOT in the loan itself).
+ */
 function computeLoanAmount(property: Property, form: SimulationFormData): number {
   const notary = form.notary_fees > 0
     ? form.notary_fees
@@ -174,12 +176,12 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
     setNameValue(simulation.name);
   }, [simulation.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Compute calcs from current form state
-  const currentLoan = computeLoanAmount(property, form);
-  const mergedSim = { ...simulation, ...form, loan_amount: currentLoan } as Simulation;
-  const calcs = calculateSimulation(property, mergedSim);
-  const exitSim = calculateExitSimulation(property, mergedSim, calcs);
-  const effectiveRent = getEffectiveRent(property, mergedSim);
+  // Compute calcs from current form state (memoized for performance)
+  const currentLoan = useMemo(() => computeLoanAmount(property, form), [property, form]);
+  const mergedSim = useMemo(() => ({ ...simulation, ...form, loan_amount: currentLoan }) as Simulation, [simulation, form, currentLoan]);
+  const calcs = useMemo(() => calculateSimulation(property, mergedSim), [property, mergedSim]);
+  const exitSim = useMemo(() => calculateExitSimulation(property, mergedSim, calcs), [property, mergedSim, calcs]);
+  const effectiveRent = useMemo(() => getEffectiveRent(property, mergedSim), [property, mergedSim]);
 
   // Save helper — always includes computed loan_amount
   const saveChanges = useCallback(async (data: Partial<SimulationFormData>) => {

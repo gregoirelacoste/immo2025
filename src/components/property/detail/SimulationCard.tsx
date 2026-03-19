@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Property } from "@/domains/property/types";
 import { Simulation } from "@/domains/simulation/types";
 import { calculateSimulation, formatCurrency, getEffectiveRent } from "@/lib/calculations";
@@ -29,7 +30,8 @@ export default function SimulationCard({
   canDelete,
   isSystem,
 }: Props) {
-  const calcs = calculateSimulation(property, simulation);
+  const calcs = useMemo(() => calculateSimulation(property, simulation), [property, simulation]);
+  const effectiveRent = useMemo(() => getEffectiveRent(property, simulation), [property, simulation]);
 
   return (
     <div
@@ -105,7 +107,7 @@ export default function SimulationCard({
         <span>Apport: {formatCurrency(simulation.personal_contribution)}</span>
         <span>Durée: {simulation.loan_duration} ans</span>
         <span>Taux: {simulation.interest_rate}%</span>
-        <span>Loyer: {formatCurrency(getEffectiveRent(property, simulation))}</span>
+        <span>Loyer: {formatCurrency(effectiveRent)}</span>
       </div>
 
       {/* KPIs */}
