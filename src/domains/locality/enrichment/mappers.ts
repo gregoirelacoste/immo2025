@@ -18,7 +18,7 @@ export function mapDvfToFields(dvf: DvfCityData): Partial<LocalityDataFields> {
   return {
     avg_purchase_price_per_m2: dvf.avgPricePerM2,
     median_purchase_price_per_m2: dvf.medianPricePerM2,
-    transaction_count: dvf.transactionCount || null,
+    transaction_count: dvf.transactionCount ?? null,
     price_trend_pct: dvf.priceTrend1yPct,
   };
 }
@@ -76,41 +76,36 @@ export function mapHealthToFields(health: HealthData): Partial<LocalityDataField
 
 export function mapLoyersToFields(loyers: LoyersData): Partial<LocalityDataFields> {
   return {
-    avg_rent_per_m2: loyers.loyerMedM2,
+    avg_rent_per_m2: Math.round(loyers.loyerMedM2 * 100) / 100, // unfurnished rent only
   };
 }
 
 /**
  * Compute derived fields from already-enriched data.
- * - avg_property_tax_per_m2: estimated from TFB rate + avg price (cadastral value ~ 50% of market)
- * - typical_cashflow_per_m2: rent - estimated charges - estimated TF (monthly)
+ * - avg_property_tax_per_m2: estimated from TFB rate + annual rent (cadastral value ~ 50% of gross rent)
+ * - typical_cashflow_per_m2: rent - charges - TF (monthly, before loan)
  */
 export function computeDerivedFields(
   fields: Partial<LocalityDataFields>
 ): Partial<LocalityDataFields> {
   const derived: Partial<LocalityDataFields> = {};
 
-  // Estimate property tax per m² from rate + avg price
-  // Cadastral rental value ≈ avg_price * 0.5% (conservative estimate)
-  // TF = cadastral_value * taux_TFB / 100
-  // TF/m² = (avg_price * 0.005 * taux_TFB / 100)
-  const avgPrice = fields.avg_purchase_price_per_m2;
+  // Estimate property tax per m² from TFB rate + rent
+  // Cadastral rental value ≈ 50% of annual gross rent (standard French estimation)
+  // TF/m²/year = (rent_per_m2 * 12 * 0.5) * tauxTFB / 100
+  const rent = fields.avg_rent_per_m2;
   const tauxTFB = fields.property_tax_rate_pct;
-  if (avgPrice != null && tauxTFB != null) {
-    const cadastralValuePerM2 = avgPrice * 0.005; // ~0.5% of market value
-    const tfPerM2 = Math.round(cadastralValuePerM2 * tauxTFB) / 100;
-    derived.avg_property_tax_per_m2 = Math.round(tfPerM2 * 100) / 100;
+  if (rent != null && tauxTFB != null) {
+    const cadastralValuePerM2 = rent * 12 * 0.5;
+    derived.avg_property_tax_per_m2 = Math.round(cadastralValuePerM2 * tauxTFB) / 100;
   }
 
-  // Compute typical cashflow per m² (monthly)
-  // cashflow = rent - charges_copro - TF_monthly
-  const rent = fields.avg_rent_per_m2;
-  const charges = fields.avg_condo_charges_per_m2 ?? 2.5; // national avg fallback
-  const tfMonthly = derived.avg_property_tax_per_m2
-    ? derived.avg_property_tax_per_m2 / 12
-    : (fields.avg_property_tax_per_m2 ? fields.avg_property_tax_per_m2 / 12 : 1);
+  // Compute typical cashflow per m² (monthly, before loan)
+  // Only compute if we have real rent data (not hardcoded fallbacks)
   if (rent != null) {
-    derived.typical_cashflow_per_m2 = Math.round((rent - charges - tfMonthly) * 100) / 100;
+    const chargesMonthly = fields.avg_condo_charges_per_m2 ?? 2.5; // national avg ~2.5 €/m²/month
+    const tfMonthly = (derived.avg_property_tax_per_m2 ?? fields.avg_property_tax_per_m2 ?? 0) / 12;
+    derived.typical_cashflow_per_m2 = Math.round((rent - chargesMonthly - tfMonthly) * 100) / 100;
   }
 
   return derived;

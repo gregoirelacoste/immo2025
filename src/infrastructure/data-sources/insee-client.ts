@@ -28,22 +28,27 @@ async function fetchMelodiDataset(
   const res = await fetch(url, {
     signal: AbortSignal.timeout(15_000),
   });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    console.warn(`[insee-client] Melodi ${res.status} for ${dataset} ${codeInsee}`);
+    return [];
+  }
   const data: MelodiResponse = await res.json();
   return data.observations ?? [];
 }
 
+/**
+ * Find an observation value by matching a specific dimension key + value,
+ * with optional additional dimension filters.
+ */
 function findValue(
   observations: MelodiObservation[],
-  measureCode: string,
+  dimensionKey: string,
+  dimensionValue: string,
   filters?: Record<string, string>
 ): number | null {
   const match = observations.find((o) => {
     const dims = o.dimensions;
-    // Check measure dimension (various dataset-specific dimension names)
-    const matchesMeasure = Object.values(dims).includes(measureCode);
-    if (!matchesMeasure) return false;
-    // Check additional filters
+    if (dims[dimensionKey] !== dimensionValue) return false;
     if (filters) {
       for (const [key, val] of Object.entries(filters)) {
         if (dims[key] !== val) return false;
@@ -67,7 +72,6 @@ export async function fetchInseeData(
   codeInsee: string
 ): Promise<InseeCityData | null> {
   try {
-    // Fetch 3 datasets in parallel: population, income/poverty, housing
     const [popObs, filosofiObs, logementObs, emploiObs] = await Promise.allSettled([
       fetchMelodiDataset("DS_POPULATIONS_REFERENCE", codeInsee),
       fetchMelodiDataset("DS_FILOSOFI_CC", codeInsee),
@@ -84,59 +88,59 @@ export async function fetchInseeData(
     const emploi = safe(emploiObs) ?? [];
 
     // Population (DS_POPULATIONS_REFERENCE)
-    const population = findValue(pop, "PMUN");
+    const population = findValue(pop, "POPREF_MEASURE", "PMUN");
 
     // Income & poverty (DS_FILOSOFI_CC)
-    const medianIncome = findValue(filosofi, "MED_SL");
-    const povertyRate = findValue(filosofi, "PR_MD60");
-    const numHouseholds = findValue(filosofi, "NUM_HH");
+    const medianIncome = findValue(filosofi, "FILOSOFI_MEASURE", "MED_SL");
+    const povertyRate = findValue(filosofi, "FILOSOFI_MEASURE", "PR_MD60");
 
     // Housing (DS_RP_LOGEMENT_PRINC)
-    // Total dwellings: OCS=_T (all), TSH=_T, TDW=_T, all other dims = _T
-    const totalDwellings = findValue(logement, "DWELLINGS", {
-      OCS: "_T",  // no occupation filter (should not exist for total)
+    // Vacant dwellings
+    const vacantDwellings = findValue(logement, "RP_MEASURE", "DWELLINGS", {
+      OCS: "DW_VAC", NRG_SRC: "_T", TDW: "_T", TSH: "_T", CARS: "_T",
+      NOR: "_T", BUILD_END: "_T", CARPARK: "_T", L_STAY: "_T",
     });
-    // Vacant: OCS=DW_VAC
-    const vacantDwellings = findValue(logement, "DWELLINGS", {
-      OCS: "DW_VAC",
+    // Main residence (all tenure types)
+    const mainDwellings = findValue(logement, "RP_MEASURE", "DWELLINGS", {
+      OCS: "DW_MAIN", NRG_SRC: "_T", TDW: "_T", TSH: "_T", CARS: "_T",
+      NOR: "_T", BUILD_END: "_T", CARPARK: "_T", L_STAY: "_T",
     });
-    // Main residence (owner-occupied): TSH=OWN
-    const ownerDwellings = findValue(logement, "DWELLINGS", {
-      OCS: "DW_MAIN",
-      TSH: "OWN",
+    // Owner-occupied main residence (TSH=100 = propriétaire)
+    const ownerDwellings = findValue(logement, "RP_MEASURE", "DWELLINGS", {
+      OCS: "DW_MAIN", TSH: "100", NRG_SRC: "_T", TDW: "_T", CARS: "_T",
+      NOR: "_T", BUILD_END: "_T", CARPARK: "_T", L_STAY: "_T",
     });
-    const mainDwellings = findValue(logement, "DWELLINGS", {
-      OCS: "DW_MAIN",
-      TSH: "_T",
+    // Secondary/occasional
+    const secDwellings = findValue(logement, "RP_MEASURE", "DWELLINGS", {
+      OCS: "DW_SEC_DW_OCC", NRG_SRC: "_T", TDW: "_T", TSH: "_T", CARS: "_T",
+      NOR: "_T", BUILD_END: "_T", CARPARK: "_T", L_STAY: "_T",
     });
 
     // Employment (DS_RP_EMPLOI_LR_PRINC)
-    // Total active 15+: EMPSTA_ENQ=_T, SEX=_T, AGE=Y_GE15
-    const totalActive = findValue(emploi, "POP", {
-      EMPSTA_ENQ: "_T",
-      SEX: "_T",
-      AGE: "Y_GE15",
+    // Employed: EMPSTA_ENQ=1
+    const employed = findValue(emploi, "RP_MEASURE", "POP", {
+      EMPSTA_ENQ: "1", SEX: "_T", AGE: "Y_GE15", EDUC: "_T",
     });
-    // Unemployed (ILO definition): EMPSTA_ENQ=2, SEX=_T, AGE=Y_GE15
-    const unemployed = findValue(emploi, "POP", {
-      EMPSTA_ENQ: "2",
-      SEX: "_T",
-      AGE: "Y_GE15",
+    // Unemployed (ILO): EMPSTA_ENQ=2
+    const unemployed = findValue(emploi, "RP_MEASURE", "POP", {
+      EMPSTA_ENQ: "2", SEX: "_T", AGE: "Y_GE15", EDUC: "_T",
     });
 
+    // Unemployment rate = unemployed / (employed + unemployed)
+    const activePopulation = (employed ?? 0) + (unemployed ?? 0);
     const unemploymentRate =
-      totalActive != null && unemployed != null && totalActive > 0
-        ? Math.round((unemployed / totalActive) * 1000) / 10
+      employed != null && unemployed != null && activePopulation > 0
+        ? Math.round((unemployed / activePopulation) * 1000) / 10
         : null;
 
-    // Compute vacancy and owner-occupancy rates
-    const totalForVacancy = totalDwellings ??
-      ((mainDwellings ?? 0) + (vacantDwellings ?? 0));
+    // Vacancy rate: only compute if we have both vacant and a reliable total
+    const totalDwellings = (mainDwellings ?? 0) + (vacantDwellings ?? 0) + (secDwellings ?? 0);
     const vacantHousingPct =
-      totalForVacancy > 0 && vacantDwellings != null
-        ? Math.round((vacantDwellings / totalForVacancy) * 1000) / 10
+      vacantDwellings != null && mainDwellings != null && totalDwellings > 0
+        ? Math.round((vacantDwellings / totalDwellings) * 1000) / 10
         : null;
 
+    // Owner-occupier rate
     const ownerOccupierPct =
       mainDwellings != null && mainDwellings > 0 && ownerDwellings != null
         ? Math.round((ownerDwellings / mainDwellings) * 1000) / 10
@@ -149,7 +153,7 @@ export async function fetchInseeData(
       unemploymentRate,
       vacantHousingPct,
       ownerOccupierPct,
-      housingStockCount: totalDwellings != null ? Math.round(totalDwellings) : null,
+      housingStockCount: totalDwellings > 0 ? Math.round(totalDwellings) : null,
       householdSizeAvg: null,
       studentPopulationPct: null,
       seniorPopulationPct: null,

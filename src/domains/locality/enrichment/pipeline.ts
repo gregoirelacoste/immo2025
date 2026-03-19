@@ -235,24 +235,31 @@ export async function enrichLocality(
   }
 
   // 9. Clean up stale blog-ai rows — delete old blog-ai data for tables
-  //    that now have API data, so the source badge updates correctly.
+  //    that now have API or computed data, so the source badge updates correctly.
   if (result.fieldsUpdated > 0) {
     const db = await getDb();
-    const tablesWithApiData = new Set<string>();
+    const tablesWithFreshData = new Set<string>();
+    // From API sources
     for (const report of result.sourceReports) {
       if (report.status === "ok") {
-        // Find which tables this source covers by checking FIELD_TO_TABLE
         const sourceMapping = sourceMappings.find((m) => m.name === report.source);
         if (sourceMapping?.result.status === "fulfilled" && sourceMapping.result.value) {
           const mapped = sourceMapping.mapper(sourceMapping.result.value);
           for (const key of Object.keys(mapped) as (keyof LocalityDataFields)[]) {
-            if (mapped[key] != null) tablesWithApiData.add(FIELD_TO_TABLE[key]);
+            if (mapped[key] != null) tablesWithFreshData.add(FIELD_TO_TABLE[key]);
           }
         }
       }
     }
-    // Delete older blog-ai rows for tables that now have fresh API data
-    for (const table of tablesWithApiData) {
+    // From computed/derived fields
+    const freshFields = await getLatestLocalityFields(localityId);
+    const derived = computeDerivedFields(freshFields);
+    for (const key of Object.keys(derived) as (keyof LocalityDataFields)[]) {
+      if (derived[key] != null) tablesWithFreshData.add(FIELD_TO_TABLE[key]);
+    }
+    // Delete older blog-ai rows for tables that now have fresh data
+    for (const table of tablesWithFreshData) {
+      if (!LOCALITY_TABLE_NAMES.includes(table as LocalityTableName)) continue;
       await db.execute({
         sql: `DELETE FROM ${table} WHERE locality_id = ? AND source = 'blog-ai' AND valid_from < ?`,
         args: [localityId, today],
@@ -260,7 +267,7 @@ export async function enrichLocality(
     }
   }
 
-  // 9. Enrich parents if requested
+  // 10. Enrich parents if requested
   if (options?.enrichParents && locality.parent_id) {
     const parentResult = await enrichLocality(locality.parent_id, {
       force: false,

@@ -111,7 +111,10 @@ export async function fetchLoyersData(
 ): Promise<LoyersData | null> {
   try {
     if (!cache) {
-      cache = await loadCsv();
+      const loaded = await loadCsv();
+      // Only cache if we got data — avoid poisoning on transient failure
+      if (loaded.size > 0) cache = loaded;
+      else return null;
     }
     return cache.get(codeInsee) ?? null;
   } catch {
