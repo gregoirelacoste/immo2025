@@ -23,10 +23,11 @@ Clients API centralisés, réutilisables par tout le projet :
 | `dvf-client.ts` | api.cquest.org/dvf | Aucune | Prix moyen/médian, transactions, tendance 1 an |
 | `insee-client.ts` | api.insee.fr | OAuth2 | Population, revenus, chômage, vacance, propriétaires |
 | `georisques-client.ts` | georisques.gouv.fr | Aucune | Risques naturels, inondation, sismique, radon, SEVESO |
-| `taxe-fonciere-client.ts` | data.economie.gouv.fr | Aucune | Taux TFB voté par commune |
+| `taxe-fonciere-client.ts` | data.ofgl.fr (OFGL) | Aucune | Taux TFB voté par commune |
 | `dpe-client.ts` | data.ademe.fr | Aucune | Classe DPE/GES moyenne, consommation |
 | `education-client.ts` | data.education.gouv.fr | Aucune | Nombre d'écoles, universités |
 | `health-client.ts` | data.opendatasoft.com (BPE) | Aucune | Médecins généralistes, pharmacies |
+| `loyers-client.ts` | data.gouv.fr (Carte des loyers CSV) | Aucune | Loyer médian au m² par commune |
 
 Chaque client :
 - Fonction async pure, retourne `T | null`
@@ -82,6 +83,8 @@ Le guard `ensureLocalityEnriched()` re-déclenche l'enrichissement même si des 
 | `api:dpe` | ADEME — diagnostics énergétiques | Haute |
 | `api:education` | Éducation nationale | Haute |
 | `api:health` | BPE INSEE | Haute |
+| `api:carte-loyers` | Carte des loyers (data.gouv.fr) | Haute |
+| `api:computed` | Calculé (TF/m², cashflow) | Estimée |
 | `admin` | Saisie manuelle admin | Vérifiée |
 | `import-initial` | Script de seed initial | Estimée |
 | `blog-ai` | Extraction IA (Gemini) | **Basse — obsolète** |

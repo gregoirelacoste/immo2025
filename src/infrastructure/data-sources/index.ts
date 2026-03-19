@@ -6,6 +6,7 @@ export { fetchTaxeFonciereData } from "./taxe-fonciere-client";
 export { fetchDpeData } from "./dpe-client";
 export { fetchEducationData } from "./education-client";
 export { fetchHealthData } from "./health-client";
+export { fetchLoyersData } from "./loyers-client";
 
 export type {
   GeoCity,
@@ -16,5 +17,6 @@ export type {
   DpeAggregateData,
   EducationData,
   HealthData,
+  LoyersData,
   RssItem,
 } from "./types";

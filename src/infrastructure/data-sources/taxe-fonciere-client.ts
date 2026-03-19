@@ -1,34 +1,45 @@
 /**
  * Property tax rate (TFB) per city.
- * Source: data.economie.gouv.fr (ODS v2.1 API) — open access.
+ * Source: OFGL (Observatoire des Finances et de la Gestion publique Locale)
+ * API: data.ofgl.fr — open access.
  */
 
 import { TaxeFonciereData } from "./types";
 
-interface OdsResponse {
-  results: Array<Record<string, string>>;
-  total_count: number;
+interface OfglRecord {
+  com_code: string;
+  com_name: string;
+  annee: number;
+  produits_tf_com: number | null;
+  pop_totale: number | null;
+  taux_tf_com: number | null;
 }
 
-const BASE = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets";
-const DATASET = "impots-locaux";
+interface OfglResponse {
+  total_count: number;
+  results: OfglRecord[];
+}
+
+const BASE =
+  "https://data.ofgl.fr/api/explore/v2.1/catalog/datasets/ofgl-base-communes-consolidee/records";
 
 /**
- * Fetch the voted property tax rate for a city.
- * Returns null if not found.
+ * Fetch the property tax rate for a city from OFGL.
+ * Uses `taux_tf_com` directly when available, otherwise returns null.
+ * Returns null if not found or on any error.
  */
 export async function fetchTaxeFonciereData(
   codeInsee: string
 ): Promise<TaxeFonciereData | null> {
   try {
     const params = new URLSearchParams({
-      where: `codgeo="${codeInsee}"`,
+      where: `com_code="${codeInsee}"`,
+      select: "com_code,com_name,annee,produits_tf_com,pop_totale,taux_tf_com",
       order_by: "annee DESC",
       limit: "1",
-      select: "codgeo,libgeo,annee,tfb_com",
     });
 
-    const url = `${BASE}/${DATASET}/records?${params}`;
+    const url = `${BASE}?${params}`;
     const res = await fetch(url, {
       headers: { "User-Agent": "tiili.io/locality-enrichment/1.0" },
       signal: AbortSignal.timeout(10_000),
@@ -36,18 +47,19 @@ export async function fetchTaxeFonciereData(
 
     if (!res.ok) return null;
 
-    const data: OdsResponse = await res.json();
+    const data: OfglResponse = await res.json();
     const record = data.results?.[0];
     if (!record) return null;
 
-    const tauxTFB = parseFloat(record.tfb_com);
-    if (isNaN(tauxTFB)) return null;
+    // Prefer the direct tax rate field if available
+    const tauxTFB = record.taux_tf_com;
+    if (tauxTFB == null || isNaN(tauxTFB)) return null;
 
     return {
-      communeCode: record.codgeo,
-      communeName: record.libgeo || "",
+      communeCode: record.com_code,
+      communeName: record.com_name || "",
       tauxTFB,
-      annee: parseInt(record.annee) || new Date().getFullYear(),
+      annee: record.annee || new Date().getFullYear(),
     };
   } catch {
     return null;

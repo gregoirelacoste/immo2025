@@ -21,6 +21,7 @@ import {
   fetchDpeData,
   fetchEducationData,
   fetchHealthData,
+  fetchLoyersData,
 } from "@/infrastructure/data-sources";
 import {
   mapDvfToFields,
@@ -30,6 +31,8 @@ import {
   mapDpeToFields,
   mapEducationToFields,
   mapHealthToFields,
+  mapLoyersToFields,
+  computeDerivedFields,
 } from "./mappers";
 import type { EnrichLocalityResult } from "./types";
 
@@ -100,7 +103,7 @@ export async function enrichLocality(
   }
 
   // 4. Fetch all sources in parallel
-  const [dvfRes, inseeRes, georisquesRes, taxeRes, dpeRes, eduRes, healthRes] =
+  const [dvfRes, inseeRes, georisquesRes, taxeRes, dpeRes, eduRes, healthRes, loyersRes] =
     await Promise.allSettled([
       fetchDvfData(codeInsee),
       fetchInseeData(codeInsee),
@@ -109,6 +112,7 @@ export async function enrichLocality(
       fetchDpeData(codeInsee),
       fetchEducationData(codeInsee),
       fetchHealthData(codeInsee),
+      fetchLoyersData(codeInsee),
     ]);
 
   // 5. Map results
@@ -126,6 +130,7 @@ export async function enrichLocality(
     { name: "DPE", result: dpeRes, mapper: mapDpeToFields, apiSource: "api:dpe" },
     { name: "Éducation", result: eduRes, mapper: mapEducationToFields, apiSource: "api:education" },
     { name: "Santé", result: healthRes, mapper: mapHealthToFields, apiSource: "api:health" },
+    { name: "Loyers", result: loyersRes, mapper: mapLoyersToFields, apiSource: "api:carte-loyers" },
   ];
 
   // 6. Check protected tables
@@ -199,7 +204,35 @@ export async function enrichLocality(
     });
   }
 
-  // 8. Clean up stale blog-ai rows — delete old blog-ai data for tables
+  // 8. Compute and persist derived fields (cashflow, TF/m² estimate)
+  if (result.fieldsUpdated > 0) {
+    const freshFields = await getLatestLocalityFields(localityId);
+    const derived = computeDerivedFields(freshFields);
+    const derivedKeys = Object.keys(derived) as (keyof LocalityDataFields)[];
+    const nonNullDerived: Partial<LocalityDataFields> = {};
+    let derivedCount = 0;
+    for (const key of derivedKeys) {
+      if (derived[key] != null) {
+        const table = FIELD_TO_TABLE[key];
+        if (!protectedTables.has(table)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (nonNullDerived as any)[key] = derived[key];
+          derivedCount++;
+        }
+      }
+    }
+    if (derivedCount > 0) {
+      await upsertLocalityData(localityId, today, nonNullDerived, "api:computed");
+      result.fieldsUpdated += derivedCount;
+      result.sourceReports.push({
+        source: "Calculés",
+        status: "ok",
+        fieldCount: derivedCount,
+      });
+    }
+  }
+
+  // 9. Clean up stale blog-ai rows — delete old blog-ai data for tables
   //    that now have API data, so the source badge updates correctly.
   if (result.fieldsUpdated > 0) {
     const db = await getDb();

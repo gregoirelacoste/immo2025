@@ -75,6 +75,11 @@ export interface HealthData {
   pharmacyCount: number;
 }
 
+export interface LoyersData {
+  loyerMedM2: number;
+  nbObservations: number | null;
+}
+
 export interface RssItem {
   title: string;
   link: string;
