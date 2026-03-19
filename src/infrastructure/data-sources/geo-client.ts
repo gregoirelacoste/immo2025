@@ -12,31 +12,30 @@ export async function fetchGeoCity(
   cityName: string,
   postalCode?: string
 ): Promise<GeoCity | null> {
-  try {
-    const params = new URLSearchParams({
-      fields: "nom,code,codesPostaux,departement,region,population",
-      boost: "population",
-      limit: "1",
-    });
+  const params = new URLSearchParams({
+    fields: "nom,code,codesPostaux,departement,region,population",
+    boost: "population",
+    limit: "1",
+  });
 
-    if (postalCode) {
-      params.set("codePostal", postalCode);
-    } else {
-      params.set("nom", cityName);
-    }
+  if (postalCode) {
+    params.set("codePostal", postalCode);
+  } else {
+    params.set("nom", cityName);
+  }
 
-    const res = await fetch(`${GEO_API_BASE}/communes?${params}`, {
-      headers: { "User-Agent": "tiili.io/locality-enrichment/1.0" },
-      signal: AbortSignal.timeout(8_000),
-    });
+  const url = `${GEO_API_BASE}/communes?${params}`;
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(8_000),
+  });
 
-    if (!res.ok) return null;
-
-    const data: GeoCity[] = await res.json();
-    return data[0] ?? null;
-  } catch {
+  if (!res.ok) {
+    console.warn(`[geo-client] ${res.status} for ${url}`);
     return null;
   }
+
+  const data: GeoCity[] = await res.json();
+  return data[0] ?? null;
 }
 
 /** Look up a city by INSEE code. */

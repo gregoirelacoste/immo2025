@@ -67,7 +67,12 @@ export async function addAndEnrichLocality(
     }
 
     // Resolve via geo API
-    const geo = await fetchGeoCity(cityName.trim());
+    let geo;
+    try {
+      geo = await fetchGeoCity(cityName.trim());
+    } catch (geoErr) {
+      return { success: false, error: `Erreur geo API: ${geoErr instanceof Error ? geoErr.message : String(geoErr)}` };
+    }
     if (!geo) return { success: false, error: `Ville "${cityName}" introuvable via geo.api.gouv.fr.` };
 
     // Find root parent
