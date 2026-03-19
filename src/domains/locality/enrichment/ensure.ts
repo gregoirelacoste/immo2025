@@ -9,6 +9,7 @@ import {
   getRootLocalities,
   getLocalityById,
   getLatestLocalityFields,
+  getLatestSource,
 } from "@/domains/locality/repository";
 import { fetchGeoCity, fetchGeoCityByCode } from "@/infrastructure/data-sources";
 import { enrichLocality } from "./pipeline";
@@ -48,12 +49,18 @@ export async function ensureLocalityEnriched(
     if (!locality) return;
   }
 
-  // 2. Check if key data exists
+  // 2. Check if key data exists from a reliable source (not blog-ai)
   const existing = await getLatestLocalityFields(locality.id);
   const hasKeyData = existing.avg_purchase_price_per_m2 != null
     && existing.population != null;
 
-  if (hasKeyData) return;
+  if (hasKeyData) {
+    // Still re-enrich if main data comes from unreliable sources
+    const priceSource = await getLatestSource("locality_prices", locality.id);
+    const socioSource = await getLatestSource("locality_socio", locality.id);
+    const isReliable = priceSource !== "blog-ai" && socioSource !== "blog-ai";
+    if (isReliable) return;
+  }
 
   // 3. Enrich
   await enrichLocality(locality.id, { enrichParents: true });
