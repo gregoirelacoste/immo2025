@@ -14,7 +14,7 @@ export function getClient(): Client {
 }
 
 // Bump this when adding new migrations so cold starts re-run them
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints
@@ -219,6 +219,17 @@ async function initializeDatabase(client: Client): Promise<void> {
     "ALTER TABLE properties ADD COLUMN equipment_costs TEXT DEFAULT '{}'",
     "ALTER TABLE properties ADD COLUMN rent_mode TEXT NOT NULL DEFAULT 'auto'",
     "ALTER TABLE locality_prices ADD COLUMN price_trend_pct REAL DEFAULT NULL",
+    // v7 — new columns for enrichment pipeline
+    "ALTER TABLE locality_charges ADD COLUMN property_tax_rate_pct REAL DEFAULT NULL",
+    "ALTER TABLE locality_socio ADD COLUMN vacant_housing_pct REAL DEFAULT NULL",
+    "ALTER TABLE locality_socio ADD COLUMN owner_occupier_pct REAL DEFAULT NULL",
+    "ALTER TABLE locality_infra ADD COLUMN doctor_count INTEGER DEFAULT NULL",
+    "ALTER TABLE locality_infra ADD COLUMN pharmacy_count INTEGER DEFAULT NULL",
+    "ALTER TABLE locality_infra ADD COLUMN supermarket_count INTEGER DEFAULT NULL",
+    "ALTER TABLE locality_risks ADD COLUMN flood_risk_level TEXT DEFAULT NULL",
+    "ALTER TABLE locality_risks ADD COLUMN seismic_zone INTEGER DEFAULT NULL",
+    "ALTER TABLE locality_risks ADD COLUMN radon_level INTEGER DEFAULT NULL",
+    "ALTER TABLE locality_risks ADD COLUMN industrial_risk INTEGER DEFAULT NULL",
   ];
   const migrationErrors: Array<{ stmt: string; error: unknown }> = [];
   await Promise.all(
@@ -407,6 +418,19 @@ async function initializeDatabase(client: Client): Promise<void> {
       valid_from TEXT NOT NULL,
       risk_level TEXT DEFAULT NULL,
       natural_risks TEXT DEFAULT NULL,
+      source TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (locality_id, valid_from),
+      FOREIGN KEY (locality_id) REFERENCES localities(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS locality_energy (
+      locality_id TEXT NOT NULL,
+      valid_from TEXT NOT NULL,
+      avg_dpe_class TEXT DEFAULT NULL,
+      avg_energy_consumption REAL DEFAULT NULL,
+      avg_ges_class TEXT DEFAULT NULL,
+      dpe_count INTEGER DEFAULT NULL,
       source TEXT DEFAULT '',
       created_at TEXT DEFAULT (datetime('now')),
       PRIMARY KEY (locality_id, valid_from),

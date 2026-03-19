@@ -11,7 +11,7 @@
 import { collectNewsContext } from "./news-fetcher";
 import { generateArticle } from "./article-generator";
 import { createArticle, updateArticleStatus } from "./repository";
-import { injectArticleData } from "./data-injector";
+import { ensureLocalityEnriched } from "@/domains/locality/enrichment/ensure";
 import {
   ArticleCategory,
   BlogArticle,
@@ -27,8 +27,6 @@ export interface PipelineOptions {
   autoPublish?: boolean;
   /** Qui déclenche : "cron" | "admin" */
   triggeredBy?: string;
-  /** Injecter les données extraites dans locality_data */
-  injectData?: boolean;
   /** Mode dry-run : ne rien sauvegarder en base */
   dryRun?: boolean;
 }
@@ -36,12 +34,6 @@ export interface PipelineOptions {
 export interface PipelineResult {
   success: boolean;
   article?: BlogArticle;
-  injectionResult?: {
-    injected: number;
-    created: number;
-    skipped: number;
-    errors: Array<{ city: string; error: string }>;
-  };
   error?: string;
   /** Durée totale en ms */
   durationMs: number;
@@ -63,6 +55,15 @@ export async function runPipeline(
   const start = Date.now();
 
   try {
+    // ── Étape 0 : Enrichir la localité en amont ──
+    if (options.city || options.codeInsee) {
+      await ensureLocalityEnriched(
+        options.city || "",
+        options.postalCode,
+        options.codeInsee
+      ).catch(() => {});
+    }
+
     // ── Étape 1 : Collecte des données ──
     const fetcherOptions: NewsFetcherOptions = {
       category: options.category,
@@ -134,19 +135,12 @@ export async function runPipeline(
       await revalidateBlog(article.slug);
     }
 
-    // ── Étape 5 : Injection des données extraites ──
-    let injectionResult;
-    if (options.injectData !== false && generated.extracted_data) {
-      injectionResult = await injectArticleData(
-        article.id,
-        generated.extracted_data
-      );
-    }
+    // Étape 5 supprimée : les données API sont déjà injectées par le pipeline central
+    // (ensureLocalityEnriched en étape 0). L'article conserve extracted_data pour traçabilité.
 
     return {
       success: true,
       article,
-      injectionResult,
       durationMs: Date.now() - start,
     };
   } catch (e) {

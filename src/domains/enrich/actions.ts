@@ -6,6 +6,7 @@ import {
   getPropertyByIdPublic,
   updateEnrichmentFields,
 } from "@/domains/property/repository";
+import { ensureLocalityEnriched } from "@/domains/locality/enrichment/ensure";
 
 /**
  * Run enrichment pipeline (internal, no revalidation).
@@ -28,6 +29,14 @@ export async function enrichPropertyQuiet(
         enrichment_error: "Bien introuvable.",
       });
       return { success: false, error: "Bien introuvable." };
+    }
+
+    // Auto-enrich locality data for the property's city
+    if (property.city) {
+      await ensureLocalityEnriched(
+        property.city,
+        property.postal_code || undefined
+      ).catch(() => {});
     }
 
     const result = await runEnrichmentPipeline(property);

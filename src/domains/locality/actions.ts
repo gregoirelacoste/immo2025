@@ -17,6 +17,8 @@ import {
   LocalityDataFields,
   LocalityTableName,
 } from "./types";
+import { enrichLocality } from "./enrichment/pipeline";
+import type { EnrichLocalityResult } from "./enrichment/types";
 
 // ─── Public action: fetch locality data for a city ───
 
@@ -113,6 +115,22 @@ export async function removeLocality(id: string): Promise<{ success: boolean; er
     revalidatePath("/localities");
     revalidatePath("/guide", "layout");
     return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+// ─── Enrichment ───
+
+export async function enrichLocalityAction(
+  localityId: string
+): Promise<{ success: boolean; result?: EnrichLocalityResult; error?: string }> {
+  try {
+    await requireUserId();
+    const result = await enrichLocality(localityId, { force: true, enrichParents: true });
+    revalidatePath("/localities");
+    revalidatePath("/guide", "layout");
+    return { success: true, result };
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }

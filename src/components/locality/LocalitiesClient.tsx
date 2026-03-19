@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Locality, LocalityDataSnapshot, LocalityTableName } from "@/domains/locality/types";
-import { addLocality, removeLocality, importLocalityData, removeLocalityData } from "@/domains/locality/actions";
+import { addLocality, removeLocality, importLocalityData, removeLocalityData, enrichLocalityAction } from "@/domains/locality/actions";
 import Alert from "@/components/ui/Alert";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -24,6 +24,7 @@ const TABLE_LABELS: Record<LocalityTableName, string> = {
   locality_socio: "Socio",
   locality_infra: "Infra",
   locality_risks: "Risques",
+  locality_energy: "Énergie",
 };
 
 interface Props {
@@ -63,7 +64,6 @@ export default function LocalitiesClient({ localities, dataMap }: Props) {
 
       {showAddForm && (
         <AddLocalityForm
-          localities={localities}
           onSuccess={(msg) => {
             setSuccess(msg);
             setShowAddForm(false);
@@ -200,11 +200,9 @@ IMPORTANT :
 }
 
 function AddLocalityForm({
-  localities: _localities,
   onSuccess,
   onError,
 }: {
-  localities: Locality[];
   onSuccess: (msg: string) => void;
   onError: (msg: string) => void;
 }) {
@@ -365,12 +363,32 @@ function LocalityNode({
   onDataDeleted: () => void;
   onError: (msg: string) => void;
 }) {
+  const router = useRouter();
+  const [enriching, setEnriching] = useState(false);
+  const [enrichResult, setEnrichResult] = useState<string | null>(null);
   const children = childrenOf(locality.id);
   const snapshots = dataMap[locality.id] || [];
   const isExpanded = expandedLocality === locality.id;
   const postalCodes: string[] = (() => {
     try { return JSON.parse(locality.postal_codes || "[]"); } catch { return []; }
   })();
+
+  async function handleEnrich() {
+    setEnriching(true);
+    setEnrichResult(null);
+    try {
+      const r = await enrichLocalityAction(locality.id);
+      if (r.success && r.result) {
+        setEnrichResult(`${r.result.fieldsUpdated} champs mis à jour, ${r.result.fieldsSkipped} ignoré(s)`);
+        router.refresh();
+      } else {
+        onError(r.error || "Erreur d'enrichissement");
+      }
+    } catch (e) {
+      onError(e instanceof Error ? e.message : "Erreur");
+    }
+    setEnriching(false);
+  }
 
   return (
     <div style={{ marginLeft: depth * 16 }}>
@@ -390,6 +408,9 @@ function LocalityNode({
             <span className="text-xs text-gray-400">
               {snapshots.length} snapshot{snapshots.length !== 1 ? "s" : ""}
             </span>
+            {enrichResult && (
+              <span className="text-xs text-green-600">{enrichResult}</span>
+            )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <button
@@ -397,6 +418,13 @@ function LocalityNode({
               className="px-2 py-1 text-xs text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded"
             >
               {isExpanded ? "Fermer" : "Détails"}
+            </button>
+            <button
+              onClick={handleEnrich}
+              disabled={enriching}
+              className="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded font-medium disabled:opacity-50"
+            >
+              {enriching ? "Enrichissement..." : "Enrichir"}
             </button>
             <button
               onClick={() => setShowDataImport(showDataImport === locality.id ? null : locality.id)}

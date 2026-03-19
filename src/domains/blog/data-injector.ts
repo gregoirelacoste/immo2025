@@ -26,7 +26,7 @@ import {
 } from "@/domains/locality/types";
 import { GeneratedArticle } from "./types";
 import { markDataInjected } from "./repository";
-import { fetchGeoCity, fetchGeoCityByCode } from "./fetchers/geo-fetcher";
+import { fetchGeoCity, fetchGeoCityByCode } from "@/infrastructure/data-sources";
 
 interface InjectionResult {
   injected: number;

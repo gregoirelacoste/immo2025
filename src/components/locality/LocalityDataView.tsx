@@ -125,11 +125,12 @@ export default function LocalityDataView({ cityName, fields: f, propertyComparis
       </div>
 
       {/* Charges */}
-      {(f.avg_condo_charges_per_m2 != null || f.avg_property_tax_per_m2 != null) && (
+      {(f.avg_condo_charges_per_m2 != null || f.avg_property_tax_per_m2 != null || f.property_tax_rate_pct != null) && (
         <div className="bg-gray-50 rounded-xl p-4">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Charges et taxes</h3>
           <DataRow label="Charges copro/m²" value={fmt(f.avg_condo_charges_per_m2, " €")} />
           <DataRow label="Taxe foncière/m²" value={fmt(f.avg_property_tax_per_m2, " €")} />
+          {f.property_tax_rate_pct != null && <DataRow label="Taux TFB (%)" value={`${f.property_tax_rate_pct} %`} />}
         </div>
       )}
 
@@ -152,23 +153,32 @@ export default function LocalityDataView({ cityName, fields: f, propertyComparis
         <DataRow label="Revenu médian" value={fmt(f.median_income, " €")} />
         {f.poverty_rate != null && <DataRow label="Taux de pauvreté" value={`${f.poverty_rate} %`} />}
         {f.unemployment_rate != null && <DataRow label="Taux de chômage" value={`${f.unemployment_rate} %`} />}
+        {f.vacant_housing_pct != null && <DataRow label="Logements vacants" value={`${f.vacant_housing_pct} %`} />}
+        {f.owner_occupier_pct != null && <DataRow label="Propriétaires" value={`${f.owner_occupier_pct} %`} />}
       </div>
 
       {/* Infrastructure */}
-      {(f.school_count || f.public_transport_score != null) && (
+      {(f.school_count || f.public_transport_score != null || f.doctor_count != null || f.pharmacy_count != null || f.supermarket_count != null) && (
         <div className="bg-gray-50 rounded-xl p-4">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Infrastructure</h3>
           <DataRow label="Écoles" value={fmt(f.school_count)} />
           <DataRow label="Université à proximité" value={f.university_nearby ? "Oui" : f.university_nearby === false ? "Non" : "\u2014"} />
           {f.public_transport_score != null && <DataRow label="Score transports" value={`${f.public_transport_score}/10`} />}
+          {f.doctor_count != null && <DataRow label="Médecins" value={fmt(f.doctor_count)} />}
+          {f.pharmacy_count != null && <DataRow label="Pharmacies" value={fmt(f.pharmacy_count)} />}
+          {f.supermarket_count != null && <DataRow label="Supermarchés" value={fmt(f.supermarket_count)} />}
         </div>
       )}
 
       {/* Risques */}
-      {(f.risk_level || risks.length > 0) && (
+      {(f.risk_level || risks.length > 0 || f.flood_risk_level || f.seismic_zone != null || f.radon_level != null || f.industrial_risk != null) && (
         <div className="bg-gray-50 rounded-xl p-4">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Risques</h3>
           {f.risk_level && <DataRow label="Niveau de risque global" value={f.risk_level} />}
+          {f.flood_risk_level && <DataRow label="Inondation" value={f.flood_risk_level} />}
+          {f.seismic_zone != null && <DataRow label="Zone sismique" value={String(f.seismic_zone)} />}
+          {f.radon_level != null && <DataRow label="Radon" value={`Classe ${f.radon_level}`} />}
+          {f.industrial_risk != null && <DataRow label="Risque industriel" value={f.industrial_risk ? "Oui" : "Non"} />}
           {risks.length > 0 && (
             <div className="mt-2">
               <ul className="text-sm text-gray-700 list-disc list-inside">
@@ -178,6 +188,17 @@ export default function LocalityDataView({ cityName, fields: f, propertyComparis
               </ul>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Énergie (DPE) */}
+      {(f.avg_dpe_class || f.avg_energy_consumption != null || f.avg_ges_class || f.dpe_count != null) && (
+        <div className="bg-gray-50 rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Énergie</h3>
+          {f.avg_dpe_class && <DataRow label="Classe DPE moy." value={f.avg_dpe_class} />}
+          {f.avg_energy_consumption != null && <DataRow label="Conso énergie (kWh/m²)" value={fmt(f.avg_energy_consumption)} />}
+          {f.avg_ges_class && <DataRow label="Classe GES moy." value={f.avg_ges_class} />}
+          {f.dpe_count != null && <DataRow label="Nb DPE analysés" value={fmt(f.dpe_count)} />}
         </div>
       )}
     </div>

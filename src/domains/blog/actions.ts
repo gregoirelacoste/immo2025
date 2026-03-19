@@ -37,7 +37,6 @@ export async function generateArticleAction(
       category,
       city: city || undefined,
       autoPublish,
-      injectData: true,
       triggeredBy: "admin",
     });
 
@@ -55,7 +54,6 @@ export async function generateArticleAction(
     return {
       success: true,
       articleId: result.article.id,
-      injection: result.injectionResult,
     };
   } catch (e) {
     return { success: false, error: (e as Error).message };

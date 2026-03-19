@@ -41,6 +41,7 @@ export const LOCALITY_TABLE_NAMES = [
   "locality_socio",
   "locality_infra",
   "locality_risks",
+  "locality_energy",
 ] as const;
 
 export type LocalityTableName = (typeof LOCALITY_TABLE_NAMES)[number];
@@ -65,6 +66,7 @@ export interface LocalityDataFields {
   // Charges et taxes
   avg_condo_charges_per_m2?: number | null;
   avg_property_tax_per_m2?: number | null;
+  property_tax_rate_pct?: number | null;
 
   // Airbnb
   avg_airbnb_night_price?: number | null;
@@ -80,11 +82,16 @@ export interface LocalityDataFields {
   median_income?: number | null;
   poverty_rate?: number | null;
   unemployment_rate?: number | null;
+  vacant_housing_pct?: number | null;
+  owner_occupier_pct?: number | null;
 
   // Infrastructure
   school_count?: number | null;
   university_nearby?: boolean | null;
   public_transport_score?: number | null;
+  doctor_count?: number | null;
+  pharmacy_count?: number | null;
+  supermarket_count?: number | null;
 
   // Indicateur de rentabilité locale
   typical_cashflow_per_m2?: number | null; // €/m²/mois — cashflow mensuel typique (négatif = marché tendu)
@@ -92,6 +99,16 @@ export interface LocalityDataFields {
   // Risques
   risk_level?: "faible" | "moyen" | "élevé" | null;
   natural_risks?: Array<{ type: string; level: string }> | null;
+  flood_risk_level?: string | null;
+  seismic_zone?: number | null;
+  radon_level?: number | null;
+  industrial_risk?: number | null;
+
+  // Énergie (DPE)
+  avg_dpe_class?: string | null;
+  avg_energy_consumption?: number | null;
+  avg_ges_class?: string | null;
+  dpe_count?: number | null;
 }
 
 /** All field keys of LocalityDataFields */
@@ -105,6 +122,7 @@ export const LOCALITY_DATA_FIELD_KEYS: (keyof LocalityDataFields)[] = [
   "vacancy_rate",
   "avg_condo_charges_per_m2",
   "avg_property_tax_per_m2",
+  "property_tax_rate_pct",
   "avg_airbnb_night_price",
   "avg_airbnb_occupancy_rate",
   "rent_elasticity_alpha",
@@ -114,12 +132,25 @@ export const LOCALITY_DATA_FIELD_KEYS: (keyof LocalityDataFields)[] = [
   "median_income",
   "poverty_rate",
   "unemployment_rate",
+  "vacant_housing_pct",
+  "owner_occupier_pct",
   "school_count",
   "university_nearby",
   "public_transport_score",
+  "doctor_count",
+  "pharmacy_count",
+  "supermarket_count",
   "typical_cashflow_per_m2",
   "risk_level",
   "natural_risks",
+  "flood_risk_level",
+  "seismic_zone",
+  "radon_level",
+  "industrial_risk",
+  "avg_dpe_class",
+  "avg_energy_consumption",
+  "avg_ges_class",
+  "dpe_count",
 ];
 
 /** Mapping: field key → which thematic table it belongs to */
@@ -136,6 +167,7 @@ export const FIELD_TO_TABLE: Record<keyof LocalityDataFields, LocalityTableName>
   rent_reference_surface: "locality_rental",
   avg_condo_charges_per_m2: "locality_charges",
   avg_property_tax_per_m2: "locality_charges",
+  property_tax_rate_pct: "locality_charges",
   avg_airbnb_night_price: "locality_airbnb",
   avg_airbnb_occupancy_rate: "locality_airbnb",
   population: "locality_socio",
@@ -143,11 +175,24 @@ export const FIELD_TO_TABLE: Record<keyof LocalityDataFields, LocalityTableName>
   median_income: "locality_socio",
   poverty_rate: "locality_socio",
   unemployment_rate: "locality_socio",
+  vacant_housing_pct: "locality_socio",
+  owner_occupier_pct: "locality_socio",
   school_count: "locality_infra",
   university_nearby: "locality_infra",
   public_transport_score: "locality_infra",
+  doctor_count: "locality_infra",
+  pharmacy_count: "locality_infra",
+  supermarket_count: "locality_infra",
   risk_level: "locality_risks",
   natural_risks: "locality_risks",
+  flood_risk_level: "locality_risks",
+  seismic_zone: "locality_risks",
+  radon_level: "locality_risks",
+  industrial_risk: "locality_risks",
+  avg_dpe_class: "locality_energy",
+  avg_energy_consumption: "locality_energy",
+  avg_ges_class: "locality_energy",
+  dpe_count: "locality_energy",
 };
 
 /** Resolved locality data with source tracking per field */

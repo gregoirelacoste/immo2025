@@ -74,7 +74,6 @@ Options :
   --postal <code>    Code postal (aide à la résolution)
   --insee <code>     Code INSEE (prioritaire sur --city)
   --publish          Publier directement (sinon brouillon)
-  --no-inject        Ne pas injecter les données extraites
   --dry-run          Générer sans sauvegarder en base
   --help             Afficher cette aide
 
@@ -94,7 +93,6 @@ const city = getArg("city");
 const postalCode = getArg("postal");
 const codeInsee = getArg("insee");
 const autoPublish = hasFlag("publish");
-const noInject = hasFlag("no-inject");
 const dryRun = hasFlag("dry-run");
 
 if (!category) {
@@ -141,7 +139,6 @@ async function main() {
   if (codeInsee) console.log(`🔢 Code INSEE : ${codeInsee}`);
   if (dryRun) console.log(`🧪 Mode dry-run (pas de sauvegarde)`);
   if (autoPublish) console.log(`🚀 Publication automatique`);
-  if (noInject) console.log(`⏭️  Pas d'injection données`);
   console.log("─────────────────────────────────────────");
 
   console.log("\n⏳ Étape 1/5 : Collecte des données...");
@@ -152,7 +149,6 @@ async function main() {
     postalCode,
     codeInsee,
     autoPublish,
-    injectData: !noInject,
     dryRun,
     triggeredBy: "cli",
   });
@@ -178,18 +174,6 @@ async function main() {
   const tags = JSON.parse(article.tags || "[]");
   if (tags.length > 0) {
     console.log(`🏷️  Tags     : ${tags.join(", ")}`);
-  }
-
-  if (result.injectionResult) {
-    const inj = result.injectionResult;
-    console.log(`\n💉 Injection données :`);
-    console.log(`   Injectées : ${inj.injected} localité(s)`);
-    if (inj.skipped > 0) console.log(`   Ignorées  : ${inj.skipped}`);
-    if (inj.errors.length > 0) {
-      for (const err of inj.errors) {
-        console.log(`   ⚠️  ${err.city} : ${err.error}`);
-      }
-    }
   }
 
   console.log(`\n⏱️  Durée totale : ${(result.durationMs / 1000).toFixed(1)}s`);

@@ -7,13 +7,16 @@
  * Chaque source est fail-safe : une erreur n'empêche pas les autres de fonctionner.
  */
 
-import { NewsContext, NewsFetcherOptions } from "./types";
-import { fetchGeoCity, fetchGeoCityByCode } from "./fetchers/geo-fetcher";
-import { fetchDvfData } from "./fetchers/dvf-fetcher";
-import { fetchGeorisquesData } from "./fetchers/georisques-fetcher";
+import { NewsContext, NewsFetcherOptions, LocalitySnapshot } from "./types";
+import {
+  fetchGeoCity,
+  fetchGeoCityByCode,
+  fetchDvfData,
+  fetchGeorisquesData,
+  fetchInseeData,
+} from "@/infrastructure/data-sources";
 import { fetchRssNews } from "./fetchers/rss-fetcher";
-import { fetchLocalityData } from "./fetchers/locality-fetcher";
-import { fetchInseeData } from "./fetchers/insee-fetcher";
+import { resolveLocalityData } from "@/domains/locality/resolver";
 
 /** Types d'articles qui nécessitent des données ville */
 const CITY_CATEGORIES = new Set([
@@ -100,7 +103,15 @@ export async function collectNewsContext(
 
       // Données localité existantes en DB
       city
-        ? fetchLocalityData(city, postalCode, codeInsee)
+        ? resolveLocalityData(city, postalCode, codeInsee).then((r) =>
+            r ? ({
+              localityId: r.locality.id,
+              localityName: r.locality.name,
+              localityType: r.locality.type,
+              validFrom: new Date().toISOString().slice(0, 10),
+              fields: r.fields as Record<string, unknown>,
+            } satisfies LocalitySnapshot) : null
+          ).catch(() => null)
         : Promise.resolve(null),
 
       // RSS : filtré par ville si pertinent

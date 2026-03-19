@@ -17,49 +17,22 @@ export const ARTICLE_CATEGORIES = [
 
 export type ArticleCategory = (typeof ARTICLE_CATEGORIES)[number];
 
-// ── Données collectées par fetcher ──
+// ── Données collectées par fetcher (ré-exports depuis infrastructure) ──
 
-export interface DvfCityData {
-  avgPricePerM2: number | null;
-  medianPricePerM2: number | null;
-  transactionCount: number;
-  avgPriceStudioPerM2: number | null;
-  avgPriceSmallAptPerM2: number | null;
-  avgPriceLargeAptPerM2: number | null;
-  avgPriceHousePerM2: number | null;
-  priceTrend1yPct: number | null;
-  pricePerM2Min: number | null;
-  pricePerM2Max: number | null;
-  lastMutationDate: string | null;
-}
+export type {
+  DvfCityData,
+  GeorisquesCityData,
+  GeoCity,
+  InseeCityData,
+  RssItem,
+} from "@/infrastructure/data-sources/types";
 
-export interface GeorisquesCityData {
-  naturalRisks: Array<{ type: string; level: string }>;
-  riskLevel: "faible" | "moyen" | "élevé";
-  floodRiskLevel: "nul" | "faible" | "moyen" | "fort" | null;
-  seismicZone: number | null;
-  industrialRisk: boolean;
-  radonLevel: number | null;
-  clayShrinkageRisk: "faible" | "moyen" | "fort" | null;
-  catnatCount: number;
-}
-
-export interface RssItem {
-  title: string;
-  link: string;
-  pubDate: string;
-  source: string;
-  snippet: string;
-}
-
-export interface GeoCity {
-  nom: string;
-  code: string; // code INSEE
-  codesPostaux: string[];
-  departement?: { code: string; nom: string };
-  region?: { code: string; nom: string };
-  population?: number;
-}
+import type {
+  DvfCityData,
+  GeorisquesCityData,
+  InseeCityData,
+  RssItem,
+} from "@/infrastructure/data-sources/types";
 
 export interface LocalitySnapshot {
   localityId: string;
@@ -67,21 +40,6 @@ export interface LocalitySnapshot {
   localityType: string;
   validFrom: string;
   fields: Record<string, unknown>;
-}
-
-export interface InseeCityData {
-  population: number | null;
-  medianIncome: number | null;
-  povertyRate: number | null;
-  unemploymentRate: number | null;
-  vacantHousingPct: number | null;
-  ownerOccupierPct: number | null;
-  housingStockCount: number | null;
-  householdSizeAvg: number | null;
-  studentPopulationPct: number | null;
-  seniorPopulationPct: number | null;
-  totalJobs: number | null;
-  millesime: string | null;
 }
 
 // ── Contexte assemblé pour Gemini ──

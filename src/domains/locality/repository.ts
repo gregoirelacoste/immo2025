@@ -211,7 +211,7 @@ export async function getLatestLocalityFields(
   localityId: string,
   asOfDate?: string
 ): Promise<LocalityDataFields> {
-  const [prices, rental, charges, airbnb, socio, infra, risks] = await Promise.all([
+  const [prices, rental, charges, airbnb, socio, infra, risks, energy] = await Promise.all([
     getLatestRow<Record<string, unknown>>("locality_prices", localityId, asOfDate),
     getLatestRow<Record<string, unknown>>("locality_rental", localityId, asOfDate),
     getLatestRow<Record<string, unknown>>("locality_charges", localityId, asOfDate),
@@ -219,8 +219,9 @@ export async function getLatestLocalityFields(
     getLatestRow<Record<string, unknown>>("locality_socio", localityId, asOfDate),
     getLatestRow<Record<string, unknown>>("locality_infra", localityId, asOfDate),
     getLatestRow<Record<string, unknown>>("locality_risks", localityId, asOfDate),
+    getLatestRow<Record<string, unknown>>("locality_energy", localityId, asOfDate),
   ]);
-  return assembleFields(prices, rental, charges, airbnb, socio, infra, risks);
+  return assembleFields(prices, rental, charges, airbnb, socio, infra, risks, energy);
 }
 
 /**
@@ -233,7 +234,7 @@ export async function getLatestLocalityFieldsBatch(
 ): Promise<Map<string, LocalityDataFields>> {
   if (localityIds.length === 0) return new Map();
 
-  const [pricesMap, rentalMap, chargesMap, airbnbMap, socioMap, infraMap, risksMap] = await Promise.all([
+  const [pricesMap, rentalMap, chargesMap, airbnbMap, socioMap, infraMap, risksMap, energyMap] = await Promise.all([
     getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_prices", localityIds, asOfDate),
     getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_rental", localityIds, asOfDate),
     getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_charges", localityIds, asOfDate),
@@ -241,6 +242,7 @@ export async function getLatestLocalityFieldsBatch(
     getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_socio", localityIds, asOfDate),
     getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_infra", localityIds, asOfDate),
     getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_risks", localityIds, asOfDate),
+    getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_energy", localityIds, asOfDate),
   ]);
 
   const result = new Map<string, LocalityDataFields>();
@@ -254,6 +256,7 @@ export async function getLatestLocalityFieldsBatch(
       socioMap.get(id),
       infraMap.get(id),
       risksMap.get(id),
+      energyMap.get(id),
     ));
   }
   return result;
@@ -268,6 +271,7 @@ function assembleFields(
   socio?: Record<string, unknown>,
   infra?: Record<string, unknown>,
   risks?: Record<string, unknown>,
+  energy?: Record<string, unknown>,
 ): LocalityDataFields {
   const f: LocalityDataFields = {};
 
@@ -288,6 +292,7 @@ function assembleFields(
   if (charges) {
     f.avg_condo_charges_per_m2 = (charges.avg_condo_charges_per_m2 as number | null) ?? null;
     f.avg_property_tax_per_m2 = (charges.avg_property_tax_per_m2 as number | null) ?? null;
+    f.property_tax_rate_pct = (charges.property_tax_rate_pct as number | null) ?? null;
   }
   if (airbnb) {
     f.avg_airbnb_night_price = (airbnb.avg_airbnb_night_price as number | null) ?? null;
@@ -299,14 +304,19 @@ function assembleFields(
     f.median_income = (socio.median_income as number | null) ?? null;
     f.poverty_rate = (socio.poverty_rate as number | null) ?? null;
     f.unemployment_rate = (socio.unemployment_rate as number | null) ?? null;
+    f.vacant_housing_pct = (socio.vacant_housing_pct as number | null) ?? null;
+    f.owner_occupier_pct = (socio.owner_occupier_pct as number | null) ?? null;
   }
   if (infra) {
     f.school_count = (infra.school_count as number | null) ?? null;
     f.university_nearby = infra.university_nearby != null ? Boolean(infra.university_nearby) : null;
-    f.public_transport_score = infra.public_transport_score as number ?? null;
+    f.public_transport_score = (infra.public_transport_score as number | null) ?? null;
+    f.doctor_count = (infra.doctor_count as number | null) ?? null;
+    f.pharmacy_count = (infra.pharmacy_count as number | null) ?? null;
+    f.supermarket_count = (infra.supermarket_count as number | null) ?? null;
   }
   if (risks) {
-    f.risk_level = risks.risk_level as LocalityDataFields["risk_level"] ?? null;
+    f.risk_level = (risks.risk_level as LocalityDataFields["risk_level"]) ?? null;
     if (risks.natural_risks) {
       try {
         const parsed = typeof risks.natural_risks === "string"
@@ -317,6 +327,16 @@ function assembleFields(
         f.natural_risks = null;
       }
     }
+    f.flood_risk_level = (risks.flood_risk_level as string | null) ?? null;
+    f.seismic_zone = (risks.seismic_zone as number | null) ?? null;
+    f.radon_level = (risks.radon_level as number | null) ?? null;
+    f.industrial_risk = (risks.industrial_risk as number | null) ?? null;
+  }
+  if (energy) {
+    f.avg_dpe_class = (energy.avg_dpe_class as string | null) ?? null;
+    f.avg_energy_consumption = (energy.avg_energy_consumption as number | null) ?? null;
+    f.avg_ges_class = (energy.avg_ges_class as string | null) ?? null;
+    f.dpe_count = (energy.dpe_count as number | null) ?? null;
   }
 
   return f;
