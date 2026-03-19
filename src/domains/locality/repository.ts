@@ -323,6 +323,9 @@ function assembleFields(
   }
   if (rental) {
     f.avg_rent_per_m2 = (rental.avg_rent_per_m2 as number | null) ?? null;
+    f.avg_rent_t1t2_per_m2 = (rental.avg_rent_t1t2_per_m2 as number | null) ?? null;
+    f.avg_rent_t3plus_per_m2 = (rental.avg_rent_t3plus_per_m2 as number | null) ?? null;
+    f.avg_rent_house_per_m2 = (rental.avg_rent_house_per_m2 as number | null) ?? null;
     f.avg_rent_furnished_per_m2 = (rental.avg_rent_furnished_per_m2 as number | null) ?? null;
     f.vacancy_rate = (rental.vacancy_rate as number | null) ?? null;
     f.typical_cashflow_per_m2 = (rental.typical_cashflow_per_m2 as number | null) ?? null;
@@ -421,8 +424,13 @@ export async function upsertLocalityData(
     const allVals: InValue[] = [localityId, validFrom, ...values as InValue[], source];
     const placeholders = allCols.map(() => "?").join(",");
 
+    // Use ON CONFLICT upsert to update only the specified columns
+    // (INSERT OR REPLACE deletes the entire row, losing unspecified columns)
+    const updateSets = [...columns, "source"].map((col) => `${col} = excluded.${col}`).join(", ");
+
     await db.execute({
-      sql: `INSERT OR REPLACE INTO ${table} (${allCols.join(",")}) VALUES (${placeholders})`,
+      sql: `INSERT INTO ${table} (${allCols.join(",")}) VALUES (${placeholders})
+            ON CONFLICT(locality_id, valid_from) DO UPDATE SET ${updateSets}`,
       args: allVals,
     });
   }

@@ -78,6 +78,9 @@ export interface HealthData {
 export interface LoyersData {
   loyerMedM2: number;
   nbObservations: number | null;
+  loyerT1T2M2: number | null;
+  loyerT3PlusM2: number | null;
+  loyerMaisonM2: number | null;
 }
 
 export interface RssItem {

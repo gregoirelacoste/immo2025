@@ -184,10 +184,13 @@ export default function LocalityDataView({ cityName, fields: f, dataSources: ds 
       <div className="bg-gray-50 rounded-xl p-4">
         <div className="flex items-center mb-2">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Marché locatif</h3>
-          <SectionSources fields={["avg_rent_per_m2", "avg_rent_furnished_per_m2", "vacancy_rate"]} dataSources={ds} />
+          <SectionSources fields={["avg_rent_per_m2", "avg_rent_t1t2_per_m2", "avg_rent_t3plus_per_m2", "avg_rent_house_per_m2", "avg_rent_furnished_per_m2", "vacancy_rate"]} dataSources={ds} />
         </div>
-        <DataRow label="Loyer moyen nu (€/m²)" value={fmt(f.avg_rent_per_m2, " €")} source={ds.avg_rent_per_m2} />
-        <DataRow label="Loyer meublé (€/m²)" value={fmt(f.avg_rent_furnished_per_m2, " €")} source={ds.avg_rent_furnished_per_m2} />
+        <DataRow label="Loyer moyen (tous appts)" value={fmt(f.avg_rent_per_m2, " €/m²")} source={ds.avg_rent_per_m2} />
+        {f.avg_rent_t1t2_per_m2 != null && <DataRow label="Loyer T1-T2" value={fmt(f.avg_rent_t1t2_per_m2, " €/m²")} source={ds.avg_rent_t1t2_per_m2} />}
+        {f.avg_rent_t3plus_per_m2 != null && <DataRow label="Loyer T3+" value={fmt(f.avg_rent_t3plus_per_m2, " €/m²")} source={ds.avg_rent_t3plus_per_m2} />}
+        {f.avg_rent_house_per_m2 != null && <DataRow label="Loyer maison" value={fmt(f.avg_rent_house_per_m2, " €/m²")} source={ds.avg_rent_house_per_m2} />}
+        <DataRow label="Loyer meublé" value={fmt(f.avg_rent_furnished_per_m2, " €/m²")} source={ds.avg_rent_furnished_per_m2} />
         <DataRow label="Vacance locative" value={f.vacancy_rate != null ? `${f.vacancy_rate} %` : "\u2014"} source={ds.vacancy_rate} />
       </div>
 

@@ -14,7 +14,7 @@ export function getClient(): Client {
 }
 
 // Bump this when adding new migrations so cold starts re-run them
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints
@@ -230,6 +230,10 @@ async function initializeDatabase(client: Client): Promise<void> {
     "ALTER TABLE locality_risks ADD COLUMN seismic_zone INTEGER DEFAULT NULL",
     "ALTER TABLE locality_risks ADD COLUMN radon_level INTEGER DEFAULT NULL",
     "ALTER TABLE locality_risks ADD COLUMN industrial_risk INTEGER DEFAULT NULL",
+    // v8 — segmented rent data from Carte des loyers
+    "ALTER TABLE locality_rental ADD COLUMN avg_rent_t1t2_per_m2 REAL DEFAULT NULL",
+    "ALTER TABLE locality_rental ADD COLUMN avg_rent_t3plus_per_m2 REAL DEFAULT NULL",
+    "ALTER TABLE locality_rental ADD COLUMN avg_rent_house_per_m2 REAL DEFAULT NULL",
   ];
   const migrationErrors: Array<{ stmt: string; error: unknown }> = [];
   await Promise.all(

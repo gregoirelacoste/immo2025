@@ -76,7 +76,10 @@ export function mapHealthToFields(health: HealthData): Partial<LocalityDataField
 
 export function mapLoyersToFields(loyers: LoyersData): Partial<LocalityDataFields> {
   return {
-    avg_rent_per_m2: Math.round(loyers.loyerMedM2 * 100) / 100, // unfurnished rent only
+    avg_rent_per_m2: Math.round(loyers.loyerMedM2 * 100) / 100,
+    avg_rent_t1t2_per_m2: loyers.loyerT1T2M2 != null ? Math.round(loyers.loyerT1T2M2 * 100) / 100 : null,
+    avg_rent_t3plus_per_m2: loyers.loyerT3PlusM2 != null ? Math.round(loyers.loyerT3PlusM2 * 100) / 100 : null,
+    avg_rent_house_per_m2: loyers.loyerMaisonM2 != null ? Math.round(loyers.loyerMaisonM2 * 100) / 100 : null,
   };
 }
 

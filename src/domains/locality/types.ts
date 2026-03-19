@@ -60,6 +60,9 @@ export interface LocalityDataFields {
 
   // Marche locatif
   avg_rent_per_m2?: number | null;
+  avg_rent_t1t2_per_m2?: number | null;
+  avg_rent_t3plus_per_m2?: number | null;
+  avg_rent_house_per_m2?: number | null;
   avg_rent_furnished_per_m2?: number | null;
   vacancy_rate?: number | null;
 
@@ -118,6 +121,9 @@ export const LOCALITY_DATA_FIELD_KEYS: (keyof LocalityDataFields)[] = [
   "transaction_count",
   "price_trend_pct",
   "avg_rent_per_m2",
+  "avg_rent_t1t2_per_m2",
+  "avg_rent_t3plus_per_m2",
+  "avg_rent_house_per_m2",
   "avg_rent_furnished_per_m2",
   "vacancy_rate",
   "avg_condo_charges_per_m2",
@@ -160,6 +166,9 @@ export const FIELD_TO_TABLE: Record<keyof LocalityDataFields, LocalityTableName>
   transaction_count: "locality_prices",
   price_trend_pct: "locality_prices",
   avg_rent_per_m2: "locality_rental",
+  avg_rent_t1t2_per_m2: "locality_rental",
+  avg_rent_t3plus_per_m2: "locality_rental",
+  avg_rent_house_per_m2: "locality_rental",
   avg_rent_furnished_per_m2: "locality_rental",
   vacancy_rate: "locality_rental",
   typical_cashflow_per_m2: "locality_rental",
