@@ -44,6 +44,55 @@ export async function fetchLocalityFields(
   }
 }
 
+// ─── Quick add: resolve via geo API + create + enrich ───
+
+export async function addAndEnrichLocality(
+  cityName: string
+): Promise<{ success: boolean; id?: string; fieldsUpdated?: number; error?: string }> {
+  try {
+    await requireUserId();
+    if (!cityName.trim()) return { success: false, error: "Le nom de la ville est requis." };
+
+    // Check if already exists
+    const { findLocalityByCity, getRootLocalities } = await import("./repository");
+    const existing = await findLocalityByCity(cityName.trim());
+    if (existing) {
+      // Already exists — just enrich
+      const enrichResult = await enrichLocality(existing.id, { force: true, enrichParents: true });
+      revalidatePath("/localities");
+      revalidatePath("/guide", "layout");
+      return { success: true, id: existing.id, fieldsUpdated: enrichResult.fieldsUpdated };
+    }
+
+    // Resolve via geo API
+    const { fetchGeoCity } = await import("@/infrastructure/data-sources/geo-client");
+    const geo = await fetchGeoCity(cityName.trim());
+    if (!geo) return { success: false, error: `Ville "${cityName}" introuvable via geo.api.gouv.fr.` };
+
+    // Find root parent
+    const roots = await getRootLocalities();
+    const parentId = roots[0]?.id ?? null;
+
+    // Create locality
+    const id = await createLocality({
+      name: geo.nom,
+      type: "ville",
+      parent_id: parentId,
+      code: geo.code,
+      postal_codes: JSON.stringify(geo.codesPostaux ?? []),
+    });
+
+    // Auto-enrich
+    const enrichResult = await enrichLocality(id, { force: true, enrichParents: false });
+
+    revalidatePath("/localities");
+    revalidatePath("/guide", "layout");
+    return { success: true, id, fieldsUpdated: enrichResult.fieldsUpdated };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
 // ─── Locality CRUD ───
 
 export async function addLocality(data: {

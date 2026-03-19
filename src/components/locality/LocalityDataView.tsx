@@ -33,10 +33,13 @@ const SOURCE_LABELS: Record<string, string> = {
   "blog-ai": "Blog IA",
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function sourceLabel(source?: string): string | null {
   if (!source) return null;
   if (SOURCE_LABELS[source]) return SOURCE_LABELS[source];
   if (source.startsWith("import:")) return source.replace("import:", "Import ");
+  if (UUID_RE.test(source)) return "Admin";
   return source;
 }
 

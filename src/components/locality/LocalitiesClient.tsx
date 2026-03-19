@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Locality, LocalityDataSnapshot, LocalityTableName } from "@/domains/locality/types";
-import { addLocality, removeLocality, importLocalityData, removeLocalityData, enrichLocalityAction, fetchSnapshotFields } from "@/domains/locality/actions";
+import { addLocality, removeLocality, importLocalityData, removeLocalityData, enrichLocalityAction, fetchSnapshotFields, addAndEnrichLocality } from "@/domains/locality/actions";
 import Alert from "@/components/ui/Alert";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -26,6 +26,30 @@ const TABLE_LABELS: Record<LocalityTableName, string> = {
   locality_risks: "Risques",
   locality_energy: "Énergie",
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const SOURCE_LABELS: Record<string, string> = {
+  "api:dvf": "DVF",
+  "api:insee": "INSEE",
+  "api:georisques": "Géorisques",
+  "api:taxe-fonciere": "OFGL",
+  "api:dpe": "ADEME",
+  "api:education": "Éducation nat.",
+  "api:health": "BPE INSEE",
+  "api:carte-loyers": "Carte des loyers",
+  "api:computed": "Calculé",
+  "admin": "Admin",
+  "import-initial": "Import initial",
+  "blog-ai": "Blog IA",
+};
+
+function formatSource(source: string): string {
+  if (SOURCE_LABELS[source]) return SOURCE_LABELS[source];
+  if (source.startsWith("import:")) return source.replace("import:", "Import ");
+  if (UUID_RE.test(source)) return "Admin";
+  return source;
+}
 
 interface Props {
   localities: Locality[];
@@ -54,12 +78,18 @@ export default function LocalitiesClient({ localities, dataMap }: Props) {
       {error && <Alert variant="error">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
 
-      {/* Add locality button */}
+      {/* Quick add city */}
+      <QuickAddCity
+        onSuccess={(msg) => { setSuccess(msg); router.refresh(); }}
+        onError={setError}
+      />
+
+      {/* Advanced add (JSON import) */}
       <button
         onClick={() => { setShowAddForm(!showAddForm); clearMessages(); }}
-        className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
+        className="px-3 py-1.5 text-xs text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"
       >
-        {showAddForm ? "Annuler" : "+ Ajouter une localité"}
+        {showAddForm ? "Fermer import JSON" : "Import JSON avancé"}
       </button>
 
       {showAddForm && (
@@ -105,6 +135,55 @@ export default function LocalitiesClient({ localities, dataMap }: Props) {
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Quick Add City ───
+
+function QuickAddCity({
+  onSuccess,
+  onError,
+}: {
+  onSuccess: (msg: string) => void;
+  onError: (msg: string) => void;
+}) {
+  const [city, setCity] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!city.trim()) return;
+    setLoading(true);
+    const r = await addAndEnrichLocality(city.trim());
+    setLoading(false);
+    if (r.success) {
+      onSuccess(`"${city}" ajoutée et enrichie (${r.fieldsUpdated ?? 0} champs)`);
+      setCity("");
+    } else {
+      onError(r.error || "Erreur");
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+      <div className="flex-1">
+        <label className="block text-xs font-medium text-gray-700 mb-1">Ajouter une ville</label>
+        <input
+          type="text"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          placeholder="ex: Albi, Toulouse, Saint-Étienne..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+        />
+      </div>
+      <button
+        type="submit"
+        disabled={loading || !city.trim()}
+        className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50 whitespace-nowrap"
+      >
+        {loading ? "Ajout et enrichissement..." : "+ Ajouter"}
+      </button>
+    </form>
   );
 }
 
@@ -704,7 +783,7 @@ function SnapshotRow({
             {TABLE_LABELS[snapshot.table_name]}
           </span>
           <span className="text-gray-400">{snapshot.field_count} champ{snapshot.field_count !== 1 ? "s" : ""}</span>
-          {snapshot.source && <span className="text-gray-400">({snapshot.source})</span>}
+          {snapshot.source && <span className="text-gray-400">({formatSource(snapshot.source)})</span>}
         </button>
         <button
           onClick={onDelete}
