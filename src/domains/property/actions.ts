@@ -370,8 +370,8 @@ export async function setActiveSimulationAction(
     } else {
       await setActiveSimulation(propertyId, userId, simulationId);
     }
-    // Re-score with the new active simulation
-    enrichPropertyQuiet(propertyId).catch(() => {});
+    // Re-score with the new active simulation (await so revalidation sees final status)
+    await enrichPropertyQuiet(propertyId).catch(() => {});
     revalidatePath(`/property/${propertyId}`);
     revalidatePath("/dashboard");
     return { success: true };
