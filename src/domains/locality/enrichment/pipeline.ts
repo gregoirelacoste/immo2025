@@ -196,11 +196,13 @@ export async function enrichLocality(
       result.fieldsUpdated += fieldCount;
     }
 
+    const errorMsg = skippedCount > 0 ? `${skippedCount} champ(s) protégé(s)` :
+      fieldCount === 0 ? "Données vides (tous champs null)" : undefined;
     result.sourceReports.push({
       source: name,
       status: fieldCount > 0 ? "ok" : "skipped",
       fieldCount,
-      error: skippedCount > 0 ? `${skippedCount} champ(s) protégé(s)` : undefined,
+      error: errorMsg,
     });
   }
 

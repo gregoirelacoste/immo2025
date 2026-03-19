@@ -55,13 +55,13 @@ export async function fetchDvfData(
     ordering: "-datemut",
   });
 
-  const res = await fetch(`${CEREMA_API}?${params}`, {
+  const url = `${CEREMA_API}?${params}`;
+  const res = await fetch(url, {
     signal: AbortSignal.timeout(15_000),
   });
 
   if (!res.ok) {
-    console.warn(`[dvf-client] ${res.status} for ${codeInsee}`);
-    return empty;
+    throw new Error(`DVF Cerema ${res.status} for ${codeInsee}`);
   }
 
   const data: CeremaResponse = await res.json();
