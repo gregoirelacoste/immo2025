@@ -129,6 +129,9 @@ export async function runPipeline(
       await updateArticleStatus(article.id, "published");
       article.status = "published";
       article.published_at = new Date().toISOString();
+
+      // Revalider le cache Next.js pour que l'article apparaisse immédiatement
+      await revalidateBlog(article.slug);
     }
 
     // ── Étape 5 : Injection des données extraites ──
@@ -152,5 +155,23 @@ export async function runPipeline(
       error: e instanceof Error ? e.message : String(e),
       durationMs: Date.now() - start,
     };
+  }
+}
+
+/** Appelle l'API de revalidation pour rafraîchir le cache des pages blog */
+async function revalidateBlog(slug: string): Promise<void> {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL;
+  const secret = process.env.REVALIDATE_SECRET;
+  if (!baseUrl || !secret) return;
+
+  const url = baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
+  try {
+    await fetch(`${url}/api/revalidate-blog`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret, slug }),
+    });
+  } catch {
+    // Non-bloquant : si la revalidation échoue, l'ISR prendra le relais
   }
 }
