@@ -3,6 +3,7 @@
  * and persists results into thematic tables.
  */
 
+import { getDb } from "@/infrastructure/database/client";
 import {
   getLocalityById,
   getLatestLocalityFields,
@@ -198,7 +199,33 @@ export async function enrichLocality(
     });
   }
 
-  // 8. Enrich parents if requested
+  // 8. Clean up stale blog-ai rows — delete old blog-ai data for tables
+  //    that now have API data, so the source badge updates correctly.
+  if (result.fieldsUpdated > 0) {
+    const db = await getDb();
+    const tablesWithApiData = new Set<string>();
+    for (const report of result.sourceReports) {
+      if (report.status === "ok") {
+        // Find which tables this source covers by checking FIELD_TO_TABLE
+        const sourceMapping = sourceMappings.find((m) => m.name === report.source);
+        if (sourceMapping?.result.status === "fulfilled" && sourceMapping.result.value) {
+          const mapped = sourceMapping.mapper(sourceMapping.result.value);
+          for (const key of Object.keys(mapped) as (keyof LocalityDataFields)[]) {
+            if (mapped[key] != null) tablesWithApiData.add(FIELD_TO_TABLE[key]);
+          }
+        }
+      }
+    }
+    // Delete older blog-ai rows for tables that now have fresh API data
+    for (const table of tablesWithApiData) {
+      await db.execute({
+        sql: `DELETE FROM ${table} WHERE locality_id = ? AND source = 'blog-ai' AND valid_from < ?`,
+        args: [localityId, today],
+      });
+    }
+  }
+
+  // 9. Enrich parents if requested
   if (options?.enrichParents && locality.parent_id) {
     const parentResult = await enrichLocality(locality.parent_id, {
       force: false,

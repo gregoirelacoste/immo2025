@@ -379,7 +379,13 @@ function LocalityNode({
     try {
       const r = await enrichLocalityAction(locality.id);
       if (r.success && r.result) {
-        setEnrichResult(`${r.result.fieldsUpdated} champs mis à jour, ${r.result.fieldsSkipped} ignoré(s)`);
+        const ok = r.result.sourceReports.filter((s) => s.status === "ok");
+        const errors = r.result.sourceReports.filter((s) => s.status === "error");
+        const parts: string[] = [];
+        if (ok.length > 0) parts.push(`${r.result.fieldsUpdated} champs (${ok.map((s) => s.source).join(", ")})`);
+        if (errors.length > 0) parts.push(`erreurs: ${errors.map((s) => s.source).join(", ")}`);
+        if (r.result.fieldsSkipped > 0) parts.push(`${r.result.fieldsSkipped} protégé(s)`);
+        setEnrichResult(parts.join(" — ") || "Aucune donnée mise à jour");
         router.refresh();
       } else {
         onError(r.error || "Erreur d'enrichissement");
