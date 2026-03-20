@@ -126,18 +126,44 @@ export async function createLocality(data: {
   postal_codes?: string;
 }): Promise<string> {
   const db = await getDb();
+  const code = data.code || "";
+
+  // If code is non-empty, check for existing locality with same code+type first
+  // to avoid UNIQUE constraint violations on concurrent creation
+  if (code) {
+    const existing = await db.execute({
+      sql: "SELECT id FROM localities WHERE code = ? AND type = ? LIMIT 1",
+      args: [code, data.type],
+    });
+    if (existing.rows[0]) {
+      return existing.rows[0].id as string;
+    }
+  }
+
   const id = crypto.randomUUID();
-  await db.execute({
-    sql: `INSERT INTO localities (id, name, type, parent_id, code, postal_codes) VALUES (?, ?, ?, ?, ?, ?)`,
-    args: [
-      id,
-      data.name,
-      data.type,
-      data.parent_id ?? null,
-      data.code || "",
-      data.postal_codes || "[]",
-    ],
-  });
+  try {
+    await db.execute({
+      sql: `INSERT INTO localities (id, name, type, parent_id, code, postal_codes) VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [
+        id,
+        data.name,
+        data.type,
+        data.parent_id ?? null,
+        code,
+        data.postal_codes || "[]",
+      ],
+    });
+  } catch (e) {
+    // Race condition: another worker created it between our check and insert
+    if (String(e).includes("UNIQUE")) {
+      const fallback = await db.execute({
+        sql: "SELECT id FROM localities WHERE code = ? AND type = ? LIMIT 1",
+        args: [code, data.type],
+      });
+      if (fallback.rows[0]) return fallback.rows[0].id as string;
+    }
+    throw e;
+  }
   return id;
 }
 
