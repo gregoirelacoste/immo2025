@@ -13,14 +13,7 @@
  * with DVF, INSEE, Géorisques, loyers, DPE, etc.
  */
 
-import { createClient } from "@libsql/client";
 import * as fs from "fs";
-
-// Init DB client before dynamic imports
-const _client = createClient({
-  url: process.env.TURSO_DATABASE_URL || "file:data.db",
-  authToken: process.env.TURSO_AUTH_TOKEN,
-});
 
 const GEO_API = "https://geo.api.gouv.fr";
 
@@ -157,7 +150,9 @@ async function main() {
 
   console.log(`\n${isDryRun ? "[DRY-RUN] " : ""}Processing ${cities.length} cities...\n`);
 
-  // Dynamic import of domain code
+  // Init DB (runs migrations) then import domain code
+  const { getDb } = await import("@/infrastructure/database/client");
+  await getDb();
   const { ensureLocalityEnriched } = await import("@/domains/locality/enrichment/ensure");
   const { findLocalityByCity } = await import("@/domains/locality/repository");
 
