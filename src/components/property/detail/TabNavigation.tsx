@@ -7,7 +7,6 @@ const TABS = [
   { id: "travaux", label: "Travaux" },
   { id: "equipements", label: "Équip." },
   { id: "amenagement", label: "Meublé" },
-  { id: "simulation", label: "Simulation" },
   { id: "localite", label: "Localité" },
 ] as const;
 
@@ -26,20 +25,22 @@ export default function TabNavigation() {
   }
 
   return (
-    <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
-      {TABS.map(({ id, label }) => (
-        <button
-          key={id}
-          onClick={() => setTab(id)}
-          className={`flex-1 py-2.5 px-3 text-sm font-medium text-center rounded-lg transition-colors ${
-            current === id
-              ? "bg-white text-amber-600 shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          {label}
-        </button>
-      ))}
+    <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 min-w-max md:min-w-0">
+        {TABS.map(({ id, label }) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={`flex-1 py-2.5 px-3 text-sm font-medium text-center rounded-lg transition-colors whitespace-nowrap ${
+              current === id
+                ? "bg-white text-amber-600 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

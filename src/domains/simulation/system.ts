@@ -65,7 +65,7 @@ export function buildSystemSimulation(
     id: "__system__",
     property_id: property.id,
     user_id: "",
-    name: "Simulation système",
+    name: "Défaut",
     // Loan
     loan_amount: loanAmount,
     interest_rate: property.interest_rate,

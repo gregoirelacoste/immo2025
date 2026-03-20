@@ -16,7 +16,8 @@ import InvestmentScorePanel from "./InvestmentScorePanel";
 import StatusSelector from "@/components/property/StatusSelector";
 import TabNavigation, { type TabId } from "./TabNavigation";
 import StickyHeader from "./StickyHeader";
-import SimulationTab from "./SimulationTab";
+import SimulationBanner from "./SimulationBanner";
+import SimulationDrawer from "./SimulationDrawer";
 import TravauxTab from "./TravauxTab";
 import EquipementsTab from "./EquipementsTab";
 import type { Photo } from "@/domains/photo/types";
@@ -88,7 +89,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
     return found ?? (simulations.length > 0 ? simulations[0] : null);
   }, [property.active_simulation_id, simulations]);
 
-  // Live simulation from SimulationTab editor (instant updates before server roundtrip)
+  // Live simulation from SimulationDrawer editor (instant updates before server roundtrip)
   const [liveSimFromEditor, setLiveSimFromEditor] = useState<Simulation | null>(null);
 
   // Use live simulation if it matches the active favorite, otherwise server data
@@ -107,6 +108,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
   );
   const [refreshing, setRefreshing] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
+  const [simDrawerOpen, setSimDrawerOpen] = useState(false);
   const [heroHidden, setHeroHidden] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
 
@@ -122,14 +124,15 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
     return () => observer.disconnect();
   }, []);
 
-  const VALID_TABS: TabId[] = ["bien", "travaux", "equipements", "amenagement", "simulation", "localite"];
+  const VALID_TABS: TabId[] = ["bien", "travaux", "equipements", "amenagement", "localite"];
   const rawTab = searchParams.get("tab") as TabId;
   const activeTab = VALID_TABS.includes(rawTab) ? rawTab : "bien";
 
-  // Clear stale live sim when leaving the simulation tab
+  // Clear stale live sim when drawer closes (handled by SimulationDrawer)
+  // Keep the effect for cleanup when component unmounts
   useEffect(() => {
-    if (activeTab !== "simulation") setLiveSimFromEditor(null);
-  }, [activeTab]);
+    return () => setLiveSimFromEditor(null);
+  }, []);
 
   const marketData = useMemo(() => parseJson<MarketData | null>(property.market_data, null), [property.market_data]);
   const scoreBreakdown = useMemo(() => parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null), [property.score_breakdown]);
@@ -207,6 +210,14 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
 
       {/* Sticky header (visible only on scroll past hero) */}
       <StickyHeader property={property} calcs={calcs} visible={heroHidden} />
+
+      {/* Simulation banner — always visible, acts as context selector */}
+      <SimulationBanner
+        property={property}
+        simulations={simulations}
+        calcs={calcs}
+        onOpenDrawer={() => setSimDrawerOpen(true)}
+      />
 
       {/* Tab navigation */}
       <TabNavigation />
@@ -298,15 +309,15 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
         </div>
       )}
 
-      {/* ═══════════════════ ONGLET SIMULATION ═══════════════════ */}
-      {activeTab === "simulation" && (
-        <SimulationTab
-          property={property}
-          simulations={simulations}
-          isOwner={isOwner}
-          onLiveCalcsChange={setLiveSimFromEditor}
-        />
-      )}
+      {/* Simulation drawer (opened from banner) */}
+      <SimulationDrawer
+        property={property}
+        simulations={simulations}
+        isOwner={isOwner}
+        open={simDrawerOpen}
+        onClose={() => { setSimDrawerOpen(false); setLiveSimFromEditor(null); }}
+        onLiveCalcsChange={setLiveSimFromEditor}
+      />
 
       {/* ═══════════════════ ONGLET TRAVAUX ═══════════════════ */}
       {activeTab === "travaux" && (
