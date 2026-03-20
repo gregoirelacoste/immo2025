@@ -59,7 +59,10 @@ export default function LocaliteTab({ property }: Props) {
   }
 
   return (
-    <div className="mt-4">
+    <div className="mt-6">
+      <h2 className="text-lg font-bold text-[#1a1a2e] mb-3 px-1">
+        Données localité — {cityName || property.city}
+      </h2>
       <LocalityDataView
         cityName={cityName || property.city}
         fields={fields}
