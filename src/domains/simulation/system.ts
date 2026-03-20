@@ -4,95 +4,56 @@ import { Simulation } from "./types";
 import { calculateNotaryFees } from "@/lib/calculations";
 
 /**
- * Build a virtual "system simulation" from property data + locality data.
+ * Build a virtual "default" simulation — a direct mirror of property data.
  * This simulation is NOT stored in DB — it's computed on-the-fly.
- * It represents the baseline scenario using factual data from the property
- * and market averages from the locality hierarchy.
  *
- * Priority: property data > locality data > sensible defaults
+ * The source of truth is ALWAYS the property (= what the user sees in the tabs).
+ * Locality data is only used for fields that don't exist on the property
+ * (annual_appreciation). All other values come directly from the property.
  */
 export function buildSystemSimulation(
   property: Property,
   localityFields?: LocalityDataFields | null
 ): Simulation {
-  const surface = property.surface || 0;
   const loc = localityFields ?? {};
 
-  // --- Rent ---
-  // Manual mode: always use property.monthly_rent
-  // Auto mode: locality avg rent × surface (fallback to property rent if locality unavailable)
-  const isManualRent = property.rent_mode === "manual";
-  const monthlyRent = isManualRent
-    ? property.monthly_rent
-    : (loc.avg_rent_per_m2 && surface > 0
-      ? Math.round(loc.avg_rent_per_m2 * surface)
-      : property.monthly_rent);
-
-  // --- Charges ---
-  const condoCharges = property.condo_charges > 0
-    ? property.condo_charges
-    : (loc.avg_condo_charges_per_m2 && surface > 0 ? Math.round(loc.avg_condo_charges_per_m2 * surface * 12) : 0);
-
-  const propertyTax = property.property_tax > 0
-    ? property.property_tax
-    : (loc.avg_property_tax_per_m2 && surface > 0 ? Math.round(loc.avg_property_tax_per_m2 * surface) : 0);
-
-  // --- Vacancy ---
-  const vacancyRate = property.vacancy_rate > 0
-    ? property.vacancy_rate
-    : (loc.vacancy_rate ?? 5);
-
-  // --- Airbnb ---
-  const airbnbPricePerNight = property.airbnb_price_per_night > 0
-    ? property.airbnb_price_per_night
-    : (loc.avg_airbnb_night_price ?? 0);
-
-  const airbnbOccupancyRate = property.airbnb_occupancy_rate > 0
-    ? property.airbnb_occupancy_rate
-    : (loc.avg_airbnb_occupancy_rate ?? 60);
-
-  // --- Loan params (always from property) ---
   const notaryFees = property.notary_fees > 0
     ? property.notary_fees
     : calculateNotaryFees(property.purchase_price, property.property_type);
   const loanAmount = Math.max(0, property.purchase_price + notaryFees + property.renovation_cost - property.personal_contribution);
 
-  // --- Maintenance defaults ---
-  const maintenancePerM2 = property.property_type === "neuf" ? 8 : 12;
-
   return {
-    // System simulation has a fixed virtual ID
     id: "__system__",
     property_id: property.id,
     user_id: "",
     name: "Défaut",
-    // Loan
+    // Loan — direct from property
     loan_amount: loanAmount,
     interest_rate: property.interest_rate,
     loan_duration: property.loan_duration,
     personal_contribution: property.personal_contribution,
     insurance_rate: property.insurance_rate,
     loan_fees: property.loan_fees,
-    notary_fees: property.notary_fees, // 0 = auto-calc in calculateAll
-    // Rental
-    monthly_rent: monthlyRent,
-    condo_charges: condoCharges,
-    property_tax: propertyTax,
-    vacancy_rate: vacancyRate,
-    // Airbnb
-    airbnb_price_per_night: airbnbPricePerNight,
-    airbnb_occupancy_rate: airbnbOccupancyRate,
+    notary_fees: property.notary_fees,
+    // Rental — direct from property
+    monthly_rent: property.monthly_rent,
+    condo_charges: property.condo_charges,
+    property_tax: property.property_tax,
+    vacancy_rate: property.vacancy_rate || 5,
+    // Airbnb — direct from property
+    airbnb_price_per_night: property.airbnb_price_per_night,
+    airbnb_occupancy_rate: property.airbnb_occupancy_rate || 60,
     airbnb_charges: property.airbnb_charges,
-    // Costs
+    // Costs — direct from property
     renovation_cost: property.renovation_cost,
     fiscal_regime: property.fiscal_regime || "micro_bic",
-    // Recurring charges
-    maintenance_per_m2: maintenancePerM2,
+    // Recurring charges — sensible defaults (not on property tabs)
+    maintenance_per_m2: property.property_type === "neuf" ? 8 : 12,
     pno_insurance: 200,
     gli_rate: 0,
-    // Exit
-    holding_duration: 0, // 0 = use loan_duration
-    annual_appreciation: loc.price_trend_pct ?? 1.5, // from locality data (can be negative), fallback 1.5%
+    // Exit — locality trend or default (not on property tabs)
+    holding_duration: 0,
+    annual_appreciation: loc.price_trend_pct ?? 1.5,
     // Timestamps (virtual)
     created_at: "",
     updated_at: "",
