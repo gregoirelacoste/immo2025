@@ -579,11 +579,25 @@ async function initializeDatabase(client: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_blog_audit_article ON blog_audit_log(article_id);
   `);
 
-  // v9: UNIQUE index on localities(code, type) to prevent duplicate IRIS quartier entries
-  await client.execute(`
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_localities_code_type
-    ON localities(code, type) WHERE code != ''
-  `);
+  // v11: UNIQUE index on localities(code, type) to prevent duplicate IRIS quartier entries
+  // First deduplicate existing data — keep the oldest row per (code, type)
+  try {
+    await client.execute(`
+      DELETE FROM localities WHERE code != '' AND id NOT IN (
+        SELECT MIN(id) FROM localities WHERE code != '' GROUP BY code, type
+      )
+    `);
+    await client.execute(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_localities_code_type
+      ON localities(code, type) WHERE code != ''
+    `);
+  } catch (e) {
+    // Index may already exist — safe to ignore
+    const msg = String(e);
+    if (!msg.includes("already exists")) {
+      console.warn("[db] Failed to create UNIQUE index on localities:", msg);
+    }
+  }
 
   // Record schema version so subsequent cold starts skip migrations
   await client.execute("DELETE FROM _schema_version");
