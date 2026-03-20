@@ -178,7 +178,7 @@ function QuickAddCity({
           type="text"
           value={city}
           onChange={(e) => setCity(e.target.value)}
-          placeholder="ex: Albi, Toulouse, Saint-Étienne..."
+          placeholder="ex: Albi, 81000, Saint-Étienne..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
         />
       </div>
