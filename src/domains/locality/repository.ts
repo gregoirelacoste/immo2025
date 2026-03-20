@@ -95,6 +95,29 @@ export async function findLocalityByCity(
   return undefined;
 }
 
+/**
+ * Find a locality by its code and optional type.
+ * Used for IRIS resolution (code = 9-digit IRIS code, type = "quartier").
+ */
+export async function findLocalityByCode(
+  code: string,
+  type?: string
+): Promise<Locality | undefined> {
+  const db = await getDb();
+  if (type) {
+    const result = await db.execute({
+      sql: "SELECT * FROM localities WHERE code = ? AND type = ? LIMIT 1",
+      args: [code, type],
+    });
+    return result.rows[0] ? rowAs<Locality>(result.rows[0]) : undefined;
+  }
+  const result = await db.execute({
+    sql: "SELECT * FROM localities WHERE code = ? LIMIT 1",
+    args: [code],
+  });
+  return result.rows[0] ? rowAs<Locality>(result.rows[0]) : undefined;
+}
+
 export async function createLocality(data: {
   name: string;
   type: string;

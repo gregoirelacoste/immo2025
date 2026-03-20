@@ -7,6 +7,7 @@ import {
 } from "./types";
 import {
   findLocalityByCity,
+  findLocalityByCode,
   getLocalityById,
   getLatestLocalityFieldsBatch,
   getLatestSourcesBatch,
@@ -15,16 +16,31 @@ import {
 /**
  * Resolve locality data for a property, with field-by-field fallback up the hierarchy.
  *
- * 1. Find the most specific locality matching the property (by code INSEE, postal code, or city name)
+ * 1. Find the most specific locality matching the property (by IRIS code, code INSEE, postal code, or city name)
  * 2. Load the latest valid data from all thematic tables
  * 3. For each missing field, walk up the parent chain until found or root reached
+ *
+ * When irisCode is provided, starts resolution from the IRIS quartier locality,
+ * which naturally falls back to the parent commune for missing fields.
  */
 export async function resolveLocalityData(
   city: string,
   postalCode?: string,
-  codeInsee?: string
+  codeInsee?: string,
+  irisCode?: string
 ): Promise<ResolvedLocalityData | null> {
-  const locality = await findLocalityByCity(city, postalCode, codeInsee);
+  let locality: Locality | undefined;
+
+  // Try IRIS quartier first if code provided
+  if (irisCode) {
+    locality = await findLocalityByCode(irisCode, "quartier");
+  }
+
+  // Fall back to commune resolution
+  if (!locality) {
+    locality = await findLocalityByCity(city, postalCode, codeInsee);
+  }
+
   if (!locality) return null;
 
   // Phase 1: Collect all ancestor IDs by walking up parent_id chain

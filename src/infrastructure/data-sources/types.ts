@@ -38,6 +38,17 @@ export interface InseeCityData {
   seniorPopulationPct: number | null;
   totalJobs: number | null;
   millesime: string | null;
+  /** Granularity level of the returned data */
+  dataLevel: "iris" | "commune";
+  /** IRIS code if data was fetched at IRIS level */
+  irisCode: string | null;
+}
+
+/** Result of IRIS resolution from GPS coordinates */
+export interface IrisResolution {
+  irisCode: string;   // 9-digit IRIS code (e.g., "751056106")
+  irisName: string;   // Human-readable IRIS zone name
+  communeCode: string; // 5-digit INSEE commune code
 }
 
 export interface GeorisquesCityData {

@@ -15,6 +15,7 @@ export default function LocaliteTab({ property }: Props) {
   const [cityName, setCityName] = useState<string | null>(null);
   const [fields, setFields] = useState<LocalityDataFields | null>(null);
   const [dataSources, setDataSources] = useState<Partial<Record<keyof LocalityDataFields, string>>>({});
+  const [fieldSources, setFieldSources] = useState<Partial<Record<keyof LocalityDataFields, { localityName: string; localityType: string }>>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -26,6 +27,7 @@ export default function LocaliteTab({ property }: Props) {
         setCityName(result.cityName);
         setFields(result.fields);
         setDataSources(result.dataSources);
+        setFieldSources(result.fieldSources);
       }
       setLoading(false);
     }
@@ -62,6 +64,7 @@ export default function LocaliteTab({ property }: Props) {
         cityName={cityName || property.city}
         fields={fields}
         dataSources={dataSources}
+        fieldSources={fieldSources}
         propertyComparison={{ pricePerM2, rentPerM2 }}
       />
     </div>
