@@ -81,20 +81,7 @@ export default async function BlogArticlePage({ params }: Props) {
 
         {/* Content */}
         <div
-          className="prose prose-lg prose-amber max-w-none
-            prose-headings:text-gray-900
-            prose-h2:text-2xl prose-h2:font-bold prose-h2:mt-10 prose-h2:mb-4 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-200
-            prose-h3:text-lg prose-h3:font-semibold prose-h3:mt-6 prose-h3:mb-3
-            prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-3
-            prose-a:text-amber-600 prose-a:no-underline hover:prose-a:underline
-            prose-strong:text-gray-900 prose-strong:font-bold
-            prose-table:text-sm prose-table:w-full prose-table:my-4
-            prose-thead:bg-amber-50 prose-thead:border-b-2 prose-thead:border-amber-200
-            prose-th:px-4 prose-th:py-2.5 prose-th:text-left prose-th:font-semibold prose-th:text-gray-700
-            prose-td:px-4 prose-td:py-2 prose-td:border-b prose-td:border-gray-100
-            prose-li:text-gray-700 prose-li:my-1
-            prose-ul:my-4 prose-ol:my-4
-            prose-blockquote:border-l-amber-500 prose-blockquote:bg-amber-50/50 prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:not-italic prose-blockquote:text-gray-700 prose-blockquote:font-medium prose-blockquote:my-6"
+          className="blog-content"
           dangerouslySetInnerHTML={{ __html: article.content }}
         />
 
