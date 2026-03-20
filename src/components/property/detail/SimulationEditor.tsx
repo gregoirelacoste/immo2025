@@ -6,6 +6,7 @@ import { Simulation, SimulationFormData } from "@/domains/simulation/types";
 import { calculateSimulation, calculateExitSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent } from "@/lib/calculations";
 import { updateSimulationAction } from "@/domains/simulation/actions";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
+import StepperField, { formatStepperValue, type StepperFieldConfig } from "@/components/ui/StepperField";
 import FiscalSection from "@/components/property/form/FiscalSection";
 import ExitSimulationPanel from "./ExitSimulationPanel";
 
@@ -18,14 +19,7 @@ interface Props {
   readOnly?: boolean;
 }
 
-interface FieldConfig {
-  field: keyof SimulationFormData;
-  label: string;
-  step: number;
-  unit: string;
-  decimals?: number;
-  min?: number;
-}
+type FieldConfig = StepperFieldConfig & { field: keyof SimulationFormData };
 
 const EDITABLE_FIELDS: FieldConfig[] = [
   { field: "personal_contribution", label: "Apport personnel", step: 1000, unit: "€" },
@@ -38,6 +32,9 @@ const EDITABLE_FIELDS: FieldConfig[] = [
   { field: "pno_insurance", label: "Assurance PNO", step: 10, unit: "€/an" },
   { field: "gli_rate", label: "GLI (loyers impayés)", step: 0.5, unit: "%", decimals: 1 },
 ];
+
+/** Fields that come from property data (shown as read-only in Défaut sim, editable in manual sims) */
+const PROPERTY_CHARGE_FIELDS: (keyof SimulationFormData)[] = ["pno_insurance", "gli_rate", "maintenance_per_m2"];
 
 /** Compute loan_amount from property price, contribution, renovation, notary.
  *  loan_fees is a separate cost (included in total_project_cost but NOT in the loan itself).
@@ -76,93 +73,6 @@ function simFormFromSimulation(sim: Simulation): SimulationFormData {
   };
 }
 
-function formatFieldValue(value: number, config: FieldConfig): string {
-  if (config.decimals) return value.toFixed(config.decimals);
-  if (config.unit === "€") return Math.round(value).toLocaleString("fr-FR");
-  return String(value);
-}
-
-/** Stepper input: number field with -/+ buttons, saves on blur or Enter */
-function StepperField({
-  config,
-  value,
-  onChange,
-  onCommit,
-}: {
-  config: FieldConfig;
-  value: number;
-  onChange: (field: keyof SimulationFormData, v: number) => void;
-  onCommit: (field: keyof SimulationFormData, v: number) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [textValue, setTextValue] = useState("");
-
-  function startEdit() {
-    setTextValue(config.decimals ? value.toFixed(config.decimals) : String(value));
-    setEditing(true);
-  }
-
-  function commitText() {
-    const parsed = parseFloat(textValue.replace(/\s/g, "").replace(",", "."));
-    const minVal = config.min ?? 0;
-    if (!isNaN(parsed) && parsed >= minVal) {
-      onChange(config.field, parsed);
-      onCommit(config.field, parsed);
-    }
-    setEditing(false);
-  }
-
-  function step(dir: 1 | -1) {
-    const minVal = config.min ?? 0;
-    const next = Math.max(minVal, +(value + dir * config.step).toFixed(config.decimals ?? 0));
-    onChange(config.field, next);
-    onCommit(config.field, next);
-  }
-
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-b-0">
-      <label className="text-sm text-gray-600 font-medium">{config.label}</label>
-      <div className="flex items-center gap-0.5">
-        <button
-          type="button"
-          onClick={() => step(-1)}
-          className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-600 flex items-center justify-center transition-colors text-lg font-medium select-none"
-          aria-label={`Diminuer ${config.label}`}
-        >
-          −
-        </button>
-        {editing ? (
-          <input
-            type="text"
-            inputMode="decimal"
-            value={textValue}
-            onChange={(e) => setTextValue(e.target.value)}
-            onBlur={commitText}
-            onKeyDown={(e) => { if (e.key === "Enter") commitText(); }}
-            className="w-24 text-center text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)] bg-amber-50 border border-amber-300 rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-amber-400"
-            autoFocus
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={startEdit}
-            className="min-w-[6rem] text-center text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)] py-1 px-2 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            {formatFieldValue(value, config)}{"\u202f"}{config.unit}
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => step(1)}
-          className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-600 flex items-center justify-center transition-colors text-lg font-medium select-none"
-          aria-label={`Augmenter ${config.label}`}
-        >
-          +
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function SimulationEditor({ property, simulation, onUpdated, onLiveChange, readOnly = false }: Props) {
   const [form, setForm] = useState<SimulationFormData>(() => simFormFromSimulation(simulation));
@@ -201,21 +111,23 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
     }
   }
 
-  function handleChange(field: keyof SimulationFormData, value: number) {
+  function handleChange(field: string, value: number) {
+    const key = field as keyof SimulationFormData;
     setForm(prev => {
-      const next = { ...prev, [field]: value };
+      const next = { ...prev, [key]: value };
       emitLive(next);
       return next;
     });
   }
 
-  function handleCommit(field: keyof SimulationFormData, value: number) {
+  function handleCommit(field: string, value: number) {
+    const key = field as keyof SimulationFormData;
     setForm(prev => {
-      const next = { ...prev, [field]: value };
+      const next = { ...prev, [key]: value };
       emitLive(next);
       return next;
     });
-    saveChanges({ [field]: value });
+    saveChanges({ [key]: value });
   }
 
   function handleNameSave() {
@@ -330,6 +242,9 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
         </div>
 
         {EDITABLE_FIELDS.map((config) => {
+          // For Défaut sim: PNO/GLI/maintenance are shown in "Données du bien" section, skip here
+          if (readOnly && PROPERTY_CHARGE_FIELDS.includes(config.field)) return null;
+
           // For monthly_rent: show effective value (property fallback when 0)
           const displayValue = config.field === "monthly_rent" && (form.monthly_rent === 0 || form.monthly_rent == null)
             ? property.monthly_rent
@@ -341,7 +256,7 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
               <div key={config.field} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-b-0">
                 <span className="text-sm text-gray-600 font-medium">{config.label}</span>
                 <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)] py-1 px-2">
-                  {formatFieldValue(displayValue, config)}{"\u202f"}{config.unit}
+                  {formatStepperValue(displayValue, config)}{"\u202f"}{config.unit}
                 </span>
               </div>
             );
@@ -374,7 +289,7 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
       </section>
 
       {/* Fixed property data (read-only in simulator) */}
-      {(property.condo_charges > 0 || property.property_tax > 0) && (
+      {(property.condo_charges > 0 || property.property_tax > 0 || readOnly) && (
         <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Données du bien (non modifiables)</h3>
           <p className="text-xs text-gray-400 mb-3">Ces valeurs proviennent de la fiche du bien et sont prises en compte dans le calcul.</p>
@@ -394,6 +309,30 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
                   {formatCurrency(property.property_tax)}/an
                 </span>
               </div>
+            )}
+            {readOnly && (
+              <>
+                <div className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-b-0">
+                  <span className="text-sm text-gray-500">Assurance PNO</span>
+                  <span className="text-sm font-medium text-gray-700 font-[family-name:var(--font-mono)]">
+                    {formatCurrency(property.pno_insurance)}/an
+                  </span>
+                </div>
+                {property.gli_rate > 0 && (
+                  <div className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-b-0">
+                    <span className="text-sm text-gray-500">GLI</span>
+                    <span className="text-sm font-medium text-gray-700 font-[family-name:var(--font-mono)]">
+                      {property.gli_rate.toFixed(1)}{"\u202f"}%
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-b-0">
+                  <span className="text-sm text-gray-500">Entretien / m² / an</span>
+                  <span className="text-sm font-medium text-gray-700 font-[family-name:var(--font-mono)]">
+                    {property.maintenance_per_m2}{"\u202f"}€
+                  </span>
+                </div>
+              </>
             )}
           </div>
         </section>
@@ -448,16 +387,16 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
         ) : (
           <>
             <StepperField
-              config={{ field: "holding_duration" as keyof SimulationFormData, label: "Durée de détention", step: 1, unit: "ans" }}
+              config={{ field: "holding_duration", label: "Durée de détention", step: 1, unit: "ans" }}
               value={exitSim.holdingDuration}
-              onChange={(_, v) => handleChange("holding_duration" as keyof SimulationFormData, v)}
-              onCommit={(_, v) => handleCommit("holding_duration" as keyof SimulationFormData, v)}
+              onChange={(_, v) => handleChange("holding_duration", v)}
+              onCommit={(_, v) => handleCommit("holding_duration", v)}
             />
             <StepperField
-              config={{ field: "annual_appreciation" as keyof SimulationFormData, label: "Appréciation annuelle", step: 0.5, unit: "%", decimals: 1, min: -5 }}
+              config={{ field: "annual_appreciation", label: "Appréciation annuelle", step: 0.5, unit: "%", decimals: 1, min: -5 }}
               value={form.annual_appreciation as number}
-              onChange={(_, v) => handleChange("annual_appreciation" as keyof SimulationFormData, v)}
-              onCommit={(_, v) => handleCommit("annual_appreciation" as keyof SimulationFormData, v)}
+              onChange={(_, v) => handleChange("annual_appreciation", v)}
+              onCommit={(_, v) => handleCommit("annual_appreciation", v)}
             />
             {(form as SimulationFormData & { holding_duration: number }).holding_duration === 0 && (
               <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">Par défaut : durée du crédit ({form.loan_duration} ans)</p>

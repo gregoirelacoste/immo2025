@@ -177,9 +177,9 @@ export async function createDefaultSimulation(property: Property): Promise<strin
     airbnb_charges: property.airbnb_charges,
     renovation_cost: property.renovation_cost,
     fiscal_regime: property.fiscal_regime || "micro_bic",
-    maintenance_per_m2: property.property_type === "neuf" ? 8 : 12,
-    pno_insurance: 200,
-    gli_rate: 0,
+    maintenance_per_m2: property.maintenance_per_m2,
+    pno_insurance: property.pno_insurance,
+    gli_rate: property.gli_rate,
     holding_duration: 0, // 0 = utiliser loan_duration
     annual_appreciation: 1.5,
   };

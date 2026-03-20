@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
-import { calculateSimulation, calculateAll, calculateNotaryFees, formatCurrency } from "@/lib/calculations";
+import { calculateSimulation, calculateAll, formatCurrency } from "@/lib/calculations";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
@@ -27,6 +27,7 @@ import type { Simulation } from "@/domains/simulation/types";
 import PhotoGallery from "./PhotoGallery";
 import LocaliteTab from "./LocaliteTab";
 import AmenagementTab from "./AmenagementTab";
+import FinancementTab from "./FinancementTab";
 
 const PropertyMap = dynamic(() => import("./PropertyMap"), { ssr: false });
 
@@ -151,7 +152,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
     return () => observer.disconnect();
   }, []);
 
-  const VALID_TABS: TabId[] = ["bien", "travaux", "equipements", "amenagement", "localite"];
+  const VALID_TABS: TabId[] = ["bien", "financement", "travaux", "equipements", "amenagement", "localite"];
   const rawTab = searchParams.get("tab") as TabId;
   const activeTab = VALID_TABS.includes(rawTab) ? rawTab : "bien";
 
@@ -287,12 +288,6 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                 <span className="text-sm text-gray-500">Type</span>
                 <span className="text-sm font-semibold text-[#1a1a2e] capitalize">{property.property_type}</span>
               </div>
-              <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
-                <span className="text-sm text-gray-500">Frais de notaire ({property.property_type === "neuf" ? "2,5%" : "7,5%"})</span>
-                <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)]">
-                  {formatCurrency(property.notary_fees > 0 ? property.notary_fees : calculateNotaryFees(property.purchase_price, property.property_type))}
-                </span>
-              </div>
               {property.monthly_rent > 0 && (
                 <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
                   <span className="text-sm text-gray-500">Loyer</span>
@@ -343,6 +338,11 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
           )}
 
         </div>
+      )}
+
+      {/* ═══════════════════ ONGLET FINANCEMENT ═══════════════════ */}
+      {activeTab === "financement" && (
+        <FinancementTab property={property} isOwner={isOwner} />
       )}
 
       {/* Simulation drawer (opened from banner) */}

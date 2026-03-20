@@ -62,6 +62,10 @@ export interface Property {
   // Ameublement LMNP
   meuble_status: string;     // "non_meuble" | "meuble" | "deja_meuble"
   furniture_cost: number;    // coût du pack mobilier sélectionné (0 = forfait 5000€ par défaut)
+  // Charges récurrentes (données factuelles du bien)
+  pno_insurance: number;       // Assurance PNO en €/an (default 200)
+  gli_rate: number;            // GLI en % du loyer (default 0)
+  maintenance_per_m2: number;  // Provision entretien en €/m²/an (default 12)
   // Simulation active (référence vers la simulation favorite pour dashboard/résumé)
   active_simulation_id: string; // "" = utiliser la simulation système
   // Metadata

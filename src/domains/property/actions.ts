@@ -115,9 +115,9 @@ export async function saveProperty(
           airbnb_charges: payload.airbnb_charges,
           renovation_cost: payload.renovation_cost ?? 0,
           fiscal_regime: payload.fiscal_regime || "micro_bic",
-          maintenance_per_m2: payload.property_type === "neuf" ? 8 : 12,
-          pno_insurance: 200,
-          gli_rate: 0,
+          maintenance_per_m2: payload.maintenance_per_m2,
+          pno_insurance: payload.pno_insurance,
+          gli_rate: payload.gli_rate,
           holding_duration: 0,
           annual_appreciation: 1.5,
         });

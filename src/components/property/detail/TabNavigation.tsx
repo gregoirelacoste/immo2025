@@ -4,6 +4,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 const TABS = [
   { id: "bien", label: "Bien" },
+  { id: "financement", label: "Finance." },
   { id: "travaux", label: "Travaux" },
   { id: "equipements", label: "Équip." },
   { id: "amenagement", label: "Meublé" },

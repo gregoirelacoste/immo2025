@@ -47,10 +47,10 @@ export function buildSystemSimulation(
     // Costs — direct from property
     renovation_cost: property.renovation_cost,
     fiscal_regime: property.fiscal_regime || "micro_bic",
-    // Recurring charges — sensible defaults (not on property tabs)
-    maintenance_per_m2: property.property_type === "neuf" ? 8 : 12,
-    pno_insurance: 200,
-    gli_rate: 0,
+    // Recurring charges — mirror from property (factual data)
+    maintenance_per_m2: property.maintenance_per_m2,
+    pno_insurance: property.pno_insurance,
+    gli_rate: property.gli_rate,
     // Exit — locality trend or default (not on property tabs)
     holding_duration: 0,
     annual_appreciation: loc.price_trend_pct ?? 1.5,

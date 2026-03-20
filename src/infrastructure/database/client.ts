@@ -14,7 +14,7 @@ export function getClient(): Client {
 }
 
 // Bump this when adding new migrations so cold starts re-run them
-const SCHEMA_VERSION = 11;
+const SCHEMA_VERSION = 12;
 
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints
@@ -238,6 +238,12 @@ async function initializeDatabase(client: Client): Promise<void> {
     "ALTER TABLE properties ADD COLUMN furniture_cost REAL DEFAULT 0",
     // v10 — meuble status for furnished regime choice
     "ALTER TABLE properties ADD COLUMN meuble_status TEXT NOT NULL DEFAULT 'non_meuble'",
+    // v12 — recurring charges on property (factual data, mirrored to default simulation)
+    "ALTER TABLE properties ADD COLUMN pno_insurance REAL DEFAULT 200",
+    "ALTER TABLE properties ADD COLUMN gli_rate REAL DEFAULT 0",
+    "ALTER TABLE properties ADD COLUMN maintenance_per_m2 REAL DEFAULT 12",
+    // v12 — data migration: neuf properties get 8 €/m²/an (lower maintenance)
+    "UPDATE properties SET maintenance_per_m2 = 8 WHERE property_type = 'neuf' AND maintenance_per_m2 = 12",
   ];
   const migrationErrors: Array<{ stmt: string; error: unknown }> = [];
   await Promise.all(
