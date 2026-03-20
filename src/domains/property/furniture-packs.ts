@@ -256,11 +256,6 @@ export function getPacksForTypology(typology: PropertyTypology): FurniturePack[]
   return FURNITURE_PACKS.filter(p => p.typology === typology);
 }
 
-/** Retourne un pack spécifique */
-export function getPack(typology: PropertyTypology, level: PackLevel): FurniturePack | undefined {
-  return FURNITURE_PACKS.find(p => p.typology === typology && p.level === level);
-}
-
 /** Groupe les items d'un pack par catégorie */
 export function groupItemsByCategory(items: FurnitureItem[]): Record<string, FurnitureItem[]> {
   const groups: Record<string, FurnitureItem[]> = {};

@@ -79,20 +79,14 @@ export default function AmenagementTab({ property, isOwner }: Props) {
   function handleStatusChange(newStatus: MeubleStatus) {
     if (!isOwner) return;
     setStatus(newStatus);
-    if (newStatus === "non_meuble") {
-      setSelectedCost(0);
-      setCustomMode(false);
-      setCustomValue("");
-      persist(newStatus, 0);
-    } else if (newStatus === "deja_meuble") {
-      // Already furnished: no additional cost, but regime switches to LMNP
-      setSelectedCost(0);
-      setCustomMode(false);
-      setCustomValue("");
-      persist(newStatus, 0);
-    } else {
-      // meuble: keep current cost or 0
+    if (newStatus === "meuble") {
       persist(newStatus, selectedCost);
+    } else {
+      // non_meuble / deja_meuble: reset furniture cost
+      setSelectedCost(0);
+      setCustomMode(false);
+      setCustomValue("");
+      persist(newStatus, 0);
     }
   }
 
