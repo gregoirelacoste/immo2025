@@ -92,14 +92,15 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
   const airbnb_charges = safeNum(property.airbnb_charges);
 
   const renovation_cost = safeNum(property.renovation_cost);
+  const furniture_cost = property.meuble_status === "meuble" ? safeNum(property.furniture_cost) : 0;
   const fiscal_regime = property.fiscal_regime || "micro_bic";
 
   // Frais de notaire
   const total_notary_fees =
     notary_fees > 0 ? notary_fees : calculateNotaryFees(purchase_price, property_type);
 
-  // Coût total du projet (inclut travaux)
-  const total_project_cost = purchase_price + total_notary_fees + loan_fees + renovation_cost;
+  // Coût total du projet (inclut travaux + mobilier)
+  const total_project_cost = purchase_price + total_notary_fees + loan_fees + renovation_cost + furniture_cost;
 
   // Mensualité crédit
   const monthly_payment = calculateMonthlyPayment(
@@ -224,12 +225,13 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
  *  - monthly_rent uses simulation override if > 0, otherwise falls back to property value.
  */
 export function calculateSimulation(property: Property, simulation: Simulation): PropertyCalculations {
-  // Always recompute loan_amount from property price + notary + renovation - contribution
+  // Always recompute loan_amount from property price + notary + renovation + furniture - contribution
   // to ensure consistency (stored loan_amount may be stale).
   const notary = simulation.notary_fees > 0
     ? simulation.notary_fees
     : calculateNotaryFees(property.purchase_price, property.property_type);
-  const computedLoan = Math.max(0, property.purchase_price + notary + simulation.renovation_cost - simulation.personal_contribution);
+  const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
+  const computedLoan = Math.max(0, property.purchase_price + notary + simulation.renovation_cost + furnitureCost - simulation.personal_contribution);
 
   const merged: Property = {
     ...property,

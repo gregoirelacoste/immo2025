@@ -58,9 +58,11 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
     return nf > 0 ? nf : calculateNotaryFees(property.purchase_price, property.property_type);
   }, [get, property.purchase_price, property.property_type]);
 
+  const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
+
   const loanAmount = useMemo(() => {
-    return Math.max(0, property.purchase_price + effectiveNotary + property.renovation_cost - get("personal_contribution"));
-  }, [property.purchase_price, effectiveNotary, property.renovation_cost, get]);
+    return Math.max(0, property.purchase_price + effectiveNotary + property.renovation_cost + furnitureCost - get("personal_contribution"));
+  }, [property.purchase_price, effectiveNotary, property.renovation_cost, furnitureCost, get]);
 
   const monthlyPayment = useMemo(
     () => calculateMonthlyPayment(loanAmount, get("interest_rate"), get("loan_duration")),
@@ -77,8 +79,8 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
   }, [monthlyPayment, monthlyInsurance, loanAmount, get]);
 
   const totalProjectCost = useMemo(() => {
-    return property.purchase_price + effectiveNotary + get("loan_fees") + property.renovation_cost;
-  }, [property.purchase_price, effectiveNotary, get, property.renovation_cost]);
+    return property.purchase_price + effectiveNotary + get("loan_fees") + property.renovation_cost + furnitureCost;
+  }, [property.purchase_price, effectiveNotary, get, property.renovation_cost, furnitureCost]);
 
   // GLI annual cost
   const gliAnnualCost = useMemo(() => {
@@ -106,7 +108,7 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
           ? (value > 0 ? value : calculateNotaryFees(property.purchase_price, property.property_type))
           : effectiveNotary;
         const contrib = field === "personal_contribution" ? value : get("personal_contribution");
-        const newLoan = Math.max(0, property.purchase_price + nf + property.renovation_cost - contrib);
+        const newLoan = Math.max(0, property.purchase_price + nf + property.renovation_cost + furnitureCost - contrib);
         await updatePropertyField(property.id, "loan_amount", newLoan, "Calcul auto", "estimated");
         await syncFieldToSimulations(property.id, "loan_amount", newLoan);
       }
@@ -199,7 +201,7 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
             </span>
           </div>
           <p className="text-[10px] text-gray-400 mt-0.5">
-            Prix + Notaire + Dossier + Travaux
+            Prix + Notaire + Dossier + Travaux{furnitureCost > 0 ? " + Mobilier" : ""}
           </p>
         </div>
       </section>

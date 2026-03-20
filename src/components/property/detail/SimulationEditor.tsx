@@ -43,7 +43,8 @@ function computeLoanAmount(property: Property, form: SimulationFormData): number
   const notary = form.notary_fees > 0
     ? form.notary_fees
     : calculateNotaryFees(property.purchase_price, property.property_type);
-  return Math.max(0, property.purchase_price + notary + form.renovation_cost - form.personal_contribution);
+  const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
+  return Math.max(0, property.purchase_price + notary + form.renovation_cost + furnitureCost - form.personal_contribution);
 }
 
 function simFormFromSimulation(sim: Simulation): SimulationFormData {

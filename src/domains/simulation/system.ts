@@ -20,7 +20,8 @@ export function buildSystemSimulation(
   const notaryFees = property.notary_fees > 0
     ? property.notary_fees
     : calculateNotaryFees(property.purchase_price, property.property_type);
-  const loanAmount = Math.max(0, property.purchase_price + notaryFees + property.renovation_cost - property.personal_contribution);
+  const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
+  const loanAmount = Math.max(0, property.purchase_price + notaryFees + property.renovation_cost + furnitureCost - property.personal_contribution);
 
   return {
     id: "__system__",

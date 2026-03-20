@@ -225,7 +225,8 @@ export async function syncFieldToSimulations(
       const simNotary = updatedSim.notary_fees > 0
         ? updatedSim.notary_fees
         : calculateNotaryFees(updatedProperty.purchase_price, updatedProperty.property_type);
-      const loanAmount = Math.max(0, updatedProperty.purchase_price + simNotary + updatedSim.renovation_cost - updatedSim.personal_contribution);
+      const furnitureCost = updatedProperty.meuble_status === "meuble" ? (updatedProperty.furniture_cost || 0) : 0;
+      const loanAmount = Math.max(0, updatedProperty.purchase_price + simNotary + updatedSim.renovation_cost + furnitureCost - updatedSim.personal_contribution);
 
       await updateSimulation(sim.id, sim.user_id, {
         [field]: value,
@@ -261,7 +262,8 @@ export async function resyncSimulationsAction(
       const simNotary = sim.notary_fees > 0
         ? sim.notary_fees
         : calculateNotaryFees(property.purchase_price, property.property_type);
-      const loanAmount = Math.max(0, property.purchase_price + simNotary + sim.renovation_cost - sim.personal_contribution);
+      const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
+      const loanAmount = Math.max(0, property.purchase_price + simNotary + sim.renovation_cost + furnitureCost - sim.personal_contribution);
 
       // Only sync property-derived fields that the user cannot customize per-simulation
       await updateSimulation(sim.id, sim.user_id, {

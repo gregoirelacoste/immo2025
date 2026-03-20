@@ -75,7 +75,8 @@ export async function saveProperty(
             const newNotary = sim.notary_fees > 0
               ? sim.notary_fees
               : calculateNotaryFees(payload.purchase_price, propertyType);
-            const newLoan = Math.max(0, payload.purchase_price + newNotary + sim.renovation_cost - sim.personal_contribution);
+            const fc = payload.meuble_status === "meuble" ? (payload.furniture_cost || 0) : 0;
+            const newLoan = Math.max(0, payload.purchase_price + newNotary + sim.renovation_cost + fc - sim.personal_contribution);
             await updateSimulation(sim.id, sim.user_id, { loan_amount: newLoan });
           }
         } catch (e) { console.error("Simulation sync failed (non-fatal):", e); }
