@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export const revalidate = 3600; // ISR: revalidate every hour
+export const revalidate = 60; // ISR: revalidate every minute
 
 export default async function BlogArticlePage({ params }: Props) {
   const { slug } = await params;

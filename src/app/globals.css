@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* ─── tiili Design System ─── */
 @theme {
@@ -61,4 +62,40 @@ a {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ─── Blog article content ─── */
+
+/* Tables: horizontal scroll on mobile */
+.prose table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 640px) {
+  .prose table {
+    display: table;
+  }
+}
+
+/* Alternating row colors */
+.prose tbody tr:nth-child(even) {
+  background-color: #fafaf9;
+}
+
+/* Table cell alignment for numbers */
+.prose td:nth-child(n + 2),
+.prose th:nth-child(n + 2) {
+  text-align: right;
+}
+
+/* Blockquote left bar accent */
+.prose blockquote {
+  border-left-width: 4px;
+}
+
+/* FAQ: subtle separator between questions */
+.prose h3 + p {
+  margin-top: 0.5rem;
 }

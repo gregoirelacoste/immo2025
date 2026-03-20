@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { listPublishedArticles } from "@/domains/blog/repository";
 import { ArticleCategory } from "@/domains/blog/types";
 
-export const revalidate = 3600; // ISR: revalidate every hour
+export const revalidate = 60; // ISR: revalidate every minute
 
 export const metadata: Metadata = {
   title: "Blog — Investissement immobilier locatif",

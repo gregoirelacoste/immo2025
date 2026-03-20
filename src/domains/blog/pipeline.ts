@@ -156,16 +156,30 @@ export async function runPipeline(
 async function revalidateBlog(slug: string): Promise<void> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL;
   const secret = process.env.REVALIDATE_SECRET;
-  if (!baseUrl || !secret) return;
+
+  if (!baseUrl || !secret) {
+    console.warn(
+      `⚠️  Revalidation ignorée : ${!baseUrl ? "NEXT_PUBLIC_BASE_URL manquant" : "REVALIDATE_SECRET manquant"}`
+    );
+    return;
+  }
 
   const url = baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
+  const endpoint = `${url}/api/revalidate-blog`;
+
   try {
-    await fetch(`${url}/api/revalidate-blog`, {
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ secret, slug }),
     });
-  } catch {
-    // Non-bloquant : si la revalidation échoue, l'ISR prendra le relais
+
+    if (!res.ok) {
+      console.error(`❌ Revalidation échouée : ${res.status} ${res.statusText} (${endpoint})`);
+    } else {
+      console.log(`✅ Cache revalidé pour /blog et /blog/${slug}`);
+    }
+  } catch (e) {
+    console.error(`❌ Revalidation erreur réseau : ${e instanceof Error ? e.message : e} (${endpoint})`);
   }
 }
