@@ -18,6 +18,7 @@ import {
   togglePropertyFavoriteAsAdmin,
   setActiveSimulation,
   setActiveSimulationAsAdmin,
+  updateFurnitureCost as updateFurnitureCostRepo,
 } from "@/domains/property/repository";
 import { requireUserId, getOptionalUserId, isAdmin } from "@/lib/auth-actions";
 import { calculateNotaryFees } from "@/lib/calculations";
@@ -145,6 +146,20 @@ export async function removeProperty(id: string): Promise<{ success: boolean; er
       await deleteProperty(id, userId);
     }
     revalidatePath("/dashboard");
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
+}
+
+export async function saveFurnitureCost(
+  propertyId: string,
+  cost: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const userId = await requireUserId();
+    await updateFurnitureCostRepo(propertyId, userId, cost);
+    revalidatePath(`/property/${propertyId}`);
     return { success: true };
   } catch (e) {
     return { success: false, error: (e as Error).message };
