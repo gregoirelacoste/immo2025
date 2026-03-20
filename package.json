@@ -13,7 +13,8 @@
     "release": "node scripts/bump-version.js patch && git push --follow-tags",
     "release:minor": "node scripts/bump-version.js minor && git push --follow-tags",
     "release:major": "node scripts/bump-version.js major && git push --follow-tags",
-    "blog": "npx tsx scripts/blog-generate.ts"
+    "blog": "npx tsx scripts/blog-generate.ts",
+    "bulk-cities": "npx tsx scripts/bulk-add-cities.ts"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
