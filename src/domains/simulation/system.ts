@@ -35,14 +35,14 @@ export function buildSystemSimulation(
     insurance_rate: property.insurance_rate,
     loan_fees: property.loan_fees,
     notary_fees: property.notary_fees,
-    // Rental — direct from property
+    // Rental — direct from property (no defaults here, calculateAll handles them)
     monthly_rent: property.monthly_rent,
     condo_charges: property.condo_charges,
     property_tax: property.property_tax,
-    vacancy_rate: property.vacancy_rate || 5,
+    vacancy_rate: property.vacancy_rate,
     // Airbnb — direct from property
     airbnb_price_per_night: property.airbnb_price_per_night,
-    airbnb_occupancy_rate: property.airbnb_occupancy_rate || 60,
+    airbnb_occupancy_rate: property.airbnb_occupancy_rate,
     airbnb_charges: property.airbnb_charges,
     // Costs — direct from property
     renovation_cost: property.renovation_cost,
