@@ -18,7 +18,7 @@ import {
   togglePropertyFavoriteAsAdmin,
   setActiveSimulation,
   setActiveSimulationAsAdmin,
-  updateFurnitureCost as updateFurnitureCostRepo,
+  updateMeubleFields,
 } from "@/domains/property/repository";
 import { requireUserId, getOptionalUserId, isAdmin } from "@/lib/auth-actions";
 import { calculateNotaryFees } from "@/lib/calculations";
@@ -152,13 +152,32 @@ export async function removeProperty(id: string): Promise<{ success: boolean; er
   }
 }
 
-export async function saveFurnitureCost(
+/**
+ * Sauvegarde le statut meublé + coût mobilier, et synchronise le régime fiscal
+ * vers toutes les simulations existantes.
+ * - meuble/deja_meuble → fiscal_regime = "lmnp_reel" sur toutes les simus
+ * - non_meuble → fiscal_regime = "micro_bic" sur toutes les simus
+ */
+export async function saveMeubleChoice(
   propertyId: string,
-  cost: number
+  meubleStatus: string,
+  furnitureCost: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const userId = await requireUserId();
-    await updateFurnitureCostRepo(propertyId, userId, cost);
+
+    // 1. Persist meuble_status + furniture_cost on property
+    await updateMeubleFields(propertyId, userId, meubleStatus, furnitureCost);
+
+    // 2. Sync fiscal_regime to all simulations
+    const targetRegime = meubleStatus === "non_meuble" ? "micro_bic" : "lmnp_reel";
+    const sims = await getSimulationsForProperty(propertyId);
+    for (const sim of sims) {
+      if (sim.fiscal_regime !== targetRegime) {
+        await updateSimulation(sim.id, sim.user_id, { fiscal_regime: targetRegime });
+      }
+    }
+
     revalidatePath(`/property/${propertyId}`);
     return { success: true };
   } catch (e) {

@@ -97,6 +97,7 @@ export async function createPropertyFromPhoto(
       dpe_rating: null,
       fiscal_regime: "micro_bic",
       amenities: "[]",
+      meuble_status: "non_meuble",
       furniture_cost: 0,
       source_url: "",
       image_urls: JSON.stringify([photoUrl]),
