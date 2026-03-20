@@ -59,6 +59,8 @@ export interface Property {
   travaux_ratings: string;   // JSON: { "reno_floors": 3, "reno_walls": 2, ... }
   travaux_overrides: string; // JSON: { "reno_floors": 2500, ... }
   equipment_costs: string;   // JSON: { "eq_cuisine_equipee": 5000, ... }
+  // Ameublement LMNP
+  furniture_cost: number;    // coût du pack mobilier sélectionné (0 = forfait 5000€ par défaut)
   // Simulation active (référence vers la simulation favorite pour dashboard/résumé)
   active_simulation_id: string; // "" = utiliser la simulation système
   // Metadata

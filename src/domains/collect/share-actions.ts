@@ -187,6 +187,7 @@ export async function processShareAndCreate(
       travaux_ratings: "{}",
       travaux_overrides: "{}",
       equipment_costs: "{}",
+      furniture_cost: 0,
       source_url: shareData.url || "",
       image_urls: "[]",
       prefill_sources: JSON.stringify(prefill),

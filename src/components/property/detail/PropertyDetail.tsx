@@ -23,6 +23,7 @@ import type { Photo } from "@/domains/photo/types";
 import type { Simulation } from "@/domains/simulation/types";
 import PhotoGallery from "./PhotoGallery";
 import LocaliteTab from "./LocaliteTab";
+import AmenagementTab from "./AmenagementTab";
 
 const PropertyMap = dynamic(() => import("./PropertyMap"), { ssr: false });
 
@@ -121,7 +122,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
     return () => observer.disconnect();
   }, []);
 
-  const VALID_TABS: TabId[] = ["bien", "travaux", "equipements", "simulation", "localite"];
+  const VALID_TABS: TabId[] = ["bien", "travaux", "equipements", "amenagement", "simulation", "localite"];
   const rawTab = searchParams.get("tab") as TabId;
   const activeTab = VALID_TABS.includes(rawTab) ? rawTab : "bien";
 
@@ -315,6 +316,11 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
       {/* ═══════════════════ ONGLET ÉQUIPEMENTS ═══════════════════ */}
       {activeTab === "equipements" && (
         <EquipementsTab property={property} marketData={marketData} isOwner={isOwner} />
+      )}
+
+      {/* ═══════════════════ ONGLET AMEUBLEMENT LMNP ═══════════════════ */}
+      {activeTab === "amenagement" && (
+        <AmenagementTab property={property} isOwner={isOwner} />
       )}
 
       {/* ═══════════════════ ONGLET LOCALITÉ ═══════════════════ */}

@@ -6,6 +6,7 @@ const TABS = [
   { id: "bien", label: "Bien" },
   { id: "travaux", label: "Travaux" },
   { id: "equipements", label: "Équip." },
+  { id: "amenagement", label: "Meublé" },
   { id: "simulation", label: "Simulation" },
   { id: "localite", label: "Localité" },
 ] as const;

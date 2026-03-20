@@ -34,7 +34,8 @@ export function calculateFiscalImpact(
   monthlyInsurance: number,
   loanAmount: number,
   interestRate: number,
-  tmi: number = 30
+  tmi: number = 30,
+  furnitureCost: number = 5000
 ): FiscalImpact {
   // Micro-BIC : abattement 50%
   const micro_bic_taxable = annualRent * 0.5;
@@ -43,7 +44,8 @@ export function calculateFiscalImpact(
   // LMNP Réel : amortissement + déduction charges
   const amort_bien = (purchasePrice * 0.85) / 30;  // hors terrain (~15%), sur 30 ans
   const amort_travaux = renovationCost > 0 ? renovationCost / 10 : 0; // sur 10 ans
-  const amort_meubles = 5000 / 7;  // forfait mobilier sur 7 ans
+  const effectiveFurnitureCost = furnitureCost > 0 ? furnitureCost : 5000;
+  const amort_meubles = effectiveFurnitureCost / 7;  // mobilier sur 7 ans
   const interests_year1 = loanAmount * (interestRate / 100); // approximation année 1
   const charges_deductibles = condoCharges + propertyTax + monthlyInsurance * 12 + interests_year1;
   const resultat_reel = annualRent - charges_deductibles - amort_bien - amort_travaux - amort_meubles;
@@ -184,7 +186,9 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
     property_tax,
     monthly_insurance,
     loan_amount,
-    interest_rate
+    interest_rate,
+    30,
+    property.furniture_cost ?? 0
   );
 
   // Rendement net-net (après impôts selon régime choisi)

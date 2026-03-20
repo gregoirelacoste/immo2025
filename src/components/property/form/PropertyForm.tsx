@@ -66,6 +66,7 @@ function buildDefaultFormData(defaults?: DefaultInputs): PropertyFormData {
     travaux_ratings: "{}",
     travaux_overrides: "{}",
     equipment_costs: "{}",
+    furniture_cost: 0,
     source_url: "",
     image_urls: "[]",
     prefill_sources: "{}",
