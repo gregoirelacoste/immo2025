@@ -18,6 +18,8 @@ import TabNavigation, { type TabId } from "./TabNavigation";
 import StickyHeader from "./StickyHeader";
 import SimulationBanner from "./SimulationBanner";
 import SimulationDrawer from "./SimulationDrawer";
+import { buildSystemSimulation } from "@/domains/simulation/system";
+import type { LocalityDataFields } from "@/domains/locality/types";
 import TravauxTab from "./TravauxTab";
 import EquipementsTab from "./EquipementsTab";
 import type { Photo } from "@/domains/photo/types";
@@ -82,28 +84,53 @@ function parseJson<T>(json: string, fallback: T): T {
 export default function PropertyDetail({ property, isOwner = false, photos = [], simulations = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // Use active (favorite) simulation for KPIs, fall back to first simulation, then property data
-  const activeSim = useMemo(() => {
-    if (!property.active_simulation_id || property.active_simulation_id === "__system__") return null;
-    const found = simulations.find((s) => s.id === property.active_simulation_id);
-    return found ?? (simulations.length > 0 ? simulations[0] : null);
-  }, [property.active_simulation_id, simulations]);
+
+  // Local optimistic state for active simulation — updates instantly on switch
+  const [localActiveSimId, setLocalActiveSimId] = useState<string>(
+    property.active_simulation_id || "__system__"
+  );
+  // Sync from server when property changes (e.g. after router.refresh)
+  useEffect(() => {
+    setLocalActiveSimId(property.active_simulation_id || "__system__");
+  }, [property.active_simulation_id]);
 
   // Live simulation from SimulationDrawer editor (instant updates before server roundtrip)
   const [liveSimFromEditor, setLiveSimFromEditor] = useState<Simulation | null>(null);
 
-  // Use live simulation if it matches the active favorite, otherwise server data
+  // System simulation (built from locality data, loaded async)
+  const [localityFields, setLocalityFields] = useState<LocalityDataFields | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const { fetchLocalityFields } = await import("@/domains/locality/actions");
+      const result = await fetchLocalityFields(property.city, property.postal_code || undefined);
+      if (!cancelled && result) setLocalityFields(result.fields);
+    }
+    if (property.city) load();
+    return () => { cancelled = true; };
+  }, [property.city, property.postal_code]);
+
+  const systemSim = useMemo(
+    () => buildSystemSimulation(property, localityFields),
+    [property, localityFields]
+  );
+
+  // Resolve the active simulation from local state
+  const activeSim = useMemo(() => {
+    if (localActiveSimId === "__system__") return systemSim;
+    return simulations.find((s) => s.id === localActiveSimId) ?? systemSim;
+  }, [localActiveSimId, simulations, systemSim]);
+
+  // Use live editor simulation if it matches the active one
   const effectiveSim = useMemo(() => {
-    if (liveSimFromEditor) {
-      // If the live sim matches the active/favorite sim, use it for hero/sticky
-      const favId = property.active_simulation_id || "__system__";
-      if (liveSimFromEditor.id === favId) return liveSimFromEditor;
+    if (liveSimFromEditor && liveSimFromEditor.id === localActiveSimId) {
+      return liveSimFromEditor;
     }
     return activeSim;
-  }, [liveSimFromEditor, activeSim, property.active_simulation_id]);
+  }, [liveSimFromEditor, activeSim, localActiveSimId]);
 
   const calcs = useMemo(
-    () => effectiveSim ? calculateSimulation(property, effectiveSim) : calculateAll(property),
+    () => calculateSimulation(property, effectiveSim),
     [property, effectiveSim]
   );
   const [refreshing, setRefreshing] = useState(false);
@@ -215,7 +242,16 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
       <SimulationBanner
         property={property}
         simulations={simulations}
-        calcs={calcs}
+        activeSim={effectiveSim}
+        activeSimId={localActiveSimId}
+        onSimSwitch={async (simId) => {
+          setLocalActiveSimId(simId);
+          setLiveSimFromEditor(null);
+          // Persist in background — UI already updated optimistically
+          const { setActiveSimulationAction } = await import("@/domains/property/actions");
+          await setActiveSimulationAction(property.id, simId === "__system__" ? "" : simId);
+          router.refresh();
+        }}
         onOpenDrawer={() => setSimDrawerOpen(true)}
       />
 
@@ -313,9 +349,15 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
       <SimulationDrawer
         property={property}
         simulations={simulations}
+        systemSim={systemSim}
+        activeSimId={localActiveSimId}
         isOwner={isOwner}
         open={simDrawerOpen}
         onClose={() => { setSimDrawerOpen(false); setLiveSimFromEditor(null); }}
+        onSimSwitch={(simId) => {
+          setLocalActiveSimId(simId);
+          setLiveSimFromEditor(null);
+        }}
         onLiveCalcsChange={setLiveSimFromEditor}
       />
 

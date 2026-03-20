@@ -1,53 +1,24 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
-import { Property, PropertyCalculations } from "@/domains/property/types";
+import { useMemo, useState } from "react";
+import { Property } from "@/domains/property/types";
 import { Simulation } from "@/domains/simulation/types";
-import { buildSystemSimulation } from "@/domains/simulation/system";
-import { setActiveSimulationAction } from "@/domains/property/actions";
-import { fetchLocalityFields } from "@/domains/locality/actions";
-import type { LocalityDataFields } from "@/domains/locality/types";
-import { formatCurrency, calculateSimulation, getEffectiveRent } from "@/lib/calculations";
-import { useRouter } from "next/navigation";
+import { formatCurrency, getEffectiveRent } from "@/lib/calculations";
 
 interface Props {
   property: Property;
   simulations: Simulation[];
-  calcs: PropertyCalculations;
+  activeSim: Simulation;
+  activeSimId: string;
+  onSimSwitch: (simId: string) => void;
   onOpenDrawer: () => void;
 }
 
-export default function SimulationBanner({ property, simulations, calcs, onOpenDrawer }: Props) {
-  const router = useRouter();
+export default function SimulationBanner({ property, simulations, activeSim, activeSimId, onSimSwitch, onOpenDrawer }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [localityFields, setLocalityFields] = useState<LocalityDataFields | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const result = await fetchLocalityFields(property.city, property.postal_code || undefined);
-      if (!cancelled && result) setLocalityFields(result.fields);
-    }
-    if (property.city) load();
-    return () => { cancelled = true; };
-  }, [property.city, property.postal_code]);
-
-  const systemSim = useMemo(() => buildSystemSimulation(property, localityFields), [property, localityFields]);
-  const activeSimId = property.active_simulation_id || "__system__";
-
-  const activeSim = useMemo(() => {
-    if (activeSimId === "__system__") return systemSim;
-    return simulations.find((s) => s.id === activeSimId) ?? systemSim;
-  }, [activeSimId, simulations, systemSim]);
-
-  const isSystem = activeSimId === "__system__" || !simulations.find((s) => s.id === activeSimId);
+  const isSystem = activeSimId === "__system__";
   const effectiveRent = useMemo(() => getEffectiveRent(property, activeSim), [property, activeSim]);
-
-  const handleSwitch = useCallback(async (simId: string) => {
-    setDropdownOpen(false);
-    await setActiveSimulationAction(property.id, simId === "__system__" ? "" : simId);
-    router.refresh();
-  }, [property.id, router]);
 
   const allOptions = [
     { id: "__system__", name: "Défaut", isSystem: true },
@@ -87,7 +58,10 @@ export default function SimulationBanner({ property, simulations, calcs, onOpenD
                 {allOptions.map((opt) => (
                   <button
                     key={opt.id}
-                    onClick={() => handleSwitch(opt.id)}
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      onSimSwitch(opt.id);
+                    }}
                     className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
                       opt.id === activeSimId
                         ? "bg-amber-50 text-amber-700 font-medium"

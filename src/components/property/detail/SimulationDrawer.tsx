@@ -4,26 +4,25 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Property } from "@/domains/property/types";
 import { Simulation } from "@/domains/simulation/types";
-import type { LocalityDataFields } from "@/domains/locality/types";
 import { duplicateSimulation, removeSimulation, createDefaultSimulationAction } from "@/domains/simulation/actions";
 import { setActiveSimulationAction } from "@/domains/property/actions";
-import { fetchLocalityFields } from "@/domains/locality/actions";
-import { buildSystemSimulation } from "@/domains/simulation/system";
 import SimulationCard from "./SimulationCard";
 import SimulationEditor from "./SimulationEditor";
 
 interface Props {
   property: Property;
   simulations: Simulation[];
+  systemSim: Simulation;
+  activeSimId: string;
   isOwner: boolean;
   open: boolean;
   onClose: () => void;
+  onSimSwitch: (simId: string) => void;
   onLiveCalcsChange?: (sim: Simulation | null) => void;
 }
 
-export default function SimulationDrawer({ property, simulations, isOwner, open, onClose, onLiveCalcsChange }: Props) {
+export default function SimulationDrawer({ property, simulations, systemSim, activeSimId, isOwner, open, onClose, onSimSwitch, onLiveCalcsChange }: Props) {
   const router = useRouter();
-  const [localityFields, setLocalityFields] = useState<LocalityDataFields | null>(null);
   const [loading, setLoading] = useState(false);
   const [liveSim, setLiveSimLocal] = useState<Simulation | null>(null);
 
@@ -32,38 +31,23 @@ export default function SimulationDrawer({ property, simulations, isOwner, open,
     onLiveCalcsChange?.(sim);
   }, [onLiveCalcsChange]);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const result = await fetchLocalityFields(property.city, property.postal_code || undefined);
-      if (!cancelled && result) setLocalityFields(result.fields);
-    }
-    if (property.city && open) load();
-    return () => { cancelled = true; };
-  }, [property.city, property.postal_code, open]);
-
-  const systemSim = useMemo(() => buildSystemSimulation(property, localityFields), [property, localityFields]);
-  const activeSimId = property.active_simulation_id || "__system__";
-
+  // Selected card in the drawer (defaults to the active sim)
   const [selectedSimId, setSelectedSimId] = useState<string>(activeSimId);
 
-  // Reset selection when drawer opens
+  // Sync selection when drawer opens or active sim changes
   useEffect(() => {
     if (open) {
-      const validId = activeSimId === "__system__"
-        ? "__system__"
-        : simulations.find((s) => s.id === activeSimId)?.id ?? "__system__";
-      setSelectedSimId(validId);
-      setLiveSim(null);
+      setSelectedSimId(activeSimId);
+      setLiveSimLocal(null);
     }
-  }, [open, activeSimId, simulations, setLiveSim]);
+  }, [open, activeSimId]);
 
   const isSystemSelected = selectedSimId === "__system__";
   const serverActiveSim = isSystemSelected
     ? systemSim
     : simulations.find((s) => s.id === selectedSimId) ?? systemSim;
-  const activeSim = liveSim && liveSim.id === selectedSimId ? liveSim : serverActiveSim;
-  const favoriteSimId = property.active_simulation_id || "__system__";
+  const displaySim = liveSim && liveSim.id === selectedSimId ? liveSim : serverActiveSim;
+  const favoriteSimId = activeSimId;
 
   async function handleDuplicate(simId: string) {
     setLoading(true);
@@ -91,6 +75,7 @@ export default function SimulationDrawer({ property, simulations, isOwner, open,
     const result = await removeSimulation(simId);
     if (result.success) {
       if (favoriteSimId === simId) {
+        onSimSwitch("__system__");
         await setActiveSimulationAction(property.id, "");
       }
       setSelectedSimId("__system__");
@@ -101,6 +86,7 @@ export default function SimulationDrawer({ property, simulations, isOwner, open,
 
   async function handleSetFavorite(simId: string) {
     setLoading(true);
+    onSimSwitch(simId); // Optimistic update
     await setActiveSimulationAction(property.id, simId === "__system__" ? "" : simId);
     setLoading(false);
     router.refresh();
@@ -153,12 +139,12 @@ export default function SimulationDrawer({ property, simulations, isOwner, open,
 
             {/* User simulations */}
             {simulations.map((sim) => {
-              const displaySim = liveSim && liveSim.id === sim.id ? liveSim : sim;
+              const cardSim = liveSim && liveSim.id === sim.id ? liveSim : sim;
               return (
                 <div key={sim.id} className="min-w-[240px] max-w-[280px] snap-start shrink-0">
                   <SimulationCard
                     property={property}
-                    simulation={displaySim}
+                    simulation={cardSim}
                     isActive={sim.id === selectedSimId}
                     isFavorite={favoriteSimId === sim.id}
                     onSelect={() => { setSelectedSimId(sim.id); setLiveSim(null); }}
@@ -218,19 +204,19 @@ export default function SimulationDrawer({ property, simulations, isOwner, open,
             />
           )}
 
-          {!isSystemSelected && activeSim && isOwner && (
+          {!isSystemSelected && displaySim && isOwner && (
             <SimulationEditor
               property={property}
-              simulation={activeSim}
+              simulation={displaySim}
               onUpdated={() => router.refresh()}
               onLiveChange={setLiveSim}
             />
           )}
 
-          {!isSystemSelected && activeSim && !isOwner && (
+          {!isSystemSelected && displaySim && !isOwner && (
             <SimulationEditor
               property={property}
-              simulation={activeSim}
+              simulation={displaySim}
               onUpdated={() => {}}
               readOnly
             />
