@@ -246,19 +246,17 @@ async function initializeDatabase(client: Client): Promise<void> {
     "UPDATE properties SET maintenance_per_m2 = 8 WHERE property_type = 'neuf' AND maintenance_per_m2 = 12",
   ];
   const migrationErrors: Array<{ stmt: string; error: unknown }> = [];
-  await Promise.all(
-    alterMigrations.map(async (stmt) => {
-      try {
-        await client.execute(stmt);
-      } catch (e) {
-        // Only suppress "already exists" errors — log everything else
-        const msg = e instanceof Error ? e.message : String(e);
-        if (!msg.includes("already exists") && !msg.includes("duplicate column")) {
-          migrationErrors.push({ stmt, error: e });
-        }
+  for (const stmt of alterMigrations) {
+    try {
+      await client.execute(stmt);
+    } catch (e) {
+      // Only suppress "already exists" errors — log everything else
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes("already exists") && !msg.includes("duplicate column")) {
+        migrationErrors.push({ stmt, error: e });
       }
-    })
-  );
+    }
+  }
   if (migrationErrors.length > 0) {
     console.error("DB migration errors (non-duplicate):", migrationErrors);
   }
