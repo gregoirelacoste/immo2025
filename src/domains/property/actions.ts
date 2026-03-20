@@ -170,12 +170,24 @@ export async function saveMeubleChoice(
     // 1. Persist meuble_status + furniture_cost on property
     await updateMeubleFields(propertyId, userId, meubleStatus, furnitureCost);
 
-    // 2. Sync fiscal_regime to all simulations
+    // 2. Sync fiscal_regime + recalculate loan_amount on all simulations
     const targetRegime = meubleStatus === "non_meuble" ? "micro_bic" : "lmnp_reel";
+    const property = await getPropertyByIdPublic(propertyId);
     const sims = await getSimulationsForProperty(propertyId);
     for (const sim of sims) {
-      if (sim.fiscal_regime !== targetRegime) {
-        await updateSimulation(sim.id, sim.user_id, { fiscal_regime: targetRegime });
+      const updates: Record<string, unknown> = {};
+      if (sim.fiscal_regime !== targetRegime) updates.fiscal_regime = targetRegime;
+      // Recalculate loan_amount with new furniture cost
+      if (property) {
+        const fc = meubleStatus === "meuble" ? furnitureCost : 0;
+        const simNotary = sim.notary_fees > 0
+          ? sim.notary_fees
+          : calculateNotaryFees(property.purchase_price, property.property_type);
+        const newLoan = Math.max(0, property.purchase_price + simNotary + sim.renovation_cost + fc - sim.personal_contribution);
+        if (sim.loan_amount !== newLoan) updates.loan_amount = newLoan;
+      }
+      if (Object.keys(updates).length > 0) {
+        await updateSimulation(sim.id, sim.user_id, updates);
       }
     }
 

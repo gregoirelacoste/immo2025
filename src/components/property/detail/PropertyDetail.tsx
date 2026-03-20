@@ -152,7 +152,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
     return () => observer.disconnect();
   }, []);
 
-  const VALID_TABS: TabId[] = ["bien", "financement", "travaux", "equipements", "amenagement", "localite"];
+  const VALID_TABS: TabId[] = ["bien", "financement", "travaux", "equipements", "amenagement"];
   const rawTab = searchParams.get("tab") as TabId;
   const activeTab = VALID_TABS.includes(rawTab) ? rawTab : "bien";
 
@@ -191,17 +191,15 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
     <div className="space-y-0 pb-safe">
       <PropertyHeader property={property} isOwner={isOwner} onDelete={handleDelete} />
 
-      {/* Hero — tiili style */}
+      {/* Hero — KPIs + score */}
       <section ref={heroRef} className="bg-white rounded-xl border border-tiili-border p-4 md:p-6 mb-2">
-              {/* Header: City + Score brick */}
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h2 className="text-2xl font-extrabold text-[#1a1a2e] tracking-tight">{property.city}</h2>
-                    {isOwner && (
+                  {isOwner && (
+                    <div className="mb-2">
                       <StatusSelector propertyId={property.id} currentStatus={(property.property_status || "added") as PropertyStatus} />
-                    )}
-                  </div>
+                    </div>
+                  )}
                   {property.purchase_price > 0 && (
                     <p className="text-xl font-bold text-[#1a1a2e] font-[family-name:var(--font-mono)]">
                       {formatCurrency(property.purchase_price)}
@@ -211,9 +209,6 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                     {property.property_type === "neuf" ? "Neuf" : "Ancien"} · {property.surface} m²
                     {pricePerM2 > 0 && <> · {formatCurrency(pricePerM2)}/m²</>}
                   </p>
-                  {property.address && (
-                    <p className="text-xs text-[#b0b0b8] mt-0.5">{property.address}</p>
-                  )}
                   {calcs.net_yield > 0 && (
                     <div className="flex items-center gap-3 mt-2">
                       <span className={`text-sm font-bold font-[family-name:var(--font-mono)] ${
@@ -229,7 +224,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                     </div>
                   )}
                 </div>
-                {/* Score brick (same style as dashboard) — click opens score modal */}
+                {/* Score brick — click opens score modal */}
                 <div onClick={() => setScoreModalOpen(true)}>
                   <ScoreBrick score={property.investment_score} grade={grade} />
                 </div>
@@ -376,10 +371,8 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
         <AmenagementTab property={property} isOwner={isOwner} />
       )}
 
-      {/* ═══════════════════ ONGLET LOCALITÉ ═══════════════════ */}
-      {activeTab === "localite" && (
-        <LocaliteTab property={property} />
-      )}
+      {/* ═══════════════════ LOCALITÉ (toujours visible, hors onglets) ═══════════════════ */}
+      <LocaliteTab property={property} />
 
       {/* Score modal — opens on ScoreBrick click */}
       {scoreModalOpen && (

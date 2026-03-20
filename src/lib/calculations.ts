@@ -405,10 +405,12 @@ export function calculateExitSimulation(
   );
 
   // Investissement total (argent sorti de poche hors mensualités)
+  const furnitureCostExit = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
   const totalInvested = simulation.personal_contribution
     + calcs.total_notary_fees
     + simulation.loan_fees
-    + simulation.renovation_cost;
+    + simulation.renovation_cost
+    + furnitureCostExit;
 
   // Profit net = ce qui reste après tout
   // On part du prix de vente, on enlève le CRD (pour solder le prêt), la taxe PV

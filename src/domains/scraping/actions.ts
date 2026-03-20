@@ -494,7 +494,7 @@ export async function extractAndUpdateFromText(
           ...d.amenities,
         ])]),
       }),
-      loan_amount: Math.max(0, newPrice + notary - property.personal_contribution),
+      loan_amount: Math.max(0, newPrice + notary + property.renovation_cost + (property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0) - property.personal_contribution),
       monthly_rent: monthlyRent,
       property_tax: propertyTax,
       condo_charges: condoCharges,

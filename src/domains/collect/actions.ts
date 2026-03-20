@@ -182,7 +182,7 @@ export async function addCollectText(
       ...(d.address && { address: d.address }),
       ...(d.description && { description: d.description }),
       ...(d.property_type && { property_type: d.property_type }),
-      loan_amount: Math.max(0, newPrice + notary + property.renovation_cost - property.personal_contribution),
+      loan_amount: Math.max(0, newPrice + notary + property.renovation_cost + (property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0) - property.personal_contribution),
       monthly_rent: monthlyRent,
       property_tax: propertyTax,
       condo_charges: condoCharges,
