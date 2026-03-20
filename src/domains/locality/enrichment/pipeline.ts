@@ -16,6 +16,7 @@ import {
   fetchGeoCityByCode,
   fetchDvfData,
   fetchInseeData,
+  fetchInseeDataWithIris,
   fetchGeorisquesData,
   fetchTaxeFonciereData,
   fetchDpeData,
@@ -67,7 +68,13 @@ export async function enrichLocality(
   }
   result.localityName = locality.name;
 
-  // 2. Resolve INSEE code
+  // 2. IRIS quartier: use dedicated lightweight enrichment
+  const isIrisQuartier = locality.type === "quartier" && locality.code.length === 9;
+  if (isIrisQuartier) {
+    return enrichIrisQuartier(locality, localityId, result, start, options);
+  }
+
+  // 3. Resolve INSEE code
   let codeInsee = locality.code;
   if (!codeInsee) {
     const geo = await fetchGeoCity(locality.name);
@@ -85,7 +92,7 @@ export async function enrichLocality(
     }
   }
 
-  // 3. Skip if data already exists and not forced
+  // 4. Skip if data already exists and not forced
   if (!options?.force) {
     const existing = await getLatestLocalityFields(localityId);
     const hasKeyData = existing.avg_purchase_price_per_m2 != null
@@ -274,6 +281,83 @@ export async function enrichLocality(
       enrichParents: false, // don't recurse further
     });
     result.parentResults = [parentResult];
+  }
+
+  result.durationMs = Date.now() - start;
+  return result;
+}
+
+/**
+ * Lightweight enrichment for IRIS quartier localities.
+ * Only fetches INSEE data at IRIS level (income, poverty, housing).
+ * Other data (DVF, georisques, etc.) is inherited from parent commune via the resolver.
+ */
+async function enrichIrisQuartier(
+  locality: { id: string; code: string; parent_id: string | null },
+  localityId: string,
+  result: EnrichLocalityResult,
+  start: number,
+  options?: { force?: boolean; enrichParents?: boolean }
+): Promise<EnrichLocalityResult> {
+  const irisCode = locality.code;
+  // Extract commune code from IRIS code (first 5 digits)
+  const communeCode = irisCode.slice(0, 5);
+
+  // Skip if data already exists and not forced
+  if (!options?.force) {
+    const existing = await getLatestLocalityFields(localityId);
+    if (existing.median_income != null) {
+      result.durationMs = Date.now() - start;
+      result.sourceReports.push({
+        source: "*",
+        status: "skipped",
+        fieldCount: 0,
+        error: "Données IRIS déjà présentes",
+      });
+      return result;
+    }
+  }
+
+  // Fetch INSEE data at IRIS level with commune fallback
+  try {
+    const inseeData = await fetchInseeDataWithIris(communeCode, irisCode);
+    if (inseeData) {
+      const mapped = mapInseeToFields(inseeData);
+      const fieldCount = Object.values(mapped).filter((v) => v != null).length;
+
+      if (fieldCount > 0) {
+        const today = new Date().toISOString().slice(0, 10);
+        const source = inseeData.dataLevel === "iris" ? "api:insee-iris" : "api:insee";
+        await upsertLocalityData(localityId, today, mapped, source);
+        result.fieldsUpdated = fieldCount;
+        result.sourceReports.push({
+          source: `INSEE (${inseeData.dataLevel})`,
+          status: "ok",
+          fieldCount,
+        });
+      } else {
+        result.sourceReports.push({
+          source: "INSEE IRIS",
+          status: "skipped",
+          fieldCount: 0,
+          error: "Données vides (tous champs null)",
+        });
+      }
+    } else {
+      result.sourceReports.push({
+        source: "INSEE IRIS",
+        status: "error",
+        fieldCount: 0,
+        error: "Pas de données retournées",
+      });
+    }
+  } catch (e) {
+    result.sourceReports.push({
+      source: "INSEE IRIS",
+      status: "error",
+      fieldCount: 0,
+      error: e instanceof Error ? e.message : String(e),
+    });
   }
 
   result.durationMs = Date.now() - start;

@@ -68,14 +68,28 @@ export async function fetchLocalityFields(
   cityName: string;
   fields: LocalityDataFields;
   dataSources: Partial<Record<keyof LocalityDataFields, string>>;
+  fieldSources: Partial<Record<keyof LocalityDataFields, { localityName: string; localityType: string }>>;
 } | null> {
   try {
     const resolved = await resolveLocalityData(city, postalCode);
     if (!resolved) return null;
+
+    // Strip localityId from fieldSources (don't expose internal IDs to client)
+    const clientFieldSources: Partial<Record<keyof LocalityDataFields, { localityName: string; localityType: string }>> = {};
+    for (const [key, source] of Object.entries(resolved.fieldSources)) {
+      if (source) {
+        clientFieldSources[key as keyof LocalityDataFields] = {
+          localityName: source.localityName,
+          localityType: source.localityType,
+        };
+      }
+    }
+
     return {
       cityName: resolved.locality.name,
       fields: resolved.fields,
       dataSources: resolved.dataSources,
+      fieldSources: clientFieldSources,
     };
   } catch {
     return null;

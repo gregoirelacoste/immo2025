@@ -66,6 +66,11 @@ export default async function CityGuidePage({ params }: Props) {
   const resolved = await resolveLocalityData(cityName);
   const f = resolved?.fields ?? {};
   const ds = resolved?.dataSources ?? {};
+  const fsRaw = resolved?.fieldSources ?? {};
+  const fsSafe: Partial<Record<keyof typeof f, { localityName: string; localityType: string }>> = {};
+  for (const [key, source] of Object.entries(fsRaw)) {
+    if (source) fsSafe[key as keyof typeof f] = { localityName: source.localityName, localityType: source.localityType };
+  }
 
   const year = new Date().getFullYear();
 
@@ -98,7 +103,7 @@ export default async function CityGuidePage({ params }: Props) {
           Données DVF, INSEE et Observatoire des loyers — mise à jour automatique.
         </p>
 
-        <LocalityDataView cityName={cityName} fields={f} dataSources={ds} />
+        <LocalityDataView cityName={cityName} fields={f} dataSources={ds} fieldSources={fsSafe} />
 
         {/* CTA */}
         <div className="mt-12 rounded-xl bg-amber-50 border border-amber-200 p-6 text-center">

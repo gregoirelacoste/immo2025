@@ -163,21 +163,29 @@ function scoreExitProfit(exitSim: ExitSimulation | null): number {
 /**
  * Population dynamics: 0-7 pts
  * Growth > 0 is positive for rental demand.
+ *
+ * When data is at IRIS level, the population field represents the neighborhood
+ * (~2000 people), not the city. We use a neutral score for population size
+ * since IRIS population is not a proxy for rental demand pool size.
  */
 function scorePopulation(socio: SocioEconomicData | null): number {
   if (!socio?.population) return 3.5; // neutral
 
   let score = 3.5; // base neutral
 
-  // Population size factor (0-3.5 pts): larger cities = more rental demand
-  // 5k → 0, 50k+ → 3.5
-  if (socio.population >= 50000) score = 3.5;
-  else if (socio.population >= 5000) score = lerp(socio.population, 5000, 50000, 3.5);
-  else score = 0;
-
-  // TODO: Use population_growth_pct when available in SocioEconomicData
-  // For now, base score on population size (proxy for demand)
-  // Larger cities have more tenant pool = less vacancy risk
+  // If data is IRIS-level, population is the neighborhood population (~2000-5000).
+  // This is NOT representative of rental demand pool size (the whole city matters).
+  // Give a neutral score for the size component — IRIS data is valuable for
+  // income/poverty, not for population-as-demand-proxy.
+  if (socio.dataLevel === "iris") {
+    score = 2.5; // slightly below neutral since we can't assess demand pool
+  } else {
+    // Population size factor (0-3.5 pts): larger cities = more rental demand
+    // 5k → 0, 50k+ → 3.5
+    if (socio.population >= 50000) score = 3.5;
+    else if (socio.population >= 5000) score = lerp(socio.population, 5000, 50000, 3.5);
+    else score = 0;
+  }
 
   return Math.min(7, Math.round(score * 10) / 10 + 3.5); // add 3.5 neutral for growth component
 }

@@ -14,7 +14,7 @@ export function getClient(): Client {
 }
 
 // Bump this when adding new migrations so cold starts re-run them
-const SCHEMA_VERSION = 10;
+const SCHEMA_VERSION = 11;
 
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints
@@ -577,6 +577,12 @@ async function initializeDatabase(client: Client): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS idx_blog_audit_action ON blog_audit_log(action);
     CREATE INDEX IF NOT EXISTS idx_blog_audit_article ON blog_audit_log(article_id);
+  `);
+
+  // v9: UNIQUE index on localities(code, type) to prevent duplicate IRIS quartier entries
+  await client.execute(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_localities_code_type
+    ON localities(code, type) WHERE code != ''
   `);
 
   // Record schema version so subsequent cold starts skip migrations
