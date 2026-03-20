@@ -4,7 +4,7 @@ import { getAllLocalities } from "@/domains/locality/repository";
 import { resolveLocalityData } from "@/domains/locality/resolver";
 import type { LocalityDataFields, Locality } from "@/domains/locality/types";
 
-import { slugify } from "@/lib/slugify";
+import { slugify, citySlug } from "@/lib/slugify";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -26,8 +26,8 @@ export async function generateStaticParams() {
     const params: { slug: string }[] = [];
     for (let i = 0; i < cities.length; i++) {
       for (let j = i + 1; j < cities.length; j++) {
-        const s1 = slugify(cities[i].name);
-        const s2 = slugify(cities[j].name);
+        const s1 = citySlug(cities[i].name, cities[i].code);
+        const s2 = citySlug(cities[j].name, cities[j].code);
         params.push({ slug: `${s1}-vs-${s2}` });
       }
     }
@@ -40,7 +40,7 @@ export async function generateStaticParams() {
 async function parseCitySlugs(slug: string): Promise<[Locality, Locality] | null> {
   const localities = await getAllLocalities();
   const cities = localities.filter((l) => l.type === "ville");
-  const slugMap = new Map(cities.map((c) => [slugify(c.name), c]));
+  const slugMap = new Map(cities.map((c) => [citySlug(c.name, c.code), c]));
 
   // Try all possible split points for "-vs-" (handles city names with hyphens)
   const marker = "-vs-";
@@ -394,7 +394,7 @@ export default async function ComparatifPage({ params }: Props) {
         {/* Links to individual guides */}
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <a
-            href={`/guide/${slugify(city1.name)}`}
+            href={`/guide/${citySlug(city1.name, city1.code)}`}
             className="block rounded-lg border border-gray-200 p-4 hover:border-amber-400 transition-colors"
           >
             <p className="font-semibold text-gray-900">Guide {city1.name}</p>
@@ -403,7 +403,7 @@ export default async function ComparatifPage({ params }: Props) {
             </p>
           </a>
           <a
-            href={`/guide/${slugify(city2.name)}`}
+            href={`/guide/${citySlug(city2.name, city2.code)}`}
             className="block rounded-lg border border-gray-200 p-4 hover:border-amber-400 transition-colors"
           >
             <p className="font-semibold text-gray-900">Guide {city2.name}</p>

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getAllPublishedSlugs } from "@/domains/blog/repository";
 import { getAllLocalities } from "@/domains/locality/repository";
-import { slugify } from "@/lib/slugify";
+import { citySlug } from "@/lib/slugify";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io";
@@ -19,7 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const cities = localities.filter((l) => l.type === "ville");
     for (const city of cities) {
       entries.push({
-        url: `${baseUrl}/guide/${slugify(city.name)}`,
+        url: `${baseUrl}/guide/${citySlug(city.name, city.code)}`,
         lastModified: city.updated_at || now,
         changeFrequency: "weekly",
         priority: 0.8,
@@ -33,7 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (let i = 0; i < topCities.length; i++) {
       for (let j = i + 1; j < topCities.length; j++) {
         entries.push({
-          url: `${baseUrl}/guide/comparatif/${slugify(topCities[i].name)}-vs-${slugify(topCities[j].name)}`,
+          url: `${baseUrl}/guide/comparatif/${citySlug(topCities[i].name, topCities[i].code)}-vs-${citySlug(topCities[j].name, topCities[j].code)}`,
           changeFrequency: "weekly",
           priority: 0.6,
         });

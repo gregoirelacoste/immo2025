@@ -4,7 +4,7 @@ import { getAllLocalities } from "@/domains/locality/repository";
 import { resolveLocalityData } from "@/domains/locality/resolver";
 import LocalityDataView from "@/components/locality/LocalityDataView";
 import ShareButtons from "@/components/ShareButtons";
-import { slugify } from "@/lib/slugify";
+import { slugify, citySlug } from "@/lib/slugify";
 
 interface Props {
   params: Promise<{ city: string }>;
@@ -15,7 +15,7 @@ export async function generateStaticParams() {
     const localities = await getAllLocalities();
     return localities
       .filter((l) => l.type === "ville")
-      .map((l) => ({ city: slugify(l.name) }));
+      .map((l) => ({ city: citySlug(l.name, l.code) }));
   } catch {
     return [];
   }
@@ -47,7 +47,7 @@ export const revalidate = 3600;
 async function findCityBySlug(slug: string) {
   const localities = await getAllLocalities();
   return localities.find(
-    (l) => l.type === "ville" && slugify(l.name) === slug
+    (l) => l.type === "ville" && citySlug(l.name, l.code) === slug
   );
 }
 

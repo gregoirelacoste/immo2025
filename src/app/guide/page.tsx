@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getAllLocalities, getLatestLocalityFieldsBatch } from "@/domains/locality/repository";
-import { slugify } from "@/lib/slugify";
+import { citySlug } from "@/lib/slugify";
 
 export const metadata: Metadata = {
   title: "Guides villes — Investissement immobilier locatif",
@@ -37,7 +37,7 @@ export default async function GuidePage() {
       return {
         id: city.id,
         name: city.name,
-        slug: slugify(city.name),
+        slug: citySlug(city.name, city.code),
         postalCodes,
         population: fields.population ?? null,
         price,
