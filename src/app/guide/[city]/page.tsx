@@ -3,18 +3,11 @@ import { notFound } from "next/navigation";
 import { getAllLocalities } from "@/domains/locality/repository";
 import { resolveLocalityData } from "@/domains/locality/resolver";
 import LocalityDataView from "@/components/locality/LocalityDataView";
+import ShareButtons from "@/components/ShareButtons";
+import { slugify } from "@/lib/slugify";
 
 interface Props {
   params: Promise<{ city: string }>;
-}
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 }
 
 export async function generateStaticParams() {
@@ -74,7 +67,7 @@ export default async function CityGuidePage({ params }: Props) {
 
   const year = new Date().getFullYear();
 
-  // JSON-LD
+  // JSON-LD: Article + Place
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": ["Article", "Place"],
@@ -84,12 +77,77 @@ export default async function CityGuidePage({ params }: Props) {
     url: `${process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io"}/guide/${slug}`,
   };
 
+  // JSON-LD: FAQPage — dynamic questions based on available data
+  const faqEntries: { name: string; text: string }[] = [];
+
+  if (f.avg_purchase_price_per_m2 != null) {
+    faqEntries.push({
+      name: `Quel est le prix moyen au m² à ${cityName} ?`,
+      text: `Le prix moyen au m² à ${cityName} est d'environ ${Math.round(f.avg_purchase_price_per_m2).toLocaleString("fr-FR")} €/m², selon les données DVF (Demandes de Valeurs Foncières).`,
+    });
+  }
+
+  if (f.avg_purchase_price_per_m2 != null && f.avg_rent_per_m2 != null) {
+    const grossYield = ((f.avg_rent_per_m2 * 12) / f.avg_purchase_price_per_m2) * 100;
+    faqEntries.push({
+      name: `Quel est le rendement locatif à ${cityName} ?`,
+      text: `Le rendement locatif brut moyen à ${cityName} est estimé à ${grossYield.toFixed(1).replace(".", ",")} %, calculé à partir d'un prix moyen de ${Math.round(f.avg_purchase_price_per_m2).toLocaleString("fr-FR")} €/m² et d'un loyer moyen de ${f.avg_rent_per_m2.toFixed(1).replace(".", ",")} €/m²/mois.`,
+    });
+  }
+
+  if (f.avg_purchase_price_per_m2 != null || f.avg_rent_per_m2 != null) {
+    const dataPoints: string[] = [];
+    if (f.avg_purchase_price_per_m2 != null) dataPoints.push(`un prix moyen de ${Math.round(f.avg_purchase_price_per_m2).toLocaleString("fr-FR")} €/m²`);
+    if (f.avg_rent_per_m2 != null) dataPoints.push(`un loyer moyen de ${f.avg_rent_per_m2.toFixed(1).replace(".", ",")} €/m²`);
+    faqEntries.push({
+      name: `Faut-il investir à ${cityName} en ${year} ?`,
+      text: `${cityName} présente ${dataPoints.join(" et ")}. L'opportunité d'investissement dépend de votre stratégie (location longue durée, meublé, colocation) et de votre capacité de financement. Utilisez notre simulateur pour évaluer la rentabilité d'un bien spécifique.`,
+    });
+  }
+
+  if (f.avg_rent_per_m2 != null) {
+    faqEntries.push({
+      name: `Quel est le loyer moyen à ${cityName} ?`,
+      text: `Le loyer moyen à ${cityName} est d'environ ${f.avg_rent_per_m2.toFixed(1).replace(".", ",")} €/m²/mois, selon les données de l'Observatoire des loyers.`,
+    });
+  }
+
+  if (f.risk_level != null) {
+    const riskDescriptions: Record<string, string> = {
+      faible: "un niveau de risque naturel faible",
+      moyen: "un niveau de risque naturel moyen, nécessitant une vigilance standard",
+      "élevé": "un niveau de risque naturel élevé — il est conseillé de vérifier les plans de prévention des risques (PPR) avant d'investir",
+    };
+    faqEntries.push({
+      name: `Quels sont les risques naturels à ${cityName} ?`,
+      text: `${cityName} présente ${riskDescriptions[f.risk_level] || `un niveau de risque naturel qualifié de « ${f.risk_level} »`}, selon les données Géorisques.`,
+    });
+  }
+
+  const faqJsonLd = faqEntries.length > 0
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faqEntries.map((q) => ({
+          "@type": "Question",
+          name: q.name,
+          acceptedAnswer: { "@type": "Answer", text: q.text },
+        })),
+      }
+    : null;
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
 
       <div className="mx-auto max-w-3xl px-4 py-8">
         <a href="/guide" className="text-sm text-amber-600 hover:underline mb-4 block">
@@ -102,6 +160,13 @@ export default async function CityGuidePage({ params }: Props) {
         <p className="text-gray-500 mt-2 text-sm mb-8">
           Données DVF, INSEE et Observatoire des loyers — mise à jour automatique.
         </p>
+
+        <div className="mb-8">
+          <ShareButtons
+            url={`${process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io"}/guide/${slug}`}
+            title={`Investir à ${cityName} en ${year}`}
+          />
+        </div>
 
         <LocalityDataView cityName={cityName} fields={f} dataSources={ds} fieldSources={fsSafe} />
 

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Property } from "@/domains/property/types";
 import { formatCurrency } from "@/lib/calculations";
+import DownloadReportButton from "@/components/property/DownloadReportButton";
 
 interface Props {
   property: Property;
@@ -68,7 +69,7 @@ export default function PropertyHeader({ property, isOwner, onDelete }: Props) {
       <div className="flex gap-1.5 shrink-0">
         <Link
           href={`/property/${property.id}/visit`}
-          className="p-2.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          className="p-2.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 min-h-[44px] min-w-[44px] flex items-center justify-center print:hidden"
           title="Mode visite"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -76,9 +77,10 @@ export default function PropertyHeader({ property, isOwner, onDelete }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
           </svg>
         </Link>
+        <DownloadReportButton />
         <button
           onClick={handleShare}
-          className="p-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          className="p-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 min-h-[44px] min-w-[44px] flex items-center justify-center print:hidden"
           title={shared ? "Copié !" : "Partager"}
         >
           {shared ? (
@@ -94,7 +96,7 @@ export default function PropertyHeader({ property, isOwner, onDelete }: Props) {
         {isOwner && (
           <button
             onClick={onDelete}
-            className="p-2.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-2.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 min-h-[44px] min-w-[44px] flex items-center justify-center print:hidden"
             title="Supprimer"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

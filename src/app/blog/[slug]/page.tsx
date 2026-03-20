@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getArticleBySlug, getAllPublishedSlugs } from "@/domains/blog/repository";
+import ShareButtons from "@/components/ShareButtons";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -47,6 +48,7 @@ export default async function BlogArticlePage({ params }: Props) {
 
   const tags: string[] = JSON.parse(article.tags || "[]");
   const jsonLd = article.json_ld ? JSON.parse(article.json_ld) : null;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io";
 
   return (
     <>
@@ -100,6 +102,11 @@ export default async function BlogArticlePage({ params }: Props) {
             </div>
           </div>
         )}
+
+        {/* Share */}
+        <div className="mt-8">
+          <ShareButtons url={`${baseUrl}/blog/${slug}`} title={article.title} />
+        </div>
 
         {/* CTA */}
         <div className="mt-10 rounded-xl bg-amber-50 border border-amber-200 p-6 text-center">

@@ -54,6 +54,11 @@ export default function RootLayout({
         <Providers>{children}</Providers>
         <Analytics />
         <script
+          defer
+          src="https://cloud.umami.is/script.js"
+          data-website-id="6617335a-7ca2-4a3e-b810-5756cb5b75c0"
+        />
+        <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getAllLocalities, getLatestLocalityFieldsBatch } from "@/domains/locality/repository";
+import { slugify } from "@/lib/slugify";
 
 export const metadata: Metadata = {
   title: "Guides villes — Investissement immobilier locatif",
@@ -8,15 +9,6 @@ export const metadata: Metadata = {
 };
 
 export const revalidate = 3600;
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 function fmt(n: number | null | undefined, suffix = ""): string {
   if (n == null) return "—";

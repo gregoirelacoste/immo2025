@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getAllPublishedSlugs } from "@/domains/blog/repository";
 import { getAllLocalities } from "@/domains/locality/repository";
+import { slugify } from "@/lib/slugify";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io";
@@ -17,18 +18,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const localities = await getAllLocalities();
     const cities = localities.filter((l) => l.type === "ville");
     for (const city of cities) {
-      const slug = city.name
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
       entries.push({
-        url: `${baseUrl}/guide/${slug}`,
+        url: `${baseUrl}/guide/${slugify(city.name)}`,
         lastModified: city.updated_at || now,
         changeFrequency: "weekly",
         priority: 0.8,
       });
+    }
+
+    // Comparatifs villes (top 30 cities, all pairs)
+    const topCities = [...cities]
+      .sort((a, b) => (b.updated_at || "").localeCompare(a.updated_at || ""))
+      .slice(0, 30);
+    for (let i = 0; i < topCities.length; i++) {
+      for (let j = i + 1; j < topCities.length; j++) {
+        entries.push({
+          url: `${baseUrl}/guide/comparatif/${slugify(topCities[i].name)}-vs-${slugify(topCities[j].name)}`,
+          changeFrequency: "weekly",
+          priority: 0.6,
+        });
+      }
     }
   } catch { /* DB not ready */ }
 

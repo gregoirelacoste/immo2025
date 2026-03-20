@@ -133,6 +133,7 @@ export async function runPipeline(
 
       // Revalider le cache Next.js pour que l'article apparaisse immédiatement
       await revalidateBlog(article.slug);
+      await notifyIndexNow(article.slug);
     }
 
     // Étape 5 supprimée : les données API sont déjà injectées par le pipeline central
@@ -181,5 +182,31 @@ async function revalidateBlog(slug: string): Promise<void> {
     }
   } catch (e) {
     console.error(`❌ Revalidation erreur réseau : ${e instanceof Error ? e.message : e} (${endpoint})`);
+  }
+}
+
+/** Notifie IndexNow (Bing/Yandex) qu'une nouvelle page blog est disponible */
+async function notifyIndexNow(slug: string): Promise<void> {
+  const key = process.env.INDEXNOW_KEY;
+  if (!key) return;
+
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL;
+  if (!baseUrl) return;
+
+  const origin = baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
+  const host = new URL(origin).host;
+
+  try {
+    await fetch("https://api.indexnow.org/indexnow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        host,
+        key,
+        urlList: [`${origin}/blog/${slug}`],
+      }),
+    });
+  } catch {
+    // Non-bloquant : si IndexNow échoue, les moteurs indexeront naturellement
   }
 }

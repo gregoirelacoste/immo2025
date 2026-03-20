@@ -16,6 +16,7 @@
 
 import { NewsContext, GeneratedArticle, ArticleCategory } from "./types";
 import { serializeNewsContext } from "./news-fetcher";
+import { slugify } from "@/lib/slugify";
 
 const GEMINI_ARTICLE_MODEL = "gemini-2.5-flash";
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -104,6 +105,19 @@ EXEMPLES BON / MAUVAIS :
 - MAUVAIS : <blockquote>Il convient de souligner que les prix élevés peuvent impacter la rentabilité de l'investissement.</blockquote>
 
 FAQ : utilise <h3> pour chaque question et <p> pour la réponse.
+
+═══ MAILLAGE INTERNE ═══
+
+Insère des liens internes dans l'article pour renforcer le SEO :
+- Chaque PREMIÈRE mention d'une ville française → lien vers /guide/{slug-ville}
+  Exemple : <a href="/guide/lyon">Lyon</a>
+- Chaque mention de "simuler", "simulation", "calculer le rendement" → lien vers /property/new
+  Exemple : <a href="/property/new">simuler ton investissement</a>
+- Chaque mention de "guide", "toutes les villes", "explorer" → lien vers /guide
+- Maximum 1 lien par destination (ne pas répéter le même lien plusieurs fois)
+- Les liens doivent s'intégrer naturellement dans le texte
+- Le slug ville = nom en minuscules, sans accents, espaces remplacés par des tirets
+  (ex: Saint-Étienne → saint-etienne, Aix-en-Provence → aix-en-provence)
 
 ═══ FORMAT DE SORTIE ═══
 
@@ -299,7 +313,7 @@ function parseDelimitedResponse(raw: string): GeneratedArticle {
   return {
     article: {
       title: meta.title,
-      slug: meta.slug || slugify(meta.title),
+      slug: meta.slug || slugify(meta.title, 80),
       content: contentRaw,
       excerpt: meta.excerpt || "",
       meta_description: meta.meta_description || "",
@@ -319,16 +333,6 @@ function cleanJsonBlock(raw: string): string {
   return cleaned;
 }
 
-/** Génère un slug URL à partir d'un titre */
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80);
-}
 
 /**
  * Génère un article complet + données extraites à partir du NewsContext.
