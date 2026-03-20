@@ -40,7 +40,7 @@ async function fetchTopCities(limit: number): Promise<GeoCommune[]> {
     try {
       const res = await fetch(
         `${GEO_API}/departements/${dept}/communes?fields=nom,code,codesPostaux,population,departement`,
-        { signal: AbortSignal.timeout(10_000) }
+        { signal: AbortSignal.timeout(10_000), headers: { "User-Agent": "tiili.io/bulk-cities/1.0" } }
       );
       if (!res.ok) continue;
       const communes: GeoCommune[] = await res.json();
@@ -65,7 +65,7 @@ async function fetchTopCities(limit: number): Promise<GeoCommune[]> {
 async function fetchDeptCities(deptCode: string): Promise<GeoCommune[]> {
   const res = await fetch(
     `${GEO_API}/departements/${deptCode}/communes?fields=nom,code,codesPostaux,population,departement`,
-    { signal: AbortSignal.timeout(10_000) }
+    { signal: AbortSignal.timeout(10_000), headers: { "User-Agent": "tiili.io/bulk-cities/1.0" } }
   );
   if (!res.ok) throw new Error(`Failed to fetch dept ${deptCode}: ${res.status}`);
   return res.json();
@@ -85,12 +85,22 @@ async function resolveCity(name: string): Promise<GeoCommune | null> {
     params.set("boost", "population");
   }
 
-  const res = await fetch(`${GEO_API}/communes?${params}`, {
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!res.ok) return null;
-  const data: GeoCommune[] = await res.json();
-  return data[0] ?? null;
+  const url = `${GEO_API}/communes?${params}`;
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(8_000),
+      headers: { "User-Agent": "tiili.io/bulk-cities/1.0" },
+    });
+    if (!res.ok) {
+      console.warn(`    [geo] ${res.status} for ${url}`);
+      return null;
+    }
+    const data: GeoCommune[] = await res.json();
+    return data[0] ?? null;
+  } catch (e) {
+    console.warn(`    [geo] fetch error for ${url}: ${e instanceof Error ? e.message : e}`);
+    return null;
+  }
 }
 
 async function main() {
