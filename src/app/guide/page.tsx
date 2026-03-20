@@ -32,10 +32,13 @@ export default async function GuidePage() {
       const rent = fields.avg_rent_per_m2 ?? null;
       const grossYield = price && rent ? Math.round((rent * 12 / price) * 1000) / 10 : null;
 
+      const postalCodes: string[] = JSON.parse(city.postal_codes || "[]");
+
       return {
         id: city.id,
         name: city.name,
         slug: slugify(city.name),
+        postalCodes,
         population: fields.population ?? null,
         price,
         rent,
@@ -89,6 +92,13 @@ export default async function GuidePage() {
                     >
                       {row.name}
                     </a>
+                    {row.postalCodes.length > 0 && (
+                      <span className="block text-xs text-gray-400">
+                        {row.postalCodes.length <= 3
+                          ? row.postalCodes.join(", ")
+                          : `${row.postalCodes[0]}…${row.postalCodes[row.postalCodes.length - 1]}`}
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-right text-gray-600">
                     {fmt(row.population)}

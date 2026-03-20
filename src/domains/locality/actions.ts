@@ -12,8 +12,9 @@ import {
   getSnapshotFields,
   findLocalityByCity,
   getRootLocalities,
+  getAllLocalities,
 } from "./repository";
-import { fetchGeoCity } from "@/infrastructure/data-sources/geo-client";
+import { fetchGeoCity, fetchGeoCityByCode } from "@/infrastructure/data-sources/geo-client";
 import { resolveLocalityData } from "./resolver";
 import {
   LOCALITY_TYPES,
@@ -330,5 +331,57 @@ export async function removeLocalityData(
     return { success: true };
   } catch (e) {
     return { success: false, error: (e as Error).message };
+  }
+}
+
+// ─── Backfill postal codes for all cities missing them ───
+
+export async function backfillPostalCodes(): Promise<{
+  success: boolean;
+  updated: number;
+  skipped: number;
+  errors: string[];
+  error?: string;
+}> {
+  try {
+    await requireUserId();
+    const localities = await getAllLocalities();
+    const cities = localities.filter((l) => {
+      if (l.type !== "ville") return false;
+      const pc: string[] = JSON.parse(l.postal_codes || "[]");
+      return pc.length === 0;
+    });
+
+    let updated = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (const city of cities) {
+      try {
+        const geo = city.code
+          ? await fetchGeoCityByCode(city.code)
+          : await fetchGeoCity(city.name);
+
+        if (!geo?.codesPostaux?.length) {
+          skipped++;
+          continue;
+        }
+
+        await updateLocality(city.id, {
+          postal_codes: JSON.stringify(geo.codesPostaux),
+        });
+        updated++;
+
+        // Rate-limit geo API calls
+        await new Promise((r) => setTimeout(r, 100));
+      } catch (e) {
+        errors.push(`${city.name}: ${(e as Error).message}`);
+      }
+    }
+
+    revalidatePath("/guide", "layout");
+    return { success: true, updated, skipped, errors };
+  } catch (e) {
+    return { success: false, updated: 0, skipped: 0, errors: [], error: (e as Error).message };
   }
 }

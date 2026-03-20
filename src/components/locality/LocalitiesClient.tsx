@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Locality, LocalityDataSnapshot, LocalityTableName } from "@/domains/locality/types";
-import { addLocality, removeLocality, importLocalityData, removeLocalityData, enrichLocalityAction, fetchSnapshotFields, addAndEnrichLocality } from "@/domains/locality/actions";
+import { addLocality, removeLocality, importLocalityData, removeLocalityData, enrichLocalityAction, fetchSnapshotFields, addAndEnrichLocality, backfillPostalCodes } from "@/domains/locality/actions";
 import Alert from "@/components/ui/Alert";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -84,13 +84,19 @@ export default function LocalitiesClient({ localities, dataMap }: Props) {
         onError={setError}
       />
 
-      {/* Advanced add (JSON import) */}
-      <button
-        onClick={() => { setShowAddForm(!showAddForm); clearMessages(); }}
-        className="px-3 py-1.5 text-xs text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"
-      >
-        {showAddForm ? "Fermer import JSON" : "Import JSON avancé"}
-      </button>
+      {/* Bulk actions */}
+      <div className="flex gap-2 flex-wrap">
+        <BackfillPostalCodesButton
+          onSuccess={(msg) => { setSuccess(msg); router.refresh(); }}
+          onError={setError}
+        />
+        <button
+          onClick={() => { setShowAddForm(!showAddForm); clearMessages(); }}
+          className="px-3 py-1.5 text-xs text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"
+        >
+          {showAddForm ? "Fermer import JSON" : "Import JSON avancé"}
+        </button>
+      </div>
 
       {showAddForm && (
         <AddLocalityForm
@@ -184,6 +190,39 @@ function QuickAddCity({
         {loading ? "Ajout et enrichissement..." : "+ Ajouter"}
       </button>
     </form>
+  );
+}
+
+// ─── Backfill Postal Codes Button ───
+
+function BackfillPostalCodesButton({
+  onSuccess,
+  onError,
+}: {
+  onSuccess: (msg: string) => void;
+  onError: (msg: string) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleClick() {
+    setLoading(true);
+    const r = await backfillPostalCodes();
+    setLoading(false);
+    if (r.success) {
+      onSuccess(`Codes postaux : ${r.updated} mises à jour, ${r.skipped} ignorées${r.errors.length ? `, ${r.errors.length} erreurs` : ""}`);
+    } else {
+      onError(r.error || "Erreur backfill");
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className="px-3 py-1.5 text-xs text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors disabled:opacity-50"
+    >
+      {loading ? "Récupération des codes postaux..." : "Compléter les codes postaux"}
+    </button>
   );
 }
 

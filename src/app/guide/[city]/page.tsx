@@ -23,8 +23,9 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { city: slug } = await params;
-  const cityName = await findCityNameBySlug(slug);
-  if (!cityName) return { title: "Ville non trouvée" };
+  const city = await findCityBySlug(slug);
+  if (!city) return { title: "Ville non trouvée" };
+  const cityName = city.name;
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io";
   const year = new Date().getFullYear();
@@ -43,18 +44,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export const revalidate = 3600;
 
-async function findCityNameBySlug(slug: string): Promise<string | null> {
+async function findCityBySlug(slug: string) {
   const localities = await getAllLocalities();
-  const match = localities.find(
+  return localities.find(
     (l) => l.type === "ville" && slugify(l.name) === slug
   );
-  return match?.name ?? null;
 }
 
 export default async function CityGuidePage({ params }: Props) {
   const { city: slug } = await params;
-  const cityName = await findCityNameBySlug(slug);
-  if (!cityName) notFound();
+  const city = await findCityBySlug(slug);
+  if (!city) notFound();
+  const cityName = city.name;
+  const postalCodes: string[] = JSON.parse(city.postal_codes || "[]");
 
   const resolved = await resolveLocalityData(cityName);
   const f = resolved?.fields ?? {};
@@ -157,6 +159,11 @@ export default async function CityGuidePage({ params }: Props) {
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
           Investir à {cityName} en {year}
         </h1>
+        {postalCodes.length > 0 && (
+          <p className="text-gray-400 mt-1 text-sm">
+            {postalCodes.length === 1 ? postalCodes[0] : postalCodes.join(", ")}
+          </p>
+        )}
         <p className="text-gray-500 mt-2 text-sm mb-8">
           Données DVF, INSEE et Observatoire des loyers — mise à jour automatique.
         </p>

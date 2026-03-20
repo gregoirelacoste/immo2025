@@ -224,6 +224,8 @@ export default async function ComparatifPage({ params }: Props) {
   if (!cities) notFound();
 
   const [city1, city2] = cities;
+  const pc1: string[] = JSON.parse(city1.postal_codes || "[]");
+  const pc2: string[] = JSON.parse(city2.postal_codes || "[]");
 
   const [data1, data2] = await Promise.all([
     resolveLocalityData(city1.name),
@@ -338,8 +340,14 @@ export default async function ComparatifPage({ params }: Props) {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Critère</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-900">{city1.name}</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-900">{city2.name}</th>
+                <th className="text-center px-4 py-3">
+                  <span className="font-semibold text-gray-900">{city1.name}</span>
+                  {pc1.length > 0 && <span className="block text-xs font-normal text-gray-400">{pc1[0]}</span>}
+                </th>
+                <th className="text-center px-4 py-3">
+                  <span className="font-semibold text-gray-900">{city2.name}</span>
+                  {pc2.length > 0 && <span className="block text-xs font-normal text-gray-400">{pc2[0]}</span>}
+                </th>
               </tr>
             </thead>
             <tbody>
