@@ -7,9 +7,10 @@ interface Props {
   calcs: PropertyCalculations;
   visible: boolean;
   onCashflowClick?: () => void;
+  onYieldClick?: () => void;
 }
 
-export default function StickyHeader({ property, calcs, visible, onCashflowClick }: Props) {
+export default function StickyHeader({ property, calcs, visible, onCashflowClick, onYieldClick }: Props) {
   const dpe = property.dpe_rating;
   const isDpeAlert = dpe === "F" || dpe === "G";
   const grade = getGrade(property.investment_score);
@@ -35,12 +36,12 @@ export default function StickyHeader({ property, calcs, visible, onCashflowClick
           )}
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <div className="text-center">
+          <button onClick={onYieldClick} className="text-center cursor-pointer hover:opacity-80 transition-opacity">
             <p className="text-[10px] text-[#b0b0b8] leading-none font-semibold">Net</p>
-            <p className={`font-bold font-[family-name:var(--font-mono)] ${rentaColor(calcs.net_yield)}`}>
+            <p className={`font-bold font-[family-name:var(--font-mono)] underline decoration-dotted underline-offset-2 ${rentaColor(calcs.net_yield)}`}>
               {formatPercent(calcs.net_yield)}
             </p>
-          </div>
+          </button>
           <button onClick={onCashflowClick} className="text-center cursor-pointer hover:opacity-80 transition-opacity">
             <p className="text-[10px] text-[#b0b0b8] leading-none font-semibold">CF/mois</p>
             <p className={`font-bold font-[family-name:var(--font-mono)] underline decoration-dotted underline-offset-2 ${cashflowColor(calcs.monthly_cashflow)}`}>
