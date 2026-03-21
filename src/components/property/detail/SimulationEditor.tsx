@@ -18,6 +18,8 @@ interface Props {
   onLiveChange?: (sim: Simulation) => void;
   readOnly?: boolean;
   onCashflowClick?: () => void;
+  onYieldClick?: () => void;
+  onLoanCostClick?: () => void;
 }
 
 type FieldConfig = StepperFieldConfig & { field: keyof SimulationFormData };
@@ -76,7 +78,7 @@ function simFormFromSimulation(sim: Simulation): SimulationFormData {
 }
 
 
-export default function SimulationEditor({ property, simulation, onUpdated, onLiveChange, readOnly = false, onCashflowClick }: Props) {
+export default function SimulationEditor({ property, simulation, onUpdated, onLiveChange, readOnly = false, onCashflowClick, onYieldClick, onLoanCostClick }: Props) {
   const [form, setForm] = useState<SimulationFormData>(() => simFormFromSimulation(simulation));
   const [saving, setSaving] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -193,20 +195,20 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
 
       {/* Live KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
-        <div className="p-3 bg-tiili-surface rounded-xl text-center">
-          <p className="text-xl font-extrabold text-gray-600 font-[family-name:var(--font-mono)]">
+        <button onClick={onYieldClick} className="p-3 bg-tiili-surface rounded-xl text-center cursor-pointer hover:bg-gray-100 transition-colors">
+          <p className="text-xl font-extrabold text-gray-600 font-[family-name:var(--font-mono)] underline decoration-dotted underline-offset-2">
             {calcs.gross_yield.toFixed(2)}%
           </p>
           <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Renta brute</p>
-        </div>
-        <div className="p-3 bg-tiili-surface rounded-xl text-center">
-          <p className={`text-xl font-extrabold font-[family-name:var(--font-mono)] ${
+        </button>
+        <button onClick={onYieldClick} className="p-3 bg-tiili-surface rounded-xl text-center cursor-pointer hover:bg-gray-100 transition-colors">
+          <p className={`text-xl font-extrabold font-[family-name:var(--font-mono)] underline decoration-dotted underline-offset-2 ${
             calcs.net_yield >= 6 ? "text-green-600" : calcs.net_yield >= 4 ? "text-blue-600" : calcs.net_yield >= 2 ? "text-amber-600" : "text-red-600"
           }`}>
             {calcs.net_yield.toFixed(2)}%
           </p>
           <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Renta nette</p>
-        </div>
+        </button>
         <button onClick={onCashflowClick} className="p-3 bg-tiili-surface rounded-xl text-center cursor-pointer hover:bg-gray-100 transition-colors">
           <p className={`text-xl font-extrabold font-[family-name:var(--font-mono)] underline decoration-dotted underline-offset-2 ${
             calcs.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"
@@ -221,12 +223,12 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
           </p>
           <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Mensualité</p>
         </div>
-        <div className="p-3 bg-tiili-surface rounded-xl text-center">
-          <p className="text-xl font-extrabold text-gray-700 font-[family-name:var(--font-mono)]">
+        <button onClick={onLoanCostClick} className="p-3 bg-tiili-surface rounded-xl text-center cursor-pointer hover:bg-gray-100 transition-colors">
+          <p className="text-xl font-extrabold text-gray-700 font-[family-name:var(--font-mono)] underline decoration-dotted underline-offset-2">
             {formatCurrency(calcs.total_loan_cost)}
           </p>
           <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Coût crédit</p>
-        </div>
+        </button>
       </div>
 
       {/* Parameters */}

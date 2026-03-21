@@ -29,6 +29,8 @@ import LocaliteTab from "./LocaliteTab";
 import AmenagementTab from "./AmenagementTab";
 import FinancementTab from "./FinancementTab";
 import CashflowBreakdownModal from "./CashflowBreakdownModal";
+import YieldBreakdownModal from "./YieldBreakdownModal";
+import LoanCostBreakdownModal from "./LoanCostBreakdownModal";
 
 const PropertyMap = dynamic(() => import("./PropertyMap"), { ssr: false });
 
@@ -138,6 +140,8 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
   const [refreshing, setRefreshing] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
   const [cashflowModalOpen, setCashflowModalOpen] = useState(false);
+  const [yieldModalOpen, setYieldModalOpen] = useState(false);
+  const [loanCostModalOpen, setLoanCostModalOpen] = useState(false);
   const [simDrawerOpen, setSimDrawerOpen] = useState(false);
   const [heroHidden, setHeroHidden] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
@@ -213,11 +217,14 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                   </p>
                   {calcs.net_yield > 0 && (
                     <div className="flex items-center gap-3 mt-2">
-                      <span className={`text-sm font-bold font-[family-name:var(--font-mono)] ${
-                        calcs.net_yield >= 6 ? "text-green-600" : calcs.net_yield >= 4 ? "text-blue-600" : calcs.net_yield >= 2 ? "text-amber-600" : "text-red-600"
-                      }`}>
+                      <button
+                        onClick={() => setYieldModalOpen(true)}
+                        className={`text-sm font-bold font-[family-name:var(--font-mono)] underline decoration-dotted underline-offset-2 cursor-pointer hover:opacity-80 transition-opacity ${
+                          calcs.net_yield >= 6 ? "text-green-600" : calcs.net_yield >= 4 ? "text-blue-600" : calcs.net_yield >= 2 ? "text-amber-600" : "text-red-600"
+                        }`}
+                      >
                         {calcs.net_yield.toFixed(2)}% net
-                      </span>
+                      </button>
                       <button
                         onClick={() => setCashflowModalOpen(true)}
                         className={`text-sm font-bold font-[family-name:var(--font-mono)] underline decoration-dotted underline-offset-2 cursor-pointer hover:opacity-80 transition-opacity ${
@@ -237,7 +244,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
       </section>
 
       {/* Sticky header (visible only on scroll past hero) */}
-      <StickyHeader property={property} calcs={calcs} visible={heroHidden} onCashflowClick={() => setCashflowModalOpen(true)} />
+      <StickyHeader property={property} calcs={calcs} visible={heroHidden} onCashflowClick={() => setCashflowModalOpen(true)} onYieldClick={() => setYieldModalOpen(true)} />
 
       {/* Simulation banner — always visible, acts as context selector */}
       <SimulationBanner
@@ -368,6 +375,8 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
         }}
         onLiveCalcsChange={setLiveSimFromEditor}
         onCashflowClick={() => setCashflowModalOpen(true)}
+        onYieldClick={() => setYieldModalOpen(true)}
+        onLoanCostClick={() => setLoanCostModalOpen(true)}
       />
 
       {/* ═══════════════════ ONGLET TRAVAUX ═══════════════════ */}
@@ -392,6 +401,24 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
       <CashflowBreakdownModal
         open={cashflowModalOpen}
         onClose={() => setCashflowModalOpen(false)}
+        property={property}
+        simulation={effectiveSim}
+        calcs={calcs}
+      />
+
+      {/* Yield breakdown modal — opens on renta click */}
+      <YieldBreakdownModal
+        open={yieldModalOpen}
+        onClose={() => setYieldModalOpen(false)}
+        property={property}
+        simulation={effectiveSim}
+        calcs={calcs}
+      />
+
+      {/* Loan cost breakdown modal — opens on coût crédit click */}
+      <LoanCostBreakdownModal
+        open={loanCostModalOpen}
+        onClose={() => setLoanCostModalOpen(false)}
         property={property}
         simulation={effectiveSim}
         calcs={calcs}

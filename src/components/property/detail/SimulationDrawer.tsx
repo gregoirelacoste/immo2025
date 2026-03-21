@@ -20,9 +20,11 @@ interface Props {
   onSimSwitch: (simId: string) => void;
   onLiveCalcsChange?: (sim: Simulation | null) => void;
   onCashflowClick?: () => void;
+  onYieldClick?: () => void;
+  onLoanCostClick?: () => void;
 }
 
-export default function SimulationDrawer({ property, simulations, systemSim, activeSimId, isOwner, open, onClose, onSimSwitch, onLiveCalcsChange, onCashflowClick }: Props) {
+export default function SimulationDrawer({ property, simulations, systemSim, activeSimId, isOwner, open, onClose, onSimSwitch, onLiveCalcsChange, onCashflowClick, onYieldClick, onLoanCostClick }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [liveSim, setLiveSimLocal] = useState<Simulation | null>(null);
@@ -203,6 +205,8 @@ export default function SimulationDrawer({ property, simulations, systemSim, act
               onUpdated={() => {}}
               readOnly
               onCashflowClick={onCashflowClick}
+              onYieldClick={onYieldClick}
+              onLoanCostClick={onLoanCostClick}
             />
           )}
 
@@ -213,6 +217,8 @@ export default function SimulationDrawer({ property, simulations, systemSim, act
               onUpdated={() => router.refresh()}
               onLiveChange={setLiveSim}
               onCashflowClick={onCashflowClick}
+              onYieldClick={onYieldClick}
+              onLoanCostClick={onLoanCostClick}
             />
           )}
 
@@ -223,6 +229,8 @@ export default function SimulationDrawer({ property, simulations, systemSim, act
               onUpdated={() => {}}
               readOnly
               onCashflowClick={onCashflowClick}
+              onYieldClick={onYieldClick}
+              onLoanCostClick={onLoanCostClick}
             />
           )}
         </div>
