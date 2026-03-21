@@ -49,6 +49,7 @@ function mergeScrapedData(
     address: base.address ?? extra.address,
     description: base.description ?? extra.description,
     property_type: base.property_type ?? extra.property_type,
+    room_count: base.room_count ?? extra.room_count,
     image_urls: base.image_urls ?? extra.image_urls,
     amenities,
   };

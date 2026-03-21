@@ -181,6 +181,7 @@ export async function scrapeAndSaveProperty(
     postal_code: d.postal_code || "",
     purchase_price: price,
     surface,
+    room_count: d.room_count || 0,
     property_type: propertyType,
     description: d.description || "",
     neighborhood: d.neighborhood || "",
@@ -361,6 +362,7 @@ export async function createPropertyFromText(
       postal_code: d.postal_code || "",
       purchase_price: price,
       surface,
+      room_count: d.room_count || 0,
       property_type: propertyType,
       description: d.description || "",
       neighborhood: d.neighborhood || "",
@@ -488,6 +490,7 @@ export async function extractAndUpdateFromText(
       ...(d.description && { description: d.description }),
       ...(d.neighborhood && { neighborhood: d.neighborhood }),
       ...(d.property_type && { property_type: d.property_type }),
+      ...(d.room_count != null && d.room_count > 0 && { room_count: d.room_count }),
       ...(d.amenities && d.amenities.length > 0 && {
         amenities: JSON.stringify([...new Set([
           ...JSON.parse(property.amenities || "[]"),

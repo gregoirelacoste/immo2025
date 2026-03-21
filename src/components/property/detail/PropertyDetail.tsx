@@ -28,6 +28,7 @@ import PhotoGallery from "./PhotoGallery";
 import LocaliteTab from "./LocaliteTab";
 import AmenagementTab from "./AmenagementTab";
 import FinancementTab from "./FinancementTab";
+import CashflowBreakdownModal from "./CashflowBreakdownModal";
 
 const PropertyMap = dynamic(() => import("./PropertyMap"), { ssr: false });
 
@@ -136,6 +137,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
   );
   const [refreshing, setRefreshing] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
+  const [cashflowModalOpen, setCashflowModalOpen] = useState(false);
   const [simDrawerOpen, setSimDrawerOpen] = useState(false);
   const [heroHidden, setHeroHidden] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
@@ -216,11 +218,14 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                       }`}>
                         {calcs.net_yield.toFixed(2)}% net
                       </span>
-                      <span className={`text-sm font-bold font-[family-name:var(--font-mono)] ${
-                        calcs.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"
-                      }`}>
+                      <button
+                        onClick={() => setCashflowModalOpen(true)}
+                        className={`text-sm font-bold font-[family-name:var(--font-mono)] underline decoration-dotted underline-offset-2 cursor-pointer hover:opacity-80 transition-opacity ${
+                          calcs.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
                         {calcs.monthly_cashflow > 0 ? "+" : ""}{Math.round(calcs.monthly_cashflow)}{"\u202f"}€/mois
-                      </span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -232,7 +237,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
       </section>
 
       {/* Sticky header (visible only on scroll past hero) */}
-      <StickyHeader property={property} calcs={calcs} visible={heroHidden} />
+      <StickyHeader property={property} calcs={calcs} visible={heroHidden} onCashflowClick={() => setCashflowModalOpen(true)} />
 
       {/* Simulation banner — always visible, acts as context selector */}
       <SimulationBanner
@@ -283,6 +288,14 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                 <span className="text-sm text-gray-500">Type</span>
                 <span className="text-sm font-semibold text-[#1a1a2e] capitalize">{property.property_type}</span>
               </div>
+              {property.room_count > 0 && (
+                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                  <span className="text-sm text-gray-500">Pièces</span>
+                  <span className="text-sm font-semibold text-[#1a1a2e]">
+                    {property.room_count >= 5 ? "T5+" : `T${property.room_count}`} ({property.room_count} {property.room_count > 1 ? "pièces" : "pièce"})
+                  </span>
+                </div>
+              )}
               {property.monthly_rent > 0 && (
                 <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
                   <span className="text-sm text-gray-500">Loyer</span>
@@ -354,6 +367,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
           setLiveSimFromEditor(null);
         }}
         onLiveCalcsChange={setLiveSimFromEditor}
+        onCashflowClick={() => setCashflowModalOpen(true)}
       />
 
       {/* ═══════════════════ ONGLET TRAVAUX ═══════════════════ */}
@@ -373,6 +387,15 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
 
       {/* ═══════════════════ LOCALITÉ (toujours visible, hors onglets) ═══════════════════ */}
       <LocaliteTab property={property} />
+
+      {/* Cashflow breakdown modal — opens on cashflow click */}
+      <CashflowBreakdownModal
+        open={cashflowModalOpen}
+        onClose={() => setCashflowModalOpen(false)}
+        property={property}
+        simulation={effectiveSim}
+        calcs={calcs}
+      />
 
       {/* Score modal — opens on ScoreBrick click */}
       {scoreModalOpen && (

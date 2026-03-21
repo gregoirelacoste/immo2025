@@ -31,6 +31,7 @@ export interface ScrapedPropertyData {
   description?: string;
   neighborhood?: string;
   property_type?: "ancien" | "neuf";
+  room_count?: number;
   image_urls?: string[];
   amenities?: string[];
   // Champs locatifs (souvent dans les annonces)

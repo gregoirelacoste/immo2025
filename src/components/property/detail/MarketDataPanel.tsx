@@ -11,6 +11,15 @@ interface Props {
   monthlyRent?: number;
 }
 
+/** Get market price/m² for the property's room count, falling back to general average */
+function getMarketPriceForRooms(md: MarketData, roomCount: number): { price: number | null; label: string } {
+  if (roomCount === 1 && md.avgPriceT1PerM2) return { price: md.avgPriceT1PerM2, label: "T1" };
+  if (roomCount === 2 && md.avgPriceT2PerM2) return { price: md.avgPriceT2PerM2, label: "T2" };
+  if (roomCount === 3 && md.avgPriceT3PerM2) return { price: md.avgPriceT3PerM2, label: "T3" };
+  if (roomCount >= 4 && md.avgPriceT4PlusPerM2) return { price: md.avgPriceT4PlusPerM2, label: "T4+" };
+  return { price: null, label: "" };
+}
+
 export default function MarketDataPanel({ property, marketData, loading, monthlyRent }: Props) {
   if (loading) {
     return (
@@ -26,8 +35,14 @@ export default function MarketDataPanel({ property, marketData, loading, monthly
   if (!marketData) return null;
 
   const propertyPricePerM2 = property.surface > 0 ? property.purchase_price / property.surface : 0;
-  const diff = marketData.medianPurchasePricePerM2 && propertyPricePerM2
-    ? ((propertyPricePerM2 - marketData.medianPurchasePricePerM2) / marketData.medianPurchasePricePerM2) * 100
+
+  // Room-based price comparison (preferred when room_count is set)
+  const roomPrice = property.room_count > 0 ? getMarketPriceForRooms(marketData, property.room_count) : { price: null, label: "" };
+  const referencePrice = roomPrice.price ?? marketData.medianPurchasePricePerM2;
+  const referenceLabel = roomPrice.price ? `médian ${roomPrice.label}` : "médian";
+
+  const diff = referencePrice && propertyPricePerM2
+    ? ((propertyPricePerM2 - referencePrice) / referencePrice) * 100
     : null;
   const estimatedMonthlyRent = marketData.avgRentPerM2 && property.surface > 0
     ? Math.round(marketData.avgRentPerM2 * property.surface)
@@ -47,14 +62,21 @@ export default function MarketDataPanel({ property, marketData, loading, monthly
         {marketData.rentSource === "reference" && " + observatoire des loyers"}
       </p>
 
-      {marketData.medianPurchasePricePerM2 && (
+      {referencePrice && (
         <>
-          <h3 className="text-sm font-medium text-emerald-800 mb-2">Prix à l&apos;achat</h3>
+          <h3 className="text-sm font-medium text-emerald-800 mb-2">
+            Prix à l&apos;achat
+            {roomPrice.price && (
+              <span className="ml-1 text-xs font-normal text-emerald-600">
+                (comparaison {roomPrice.label})
+              </span>
+            )}
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <div className="bg-white rounded-lg p-3 border border-emerald-100">
-              <p className="text-xs text-gray-500">Prix médian /m²</p>
+              <p className="text-xs text-gray-500">Prix {referenceLabel} /m²</p>
               <p className="text-lg font-bold text-[#1a1a2e]">
-                {formatCurrency(marketData.medianPurchasePricePerM2)}
+                {formatCurrency(referencePrice)}
               </p>
             </div>
             <div className="bg-white rounded-lg p-3 border border-emerald-100">
@@ -80,6 +102,36 @@ export default function MarketDataPanel({ property, marketData, loading, monthly
               </p>
             </div>
           </div>
+
+          {/* Show segmented room prices if available */}
+          {(marketData.avgPriceT1PerM2 || marketData.avgPriceT2PerM2 || marketData.avgPriceT3PerM2 || marketData.avgPriceT4PlusPerM2) && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+              {marketData.avgPriceT1PerM2 && (
+                <div className={`rounded-lg p-2 border text-center ${property.room_count === 1 ? "bg-emerald-100 border-emerald-300" : "bg-white border-emerald-100"}`}>
+                  <p className="text-xs text-gray-500">T1</p>
+                  <p className="text-sm font-semibold text-[#1a1a2e]">{formatCurrency(marketData.avgPriceT1PerM2)}/m²</p>
+                </div>
+              )}
+              {marketData.avgPriceT2PerM2 && (
+                <div className={`rounded-lg p-2 border text-center ${property.room_count === 2 ? "bg-emerald-100 border-emerald-300" : "bg-white border-emerald-100"}`}>
+                  <p className="text-xs text-gray-500">T2</p>
+                  <p className="text-sm font-semibold text-[#1a1a2e]">{formatCurrency(marketData.avgPriceT2PerM2)}/m²</p>
+                </div>
+              )}
+              {marketData.avgPriceT3PerM2 && (
+                <div className={`rounded-lg p-2 border text-center ${property.room_count === 3 ? "bg-emerald-100 border-emerald-300" : "bg-white border-emerald-100"}`}>
+                  <p className="text-xs text-gray-500">T3</p>
+                  <p className="text-sm font-semibold text-[#1a1a2e]">{formatCurrency(marketData.avgPriceT3PerM2)}/m²</p>
+                </div>
+              )}
+              {marketData.avgPriceT4PlusPerM2 && (
+                <div className={`rounded-lg p-2 border text-center ${property.room_count >= 4 ? "bg-emerald-100 border-emerald-300" : "bg-white border-emerald-100"}`}>
+                  <p className="text-xs text-gray-500">T4+</p>
+                  <p className="text-sm font-semibold text-[#1a1a2e]">{formatCurrency(marketData.avgPriceT4PlusPerM2)}/m²</p>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 

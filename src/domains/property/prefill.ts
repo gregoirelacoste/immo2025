@@ -30,6 +30,8 @@ export function buildPrefillFromScrape(
   if (data.neighborhood) prefill.neighborhood = { source: label, value: data.neighborhood };
   if (data.address) prefill.address = { source: label, value: data.address };
   if (data.postal_code) prefill.postal_code = { source: label, value: data.postal_code };
+  if (data.room_count && data.room_count > 0)
+    prefill.room_count = { source: label, value: data.room_count };
   // Champs locatifs scrapés
   if (data.monthly_rent && data.monthly_rent > 0)
     prefill.monthly_rent = { source: label, value: data.monthly_rent };
@@ -123,6 +125,7 @@ export function mergeRescrapeIntoPrefill(
   if (data.neighborhood) merged.neighborhood = { source: label, value: data.neighborhood };
   if (data.address) merged.address = { source: label, value: data.address };
   if (data.postal_code) merged.postal_code = { source: label, value: data.postal_code };
+  if (data.room_count != null && data.room_count > 0) merged.room_count = { source: label, value: data.room_count };
   if (data.monthly_rent != null) merged.monthly_rent = { source: label, value: data.monthly_rent };
   if (data.condo_charges != null) merged.condo_charges = { source: label, value: data.condo_charges };
   if (data.property_tax != null) merged.property_tax = { source: label, value: data.property_tax };
@@ -143,6 +146,7 @@ export function mergeTextExtractionIntoPrefill(
   if (data.neighborhood) merged.neighborhood = { source: "Collage texte (IA)", value: data.neighborhood };
   if (data.address) merged.address = { source: "Collage texte (IA)", value: data.address };
   if (data.postal_code) merged.postal_code = { source: "Collage texte (IA)", value: data.postal_code };
+  if (data.room_count != null && data.room_count > 0) merged.room_count = { source: "Collage texte (IA)", value: data.room_count };
   if (data.monthly_rent != null) merged.monthly_rent = { source: "Collage texte (IA)", value: data.monthly_rent };
   if (data.condo_charges != null) merged.condo_charges = { source: "Collage texte (IA)", value: data.condo_charges };
   if (data.property_tax != null) merged.property_tax = { source: "Collage texte (IA)", value: data.property_tax };

@@ -17,6 +17,7 @@ interface Props {
   /** Emit the live merged simulation on every local change (for parent to update cards) */
   onLiveChange?: (sim: Simulation) => void;
   readOnly?: boolean;
+  onCashflowClick?: () => void;
 }
 
 type FieldConfig = StepperFieldConfig & { field: keyof SimulationFormData };
@@ -75,7 +76,7 @@ function simFormFromSimulation(sim: Simulation): SimulationFormData {
 }
 
 
-export default function SimulationEditor({ property, simulation, onUpdated, onLiveChange, readOnly = false }: Props) {
+export default function SimulationEditor({ property, simulation, onUpdated, onLiveChange, readOnly = false, onCashflowClick }: Props) {
   const [form, setForm] = useState<SimulationFormData>(() => simFormFromSimulation(simulation));
   const [saving, setSaving] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -206,14 +207,14 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
           </p>
           <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Renta nette</p>
         </div>
-        <div className="p-3 bg-tiili-surface rounded-xl text-center">
-          <p className={`text-xl font-extrabold font-[family-name:var(--font-mono)] ${
+        <button onClick={onCashflowClick} className="p-3 bg-tiili-surface rounded-xl text-center cursor-pointer hover:bg-gray-100 transition-colors">
+          <p className={`text-xl font-extrabold font-[family-name:var(--font-mono)] underline decoration-dotted underline-offset-2 ${
             calcs.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"
           }`}>
             {calcs.monthly_cashflow > 0 ? "+" : ""}{Math.round(calcs.monthly_cashflow)}{"\u202f"}&euro;
           </p>
           <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Cash-flow /mois</p>
-        </div>
+        </button>
         <div className="p-3 bg-tiili-surface rounded-xl text-center">
           <p className="text-xl font-extrabold text-gray-700 font-[family-name:var(--font-mono)]">
             {formatCurrency(calcs.monthly_payment)}

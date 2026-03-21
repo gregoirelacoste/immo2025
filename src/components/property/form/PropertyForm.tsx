@@ -40,6 +40,7 @@ function buildDefaultFormData(defaults?: DefaultInputs): PropertyFormData {
     postal_code: "",
     purchase_price: 0,
     surface: 0,
+    room_count: 0,
     property_type: "ancien",
     description: "",
     neighborhood: "",
@@ -302,7 +303,7 @@ export default function PropertyForm({ existingProperty, defaultInputs, equipmen
         />
       )}
 
-      <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} />
+      <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} marketDataJson={existingProperty?.market_data} />
       {!isEditing && (
         <AmenitiesSection
           selected={parseAmenities(form.amenities)}

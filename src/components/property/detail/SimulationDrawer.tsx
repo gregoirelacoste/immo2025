@@ -19,9 +19,10 @@ interface Props {
   onClose: () => void;
   onSimSwitch: (simId: string) => void;
   onLiveCalcsChange?: (sim: Simulation | null) => void;
+  onCashflowClick?: () => void;
 }
 
-export default function SimulationDrawer({ property, simulations, systemSim, activeSimId, isOwner, open, onClose, onSimSwitch, onLiveCalcsChange }: Props) {
+export default function SimulationDrawer({ property, simulations, systemSim, activeSimId, isOwner, open, onClose, onSimSwitch, onLiveCalcsChange, onCashflowClick }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [liveSim, setLiveSimLocal] = useState<Simulation | null>(null);
@@ -201,6 +202,7 @@ export default function SimulationDrawer({ property, simulations, systemSim, act
               simulation={systemSim}
               onUpdated={() => {}}
               readOnly
+              onCashflowClick={onCashflowClick}
             />
           )}
 
@@ -210,6 +212,7 @@ export default function SimulationDrawer({ property, simulations, systemSim, act
               simulation={displaySim}
               onUpdated={() => router.refresh()}
               onLiveChange={setLiveSim}
+              onCashflowClick={onCashflowClick}
             />
           )}
 
@@ -219,6 +222,7 @@ export default function SimulationDrawer({ property, simulations, systemSim, act
               simulation={displaySim}
               onUpdated={() => {}}
               readOnly
+              onCashflowClick={onCashflowClick}
             />
           )}
         </div>
