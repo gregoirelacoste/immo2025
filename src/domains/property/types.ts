@@ -119,6 +119,35 @@ export interface FiscalImpact {
   fiscal_savings: number;      // micro_bic - lmnp_reel
   net_net_income_micro: number; // revenu après impôts micro-BIC
   net_net_income_reel: number;  // revenu après impôts LMNP réel
+  // Prélèvements sociaux (17.2%)
+  social_contributions_micro: number;
+  social_contributions_reel: number;
+}
+
+/** Détail des charges d'exploitation annuelles */
+export interface ChargesBreakdown {
+  condo: number;           // charges copro (annuel)
+  propertyTax: number;     // taxe foncière (annuel)
+  pnoInsurance: number;    // assurance PNO (annuel)
+  maintenance: number;     // provision entretien (annuel)
+  gliCost: number;         // GLI (annuel)
+}
+
+/** Détail du coût du crédit */
+export interface LoanBreakdown {
+  year1Interest: number;   // intérêts année 1
+  year1Capital: number;    // capital remboursé année 1
+  totalInterest: number;   // intérêts totaux sur la durée
+  totalInsurance: number;  // assurance totale sur la durée
+}
+
+/** Détail du cashflow mensuel */
+export interface CashflowBreakdown {
+  grossMonthlyRent: number;   // loyer brut mensuel
+  vacancyCost: number;        // coût vacance mensuel
+  netMonthlyRent: number;     // loyer net de vacance mensuel
+  monthlyCharges: number;     // charges d'exploitation mensuelles
+  monthlyFinancing: number;   // mensualité + assurance emprunteur
 }
 
 export interface CapitalGainsTax {
@@ -166,4 +195,8 @@ export interface PropertyCalculations {
   airbnb_monthly_cashflow: number;
   airbnb_annual_income: number;
   airbnb_annual_charges: number;
+  // Breakdowns détaillés
+  chargesBreakdown: ChargesBreakdown;
+  loanBreakdown: LoanBreakdown;
+  cashflowBreakdown: CashflowBreakdown;
 }

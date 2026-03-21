@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Property } from "@/domains/property/types";
 import { Simulation, SimulationFormData } from "@/domains/simulation/types";
-import { calculateSimulation, calculateExitSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent } from "@/lib/calculations";
+import { calculateSimulation, calculateExitSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent, computeLoanAmount } from "@/lib/calculations";
 import { updateSimulationAction } from "@/domains/simulation/actions";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import StepperField, { formatStepperValue, type StepperFieldConfig } from "@/components/ui/StepperField";
@@ -39,15 +39,13 @@ const EDITABLE_FIELDS: FieldConfig[] = [
 /** Fields that come from property data (shown as read-only in Défaut sim, editable in manual sims) */
 const PROPERTY_CHARGE_FIELDS: (keyof SimulationFormData)[] = ["pno_insurance", "gli_rate", "maintenance_per_m2"];
 
-/** Compute loan_amount from property price, contribution, renovation, notary.
- *  loan_fees is a separate cost (included in total_project_cost but NOT in the loan itself).
- */
-function computeLoanAmount(property: Property, form: SimulationFormData): number {
+/** Compute loan_amount from property + form data (delegates to centralized function) */
+function computeLoanFromForm(property: Property, form: SimulationFormData): number {
   const notary = form.notary_fees > 0
     ? form.notary_fees
     : calculateNotaryFees(property.purchase_price, property.property_type);
   const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
-  return Math.max(0, property.purchase_price + notary + form.renovation_cost + furnitureCost - form.personal_contribution);
+  return computeLoanAmount(property.purchase_price, notary, form.renovation_cost, furnitureCost, form.personal_contribution);
 }
 
 function simFormFromSimulation(sim: Simulation): SimulationFormData {
@@ -91,7 +89,7 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
   }, [simulation.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Compute calcs from current form state (memoized for performance)
-  const currentLoan = useMemo(() => computeLoanAmount(property, form), [property, form]);
+  const currentLoan = useMemo(() => computeLoanFromForm(property,form), [property, form]);
   const mergedSim = useMemo(() => ({ ...simulation, ...form, loan_amount: currentLoan }) as Simulation, [simulation, form, currentLoan]);
   const calcs = useMemo(() => calculateSimulation(property, mergedSim), [property, mergedSim]);
   const exitSim = useMemo(() => calculateExitSimulation(property, mergedSim, calcs), [property, mergedSim, calcs]);
@@ -100,7 +98,7 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
   // Save helper — always includes computed loan_amount
   const saveChanges = useCallback(async (data: Partial<SimulationFormData>) => {
     const updatedForm = { ...form, ...data };
-    const loan = computeLoanAmount(property, updatedForm);
+    const loan = computeLoanFromForm(property,updatedForm);
     const payload = { ...data, loan_amount: loan };
     setSaving(true);
     await updateSimulationAction(simulation.id, payload);
@@ -110,7 +108,7 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
 
   function emitLive(updatedForm: SimulationFormData) {
     if (onLiveChange) {
-      const loan = computeLoanAmount(property, updatedForm);
+      const loan = computeLoanFromForm(property,updatedForm);
       onLiveChange({ ...simulation, ...updatedForm, loan_amount: loan } as Simulation);
     }
   }
