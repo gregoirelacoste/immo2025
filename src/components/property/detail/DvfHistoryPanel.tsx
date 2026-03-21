@@ -10,9 +10,10 @@ interface Props {
   city: string;
   postalCode: string;
   currentPricePerM2: number;
+  roomCount?: number;
 }
 
-export default function DvfHistoryPanel({ city, postalCode, currentPricePerM2 }: Props) {
+export default function DvfHistoryPanel({ city, postalCode, currentPricePerM2, roomCount }: Props) {
   const [transactions, setTransactions] = useState<DvfTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -36,9 +37,16 @@ export default function DvfHistoryPanel({ city, postalCode, currentPricePerM2 }:
     return () => { cancelled = true; };
   }, [city, postalCode]);
 
+  // Filter by room count if available, for a more targeted comparison
+  const filteredByRooms = roomCount && roomCount > 0
+    ? transactions.filter(t => roomCount >= 5 ? t.rooms >= 5 : t.rooms === roomCount)
+    : [];
+  const hasRoomFiltered = filteredByRooms.length >= 3;
+  const compareSet = hasRoomFiltered ? filteredByRooms : transactions;
+
   const avgPricePerM2 =
-    transactions.length > 0
-      ? Math.round(transactions.reduce((sum, t) => sum + t.pricePerM2, 0) / transactions.length)
+    compareSet.length > 0
+      ? Math.round(compareSet.reduce((sum, t) => sum + t.pricePerM2, 0) / compareSet.length)
       : 0;
 
   const delta =
@@ -81,7 +89,9 @@ export default function DvfHistoryPanel({ city, postalCode, currentPricePerM2 }:
           {/* Delta summary */}
           {delta !== null && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-600">Votre prix/m² vs moyenne DVF :</span>
+              <span className="text-gray-600">
+                Votre prix/m² vs moyenne DVF{hasRoomFiltered && roomCount ? ` (${roomCount >= 5 ? "T5+" : `T${roomCount}`})` : ""} :
+              </span>
               <span className={`font-semibold ${delta <= 0 ? "text-green-600" : "text-red-600"}`}>
                 {delta > 0 ? "+" : ""}{delta.toFixed(1)}%
               </span>

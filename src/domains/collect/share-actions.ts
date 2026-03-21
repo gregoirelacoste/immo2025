@@ -161,6 +161,7 @@ export async function processShareAndCreate(
       postal_code: extracted.postal_code || "",
       purchase_price: price,
       surface,
+      room_count: extracted.room_count || 0,
       property_type: propertyType,
       description: extracted.description || "",
       neighborhood: "",

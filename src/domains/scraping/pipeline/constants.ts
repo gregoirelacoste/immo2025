@@ -33,4 +33,5 @@ export const PROPERTY_FIELDS = [
   "description",
   "neighborhood",
   "property_type",
+  "room_count",
 ] as const;

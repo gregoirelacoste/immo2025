@@ -146,6 +146,7 @@ export function parseJsonLdProperty(
 ): {
   purchase_price?: number;
   surface?: number;
+  room_count?: number;
   city?: string;
   address?: string;
   description?: string;
@@ -204,10 +205,21 @@ export function parseJsonLdProperty(
       result.description = String(block.description).slice(0, 1000);
     }
 
+    // Nombre de pièces (numberOfRooms ou numberOfBedrooms + 1)
+    const rooms = block.numberOfRooms ?? block.numberOfBedrooms;
+    if (rooms != null) {
+      const n = typeof rooms === "number" ? rooms : parseInt(String(rooms), 10);
+      if (n > 0) {
+        // numberOfBedrooms = chambres, on ajoute 1 pour les pièces principales
+        result.room_count = block.numberOfRooms != null ? n : n + 1;
+      }
+    }
+
     if (result.purchase_price || result.surface) {
       return result as {
         purchase_price?: number;
         surface?: number;
+        room_count?: number;
         city?: string;
         address?: string;
         description?: string;

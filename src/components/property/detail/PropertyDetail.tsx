@@ -283,6 +283,14 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
                 <span className="text-sm text-gray-500">Type</span>
                 <span className="text-sm font-semibold text-[#1a1a2e] capitalize">{property.property_type}</span>
               </div>
+              {property.room_count > 0 && (
+                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                  <span className="text-sm text-gray-500">Pièces</span>
+                  <span className="text-sm font-semibold text-[#1a1a2e]">
+                    {property.room_count >= 5 ? "T5+" : `T${property.room_count}`} ({property.room_count} {property.room_count > 1 ? "pièces" : "pièce"})
+                  </span>
+                </div>
+              )}
               {property.monthly_rent > 0 && (
                 <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
                   <span className="text-sm text-gray-500">Loyer</span>

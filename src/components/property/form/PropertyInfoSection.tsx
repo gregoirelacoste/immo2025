@@ -1,8 +1,9 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { PropertyFormData } from "@/domains/property/types";
 import { formatCurrency } from "@/lib/calculations";
+import { MarketData } from "@/domains/market/types";
 import FieldTooltip from "@/components/ui/FieldTooltip";
 import { useLocalityCheck } from "./useLocalityCheck";
 
@@ -10,6 +11,7 @@ interface Props {
   form: PropertyFormData;
   onChange: (field: keyof PropertyFormData, value: string | number) => void;
   prefillHint: (field: string) => ReactNode;
+  marketDataJson?: string;
 }
 
 const inputClass =
@@ -30,10 +32,39 @@ function LocalityBadge({ status }: { status: "unknown" | "checking" | "found" | 
   return <span className="ml-2 text-xs text-gray-400" title="Ville inconnue">?</span>;
 }
 
-export default function PropertyInfoSection({ form, onChange, prefillHint }: Props) {
+/** Get market price/m² for the selected room count, falling back to general average */
+function getMarketPriceForRooms(md: MarketData | null, roomCount: number): number | null {
+  if (!md) return null;
+  if (roomCount === 1 && md.avgPriceT1PerM2) return md.avgPriceT1PerM2;
+  if (roomCount === 2 && md.avgPriceT2PerM2) return md.avgPriceT2PerM2;
+  if (roomCount === 3 && md.avgPriceT3PerM2) return md.avgPriceT3PerM2;
+  if (roomCount >= 4 && md.avgPriceT4PlusPerM2) return md.avgPriceT4PlusPerM2;
+  return md.medianPurchasePricePerM2 ?? md.avgPurchasePricePerM2 ?? null;
+}
+
+function getRoomLabel(roomCount: number): string {
+  if (roomCount === 1) return "T1";
+  if (roomCount === 2) return "T2";
+  if (roomCount === 3) return "T3";
+  if (roomCount >= 4) return "T4+";
+  return "";
+}
+
+export default function PropertyInfoSection({ form, onChange, prefillHint, marketDataJson }: Props) {
   const dpe = form.dpe_rating;
   const isDpeAlert = dpe === "F" || dpe === "G";
   const { cityStatus, neighborhoodStatus, checkCity, checkNeighborhood } = useLocalityCheck(form.city, form.neighborhood ?? "");
+
+  const marketData = useMemo((): MarketData | null => {
+    if (!marketDataJson) return null;
+    try { return JSON.parse(marketDataJson); } catch { return null; }
+  }, [marketDataJson]);
+
+  const pricePerM2 = form.surface > 0 ? form.purchase_price / form.surface : 0;
+  const marketPricePerM2 = getMarketPriceForRooms(marketData, form.room_count);
+  const priceDelta = pricePerM2 > 0 && marketPricePerM2
+    ? ((pricePerM2 - marketPricePerM2) / marketPricePerM2) * 100
+    : null;
 
   return (
     <section className="bg-white rounded-xl shadow-sm border border-tiili-border p-4 md:p-6">
@@ -99,6 +130,22 @@ export default function PropertyInfoSection({ form, onChange, prefillHint }: Pro
           {prefillHint("surface")}
         </div>
         <div>
+          <label className={labelClass}>Nombre de pièces</label>
+          <select
+            value={form.room_count || 0}
+            onChange={(e) => onChange("room_count", parseInt(e.target.value) || 0)}
+            className={selectClass}
+          >
+            <option value={0}>Non renseigné</option>
+            <option value={1}>T1 — 1 pièce</option>
+            <option value={2}>T2 — 2 pièces</option>
+            <option value={3}>T3 — 3 pièces</option>
+            <option value={4}>T4 — 4 pièces</option>
+            <option value={5}>T5+ — 5 pièces et +</option>
+          </select>
+          {prefillHint("room_count")}
+        </div>
+        <div>
           <label className={labelClass}>Type de bien</label>
           <select
             value={form.property_type}
@@ -112,10 +159,24 @@ export default function PropertyInfoSection({ form, onChange, prefillHint }: Pro
         <div>
           <label className={labelClass}>
             Prix au m²
+            {marketPricePerM2 && form.room_count > 0 && (
+              <span className="ml-1 text-xs font-normal text-gray-400">
+                (marché {getRoomLabel(form.room_count)} : {formatCurrency(marketPricePerM2)})
+              </span>
+            )}
           </label>
-          <p className={valueClass}>
-            {form.surface > 0 ? formatCurrency(form.purchase_price / form.surface) : "—"}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className={valueClass}>
+              {pricePerM2 > 0 ? formatCurrency(pricePerM2) : "—"}
+            </p>
+            {priceDelta !== null && form.room_count > 0 && (
+              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                priceDelta <= 0 ? "bg-green-100 text-green-700" : "bg-red-50 text-red-700"
+              }`}>
+                {priceDelta > 0 ? "+" : ""}{priceDelta.toFixed(1)}%
+              </span>
+            )}
+          </div>
         </div>
         <div>
           <label className={labelClass}>DPE<FieldTooltip text="Diagnostic de Performance Énergétique (A=excellent, G=passoire). Les DPE F et G ont des restrictions de location." /></label>

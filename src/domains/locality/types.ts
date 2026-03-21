@@ -57,6 +57,10 @@ export interface LocalityDataFields {
   median_purchase_price_per_m2?: number | null;
   transaction_count?: number | null;
   price_trend_pct?: number | null; // évolution annuelle des prix en % (peut être négatif)
+  avg_price_t1_per_m2?: number | null;     // prix moyen/m² pour T1 (1 pièce)
+  avg_price_t2_per_m2?: number | null;     // prix moyen/m² pour T2 (2 pièces)
+  avg_price_t3_per_m2?: number | null;     // prix moyen/m² pour T3 (3 pièces)
+  avg_price_t4plus_per_m2?: number | null; // prix moyen/m² pour T4+ (4 pièces et +)
 
   // Marche locatif
   avg_rent_per_m2?: number | null;
@@ -120,6 +124,10 @@ export const LOCALITY_DATA_FIELD_KEYS: (keyof LocalityDataFields)[] = [
   "median_purchase_price_per_m2",
   "transaction_count",
   "price_trend_pct",
+  "avg_price_t1_per_m2",
+  "avg_price_t2_per_m2",
+  "avg_price_t3_per_m2",
+  "avg_price_t4plus_per_m2",
   "avg_rent_per_m2",
   "avg_rent_t1t2_per_m2",
   "avg_rent_t3plus_per_m2",
@@ -165,6 +173,10 @@ export const FIELD_TO_TABLE: Record<keyof LocalityDataFields, LocalityTableName>
   median_purchase_price_per_m2: "locality_prices",
   transaction_count: "locality_prices",
   price_trend_pct: "locality_prices",
+  avg_price_t1_per_m2: "locality_prices",
+  avg_price_t2_per_m2: "locality_prices",
+  avg_price_t3_per_m2: "locality_prices",
+  avg_price_t4plus_per_m2: "locality_prices",
   avg_rent_per_m2: "locality_rental",
   avg_rent_t1t2_per_m2: "locality_rental",
   avg_rent_t3plus_per_m2: "locality_rental",

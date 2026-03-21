@@ -6,6 +6,7 @@ export interface Property {
   postal_code: string;
   purchase_price: number;
   surface: number;
+  room_count: number; // nombre de pièces principales (0 = non renseigné)
   property_type: "ancien" | "neuf";
   description: string;
   neighborhood: string; // quartier

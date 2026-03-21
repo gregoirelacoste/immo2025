@@ -74,6 +74,7 @@ export async function createPropertyFromPhoto(
       postal_code,
       purchase_price: 0,
       surface: 0,
+      room_count: 0,
       property_type: "ancien",
       description: "",
       neighborhood: "",

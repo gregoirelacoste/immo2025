@@ -177,7 +177,7 @@ export async function createProperty(
   await db.execute({
     sql: `
       INSERT INTO properties (
-        id, user_id, visibility, address, city, postal_code, purchase_price, surface, property_type, description, neighborhood,
+        id, user_id, visibility, address, city, postal_code, purchase_price, surface, room_count, property_type, description, neighborhood,
         loan_amount, interest_rate, loan_duration, personal_contribution,
         insurance_rate, loan_fees, notary_fees, rent_per_m2, monthly_rent, condo_charges,
         property_tax, vacancy_rate, airbnb_price_per_night, airbnb_occupancy_rate,
@@ -186,7 +186,7 @@ export async function createProperty(
         pno_insurance, gli_rate, maintenance_per_m2,
         rent_mode, source_url, image_urls, prefill_sources, created_at, updated_at
       ) VALUES (
-        $id, $user_id, $visibility, $address, $city, $postal_code, $purchase_price, $surface, $property_type, $description, $neighborhood,
+        $id, $user_id, $visibility, $address, $city, $postal_code, $purchase_price, $surface, $room_count, $property_type, $description, $neighborhood,
         $loan_amount, $interest_rate, $loan_duration, $personal_contribution,
         $insurance_rate, $loan_fees, $notary_fees, $rent_per_m2, $monthly_rent, $condo_charges,
         $property_tax, $vacancy_rate, $airbnb_price_per_night, $airbnb_occupancy_rate,
@@ -205,6 +205,7 @@ export async function createProperty(
       postal_code: property.postal_code,
       purchase_price: property.purchase_price,
       surface: property.surface,
+      room_count: property.room_count ?? 0,
       property_type: property.property_type,
       description: property.description,
       neighborhood: property.neighborhood || "",
@@ -259,7 +260,7 @@ export async function updateProperty(
     sql: `
       UPDATE properties SET
         visibility = $visibility, address = $address, city = $city, postal_code = $postal_code,
-        purchase_price = $purchase_price, surface = $surface,
+        purchase_price = $purchase_price, surface = $surface, room_count = $room_count,
         property_type = $property_type, description = $description, neighborhood = $neighborhood,
         loan_amount = $loan_amount, interest_rate = $interest_rate,
         loan_duration = $loan_duration, personal_contribution = $personal_contribution,
@@ -284,6 +285,7 @@ export async function updateProperty(
       postal_code: property.postal_code,
       purchase_price: property.purchase_price,
       surface: property.surface,
+      room_count: property.room_count ?? 0,
       property_type: property.property_type,
       description: property.description,
       neighborhood: property.neighborhood || "",
@@ -335,7 +337,7 @@ export async function updateOrphanProperty(
     sql: `
       UPDATE properties SET
         visibility = $visibility, address = $address, city = $city, postal_code = $postal_code,
-        purchase_price = $purchase_price, surface = $surface,
+        purchase_price = $purchase_price, surface = $surface, room_count = $room_count,
         property_type = $property_type, description = $description, neighborhood = $neighborhood,
         loan_amount = $loan_amount, interest_rate = $interest_rate,
         loan_duration = $loan_duration, personal_contribution = $personal_contribution,
@@ -359,6 +361,7 @@ export async function updateOrphanProperty(
       postal_code: property.postal_code,
       purchase_price: property.purchase_price,
       surface: property.surface,
+      room_count: property.room_count ?? 0,
       property_type: property.property_type,
       description: property.description,
       neighborhood: property.neighborhood || "",
@@ -524,7 +527,7 @@ export async function updatePropertyAsAdmin(
     sql: `
       UPDATE properties SET
         visibility = $visibility, address = $address, city = $city, postal_code = $postal_code,
-        purchase_price = $purchase_price, surface = $surface,
+        purchase_price = $purchase_price, surface = $surface, room_count = $room_count,
         property_type = $property_type, description = $description, neighborhood = $neighborhood,
         loan_amount = $loan_amount, interest_rate = $interest_rate,
         loan_duration = $loan_duration, personal_contribution = $personal_contribution,
@@ -548,6 +551,7 @@ export async function updatePropertyAsAdmin(
       postal_code: property.postal_code,
       purchase_price: property.purchase_price,
       surface: property.surface,
+      room_count: property.room_count ?? 0,
       property_type: property.property_type,
       description: property.description,
       neighborhood: property.neighborhood || "",
