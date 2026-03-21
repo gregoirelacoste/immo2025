@@ -6,9 +6,10 @@ interface Props {
   property: Property;
   calcs: PropertyCalculations;
   visible: boolean;
+  onCashflowClick?: () => void;
 }
 
-export default function StickyHeader({ property, calcs, visible }: Props) {
+export default function StickyHeader({ property, calcs, visible, onCashflowClick }: Props) {
   const dpe = property.dpe_rating;
   const isDpeAlert = dpe === "F" || dpe === "G";
   const grade = getGrade(property.investment_score);
@@ -40,12 +41,12 @@ export default function StickyHeader({ property, calcs, visible }: Props) {
               {formatPercent(calcs.net_yield)}
             </p>
           </div>
-          <div className="text-center">
+          <button onClick={onCashflowClick} className="text-center cursor-pointer hover:opacity-80 transition-opacity">
             <p className="text-[10px] text-[#b0b0b8] leading-none font-semibold">CF/mois</p>
-            <p className={`font-bold font-[family-name:var(--font-mono)] ${cashflowColor(calcs.monthly_cashflow)}`}>
+            <p className={`font-bold font-[family-name:var(--font-mono)] underline decoration-dotted underline-offset-2 ${cashflowColor(calcs.monthly_cashflow)}`}>
               {formatCurrency(calcs.monthly_cashflow)}
             </p>
-          </div>
+          </button>
         </div>
       </div>
     </div>
