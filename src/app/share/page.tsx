@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { isSearchUrl } from "@/domains/scraping/app-parsers";
 
 export default async function SharePage({
   searchParams,
@@ -17,6 +18,14 @@ export default async function SharePage({
     if (urlMatch) {
       url = urlMatch[0];
     }
+  }
+
+  // Search URL → bookmark instead of creating a property
+  if (url && isSearchUrl(url)) {
+    const searchRedirectParams = new URLSearchParams();
+    searchRedirectParams.set("url", url);
+    if (title) searchRedirectParams.set("title", title);
+    redirect(`/share/search?${searchRedirectParams.toString()}`);
   }
 
   // Combiner titre + texte pour l'IA (infos partagées par l'app source)
