@@ -15,37 +15,26 @@ interface CityInfo {
   codeInsee: string;
 }
 
-/** Build a Bien'ici search URL: /recherche/achat/{slug}-{cp}?prix-max={price} */
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 function bieniciUrl(city: CityInfo, maxPrice: number): string {
-  const slug = city.name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-  return `https://www.bienici.com/recherche/achat/${slug}-${city.postalCode}?prix-max=${maxPrice}`;
+  return `https://www.bienici.com/recherche/achat/${slugify(city.name)}-${city.postalCode}?prix-max=${maxPrice}`;
 }
 
-/** Build a LeBonCoin search URL: /recherche?category=9&locations={city}&price=0-{price} */
-function leboncoinUrl(city: CityInfo, maxPrice: number): string {
-  const params = new URLSearchParams({
-    category: "9", // Ventes immobilières
-    locations: `${city.name}_${city.postalCode}`,
-    price: `0-${maxPrice}`,
-  });
-  return `https://www.leboncoin.fr/recherche?${params}`;
+function leboncoinUrl(city: CityInfo): string {
+  return `https://www.leboncoin.fr/cl/ventes_immobilieres/cp_${slugify(city.name)}_${city.postalCode}`;
 }
 
-/** Build a SeLoger search URL: /immobilier/achat/immo-{slug}-{dept}/ */
 function selogerUrl(city: CityInfo): string {
-  const slug = city.name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
   const dept = city.codeInsee.slice(0, 2);
-  return `https://www.seloger.com/immobilier/achat/immo-${slug}-${dept}/`;
+  return `https://www.seloger.com/immobilier/achat/immo-${slugify(city.name)}-${dept}/`;
 }
 
 export function generateSearchUrls(
@@ -53,7 +42,7 @@ export function generateSearchUrls(
   maxPrice: number
 ): GeneratedSearchLink[] {
   return [
-    { site: "leboncoin", label: "Leboncoin", url: leboncoinUrl(city, maxPrice) },
+    { site: "leboncoin", label: "Leboncoin", url: leboncoinUrl(city) },
     { site: "seloger", label: "SeLoger", url: selogerUrl(city) },
     { site: "bienici", label: "Bien'ici", url: bieniciUrl(city, maxPrice) },
   ];
