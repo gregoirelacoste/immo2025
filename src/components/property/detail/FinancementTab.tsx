@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useCallback, useTransition, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Property } from "@/domains/property/types";
 import { updatePropertyField } from "@/domains/property/actions";
 import { syncFieldToSimulations } from "@/domains/simulation/actions";
@@ -43,6 +44,7 @@ const CHARGES_FIELDS: FieldConfig[] = [
 const ALL_FIELDS = [...LOAN_FIELDS, ...FEES_FIELDS, ...CHARGES_FIELDS];
 
 export default function FinancementTab({ property, isOwner = false }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   // Local optimistic state
@@ -115,17 +117,15 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
       if (config?.syncToSim) {
         await syncFieldToSimulations(property.id, field, value);
       }
+      router.refresh();
     });
-  }, [property.id, property.purchase_price, property.property_type, property.renovation_cost, effectiveNotary, get]);
+  }, [property.id, property.purchase_price, property.property_type, property.renovation_cost, effectiveNotary, get, router]);
 
   return (
     <div className="space-y-4 mt-4">
       {/* Section 1: Crédit immobilier */}
       <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-base font-semibold text-gray-900">Crédit immobilier</h3>
-          {isPending && <span className="text-xs text-gray-400">Sauvegarde...</span>}
-        </div>
+        <h3 className="text-base font-semibold text-gray-900 mb-1">Crédit immobilier</h3>
 
         {/* Loan amount (read-only, computed) */}
         <div className="flex items-center justify-between py-3 border-b border-gray-50">
@@ -231,6 +231,12 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
           </div>
         ))}
       </section>
+
+      {isPending && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[#1a1a2e] text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg z-50">
+          Enregistrement...
+        </div>
+      )}
     </div>
   );
 }

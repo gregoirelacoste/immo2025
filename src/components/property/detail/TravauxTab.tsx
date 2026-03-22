@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Property } from "@/domains/property/types";
 import { calculateTravaux, parseTravauxRatings, parseTravauxOverrides } from "@/domains/property/travaux-calculator";
 import { TRAVAUX_POSTES, TRAVAUX_CATEGORIES, RATING_FACTORS, type TravauxPoste } from "@/domains/property/travaux-registry";
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function TravauxTab({ property, isOwner = false }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   // Local state for optimistic updates
@@ -42,9 +44,10 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
         await updatePropertyField(property.id, "travaux_ratings", JSON.stringify(newRatings), "Estimation travaux", "estimated");
         await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
         await syncFieldToSimulations(property.id, "renovation_cost", newSummary.totalRenovationCost);
+        router.refresh();
       });
     },
-    [property.id, property.surface, localOverrides]
+    [property.id, property.surface, localOverrides, router]
   );
 
   const persistOverrides = useCallback(
@@ -54,9 +57,10 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
         await updatePropertyField(property.id, "travaux_overrides", JSON.stringify(newOverrides), "Estimation travaux", "declared");
         await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
         await syncFieldToSimulations(property.id, "renovation_cost", newSummary.totalRenovationCost);
+        router.refresh();
       });
     },
-    [property.id, property.surface, localRatings]
+    [property.id, property.surface, localRatings, router]
   );
 
   function handleRatingChange(key: string, value: number | null) {
@@ -99,10 +103,7 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
     <div className="space-y-4 mt-4">
       {/* Summary card */}
       <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-base font-semibold text-gray-900">Travaux</h3>
-          {isPending && <span className="text-xs text-gray-400">Sauvegarde...</span>}
-        </div>
+        <h3 className="text-base font-semibold text-gray-900 mb-1">Travaux</h3>
 
         {/* DPE indicator */}
         {hasDpe && (
@@ -238,6 +239,12 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
           );
         })}
       </section>
+
+      {isPending && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[#1a1a2e] text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg z-50">
+          Enregistrement...
+        </div>
+      )}
     </div>
   );
 }
