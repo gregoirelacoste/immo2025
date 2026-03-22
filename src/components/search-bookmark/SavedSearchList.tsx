@@ -6,7 +6,10 @@ import type { SiteInfo } from "@/domains/scraping/app-parsers";
 import {
   renameSavedSearchAction,
   deleteSavedSearchAction,
+  generateSearchLinksAction,
+  saveSavedSearchAction,
 } from "@/domains/search-bookmark/actions";
+import type { GeneratedSearchLink } from "@/domains/search-bookmark/url-generator";
 import { useRouter } from "next/navigation";
 import AuthGate from "@/components/ui/AuthGate";
 
@@ -226,6 +229,140 @@ function SavedSearchCard({ search, sites }: { search: SavedSearch; sites: SiteIn
   );
 }
 
+// ─── Search generator ───
+
+function SearchGenerator({ onSaved }: { onSaved: () => void }) {
+  const [city, setCity] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [links, setLinks] = useState<GeneratedSearchLink[]>([]);
+  const [cityLabel, setCityLabel] = useState("");
+  const [error, setError] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const [savingIndex, setSavingIndex] = useState<number | null>(null);
+
+  function handleGenerate() {
+    const price = parseInt(maxPrice.replace(/\s/g, ""), 10);
+    if (!city.trim()) {
+      setError("Saisissez une ville");
+      return;
+    }
+    if (!price || price <= 0) {
+      setError("Saisissez un prix maximum valide");
+      return;
+    }
+    setError("");
+    setLinks([]);
+    startTransition(async () => {
+      const result = await generateSearchLinksAction(city.trim(), price);
+      if (result.error) {
+        setError(result.error);
+      } else if (result.links) {
+        setLinks(result.links);
+        setCityLabel(result.cityLabel || city);
+      }
+    });
+  }
+
+  function handleSave(link: GeneratedSearchLink, index: number) {
+    setSavingIndex(index);
+    startTransition(async () => {
+      const price = parseInt(maxPrice.replace(/\s/g, ""), 10);
+      const name = `${link.label} — ${cityLabel} ≤ ${price.toLocaleString("fr-FR")} €`;
+      await saveSavedSearchAction(link.url, name);
+      setSavingIndex(null);
+      onSaved();
+    });
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-tiili-border shadow-sm p-4 mb-4">
+      <h2 className="text-sm font-semibold text-[#1a1a2e] mb-3 flex items-center gap-2">
+        <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Générer des recherches
+      </h2>
+
+      <div className="flex flex-col sm:flex-row gap-2 mb-2">
+        <input
+          type="text"
+          placeholder="Ville (ex: Lyon)"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+          className="flex-1 text-sm border border-gray-300 rounded-lg px-3 min-h-[44px] focus:outline-none focus:border-amber-500"
+        />
+        <input
+          type="text"
+          inputMode="numeric"
+          placeholder="Prix max (€)"
+          value={maxPrice}
+          onChange={(e) => setMaxPrice(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+          className="w-full sm:w-36 text-sm border border-gray-300 rounded-lg px-3 min-h-[44px] focus:outline-none focus:border-amber-500"
+        />
+        <button
+          onClick={handleGenerate}
+          disabled={isPending}
+          className="min-h-[44px] px-4 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors whitespace-nowrap"
+        >
+          {isPending && links.length === 0 ? "Recherche…" : "Générer"}
+        </button>
+      </div>
+
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+
+      {links.length > 0 && (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-gray-500">
+            Résultats pour <strong>{cityLabel}</strong> — {parseInt(maxPrice.replace(/\s/g, ""), 10).toLocaleString("fr-FR")} € max
+          </p>
+          {links.map((link, i) => (
+            <div
+              key={link.site}
+              className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2"
+            >
+              <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${SITE_COLORS[link.site] || "bg-gray-100 text-gray-700"}`}>
+                {link.label}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] text-gray-400 truncate">{link.url}</p>
+              </div>
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                title="Ouvrir"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                </svg>
+              </a>
+              <button
+                onClick={() => handleSave(link, i)}
+                disabled={isPending}
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                title="Sauvegarder"
+              >
+                {savingIndex === i ? (
+                  <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main list ───
 
 interface Props {
@@ -235,6 +372,8 @@ interface Props {
 }
 
 export default function SavedSearchList({ searches, isLoggedIn, supportedSites }: Props) {
+  const router = useRouter();
+
   if (!isLoggedIn) {
     return (
       <AuthGate
@@ -251,33 +390,28 @@ export default function SavedSearchList({ searches, isLoggedIn, supportedSites }
     );
   }
 
-  if (searches.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="w-16 h-16 mx-auto mb-4 bg-amber-50 rounded-full flex items-center justify-center">
-          <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-          </svg>
-        </div>
-        <p className="text-gray-600 font-medium mb-1">Aucune recherche sauvegardée</p>
-        <p className="text-gray-400 text-sm max-w-xs mx-auto mb-2">
-          Partagez une page de recherche depuis votre navigateur pour l&apos;ajouter ici.
-        </p>
-        <CompatibleSitesLink sites={supportedSites} />
-      </div>
-    );
-  }
-
   return (
     <div>
-      <div className="flex flex-col gap-3">
-        {searches.map((s) => (
-          <SavedSearchCard key={s.id} search={s} sites={supportedSites} />
-        ))}
-      </div>
-      <div className="text-center mt-4">
-        <CompatibleSitesLink sites={supportedSites} />
-      </div>
+      <SearchGenerator onSaved={() => router.refresh()} />
+
+      {searches.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-400 text-sm">
+            Générez des recherches ci-dessus ou partagez une URL depuis votre navigateur.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-col gap-3">
+            {searches.map((s) => (
+              <SavedSearchCard key={s.id} search={s} sites={supportedSites} />
+            ))}
+          </div>
+          <div className="text-center mt-4">
+            <CompatibleSitesLink sites={supportedSites} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

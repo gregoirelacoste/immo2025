@@ -63,3 +63,33 @@ export async function deleteSavedSearchAction(
     return { success: false, error: e instanceof Error ? e.message : "Erreur inconnue" };
   }
 }
+
+// ─── Search URL generator ───
+
+import { fetchGeoCity } from "@/infrastructure/data-sources/geo-client";
+import {
+  generateSearchUrls,
+  type GeneratedSearchLink,
+} from "./url-generator";
+
+export async function generateSearchLinksAction(
+  cityName: string,
+  maxPrice: number
+): Promise<{ links?: GeneratedSearchLink[]; cityLabel?: string; error?: string }> {
+  try {
+    const geo = await fetchGeoCity(cityName);
+    if (!geo) {
+      return { error: "Ville introuvable. Vérifiez l'orthographe." };
+    }
+
+    const postalCode = geo.codesPostaux[0] ?? "";
+    const links = generateSearchUrls(
+      { name: geo.nom, postalCode, codeInsee: geo.code },
+      maxPrice
+    );
+
+    return { links, cityLabel: geo.nom };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erreur inconnue" };
+  }
+}
