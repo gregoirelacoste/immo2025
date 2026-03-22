@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storeShareData } from "@/domains/collect/share-store";
-import { parseShareHints } from "@/domains/scraping/app-parsers";
+import { parseShareHints, isSearchUrl } from "@/domains/scraping/app-parsers";
 import { ShareData } from "@/domains/collect/types";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB per image
@@ -36,6 +36,14 @@ export async function POST(request: NextRequest) {
 
     // Detect source app and extract hints
     const { source, hints } = parseShareHints(resolvedUrl, text, title);
+
+    // Search URL path: bookmark the search instead of scraping a property
+    if (resolvedUrl && isSearchUrl(resolvedUrl)) {
+      const target = new URL("/share/search", request.url);
+      target.searchParams.set("url", resolvedUrl);
+      if (title) target.searchParams.set("title", title);
+      return NextResponse.redirect(target, 303);
+    }
 
     // Fast path: URL-only share → pass URL in query params (serverless-safe)
     if (resolvedUrl && images.length === 0) {

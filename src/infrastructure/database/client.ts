@@ -14,7 +14,7 @@ export function getClient(): Client {
 }
 
 // Bump this when adding new migrations so cold starts re-run them
-const SCHEMA_VERSION = 14;
+const SCHEMA_VERSION = 15;
 
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints
@@ -587,6 +587,18 @@ async function initializeDatabase(client: Client): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS idx_blog_audit_action ON blog_audit_log(action);
     CREATE INDEX IF NOT EXISTS idx_blog_audit_article ON blog_audit_log(article_id);
+
+    CREATE TABLE IF NOT EXISTS saved_searches (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT '',
+      name TEXT NOT NULL DEFAULT '',
+      url TEXT NOT NULL,
+      site TEXT NOT NULL DEFAULT 'other',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches(user_id);
+    CREATE INDEX IF NOT EXISTS idx_saved_searches_url ON saved_searches(url);
   `);
 
   // v11: UNIQUE index on localities(code, type) to prevent duplicate IRIS quartier entries

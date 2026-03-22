@@ -22,6 +22,32 @@ export function parseShareHints(url: string, text: string, title: string): Parse
   return { source: "generic", hints: {} };
 }
 
+// ─── Search URL detection ───
+
+/** Returns true if the URL is a search/listing page (not an individual property ad) */
+export function isSearchUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (/leboncoin\.fr/i.test(parsed.hostname)) {
+      return /\/recherche(\/|$|\?)/.test(parsed.pathname);
+    }
+    if (/seloger\.com/i.test(parsed.hostname)) {
+      return /\/(list|recherche)(\/|$|\?)/.test(parsed.pathname);
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/** Returns a display name for the site (e.g. "Leboncoin") */
+export function getSearchSiteName(url: string): string {
+  if (/leboncoin\.fr/i.test(url)) return "Leboncoin";
+  if (/seloger\.com/i.test(url)) return "SeLoger";
+  if (/pap\.fr/i.test(url)) return "PAP";
+  return "Autre";
+}
+
 // ─── Detection ───
 
 function isLeBonCoin(url: string): boolean {

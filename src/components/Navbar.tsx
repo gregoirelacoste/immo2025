@@ -88,6 +88,7 @@ export default function Navbar() {
         <nav className="py-2 flex flex-col h-[calc(100%-4rem)]">
           <div className="flex-1">
             {drawerLink("/dashboard", "Dashboard")}
+            {drawerLink("/searches", "Recherches")}
             {drawerLink("/property/new", "+ Nouveau bien")}
             <div className="border-t border-gray-100 my-1" />
             {drawerLink("/compare", "Comparer")}
@@ -156,6 +157,14 @@ export default function Navbar() {
                 }`}
               >
                 Dashboard
+              </Link>
+              <Link
+                href="/searches"
+                className={`text-sm font-medium ${
+                  isActive("/searches") ? "text-amber-700" : "text-gray-600 hover:text-[#1a1a2e]"
+                }`}
+              >
+                Recherches
               </Link>
               <Link
                 href="/property/new"
@@ -227,6 +236,19 @@ export default function Navbar() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
             </svg>
             <span className="text-[9px] mt-0.5 font-semibold tracking-wide">Dashboard</span>
+          </Link>
+          <Link
+            href="/searches"
+            className={`flex-1 flex flex-col items-center justify-center py-2 min-h-[56px] ${
+              isActive("/searches")
+                ? "text-[#1a1a2e]"
+                : "text-[#b0b0b8]"
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+            <span className="text-[9px] mt-0.5 font-semibold tracking-wide">Recherches</span>
           </Link>
           <Link
             href="/property/new"
