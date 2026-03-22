@@ -26,22 +26,24 @@ function bieniciUrl(city: CityInfo, maxPrice: number): string {
   return `https://www.bienici.com/recherche/achat/${slug}-${city.postalCode}?prix-max=${maxPrice}`;
 }
 
-/** Build a LeBonCoin search URL: /recherche?category=9&locations={city}&price=-{price} */
+/** Build a LeBonCoin search URL: /recherche?category=9&locations={city}&price=0-{price} */
 function leboncoinUrl(city: CityInfo, maxPrice: number): string {
   const params = new URLSearchParams({
     category: "9", // Ventes immobilières
-    locations: city.name,
-    price: `-${maxPrice}`,
+    locations: `${city.name}_${city.postalCode}`,
+    price: `0-${maxPrice}`,
   });
   return `https://www.leboncoin.fr/recherche?${params}`;
 }
 
-/** Build a SeLoger search URL: /list.htm?idtt=2&ci={insee}&pxMax={price} */
+/** Build a SeLoger search URL using places with INSEE code */
 function selogerUrl(city: CityInfo, maxPrice: number): string {
+  const places = JSON.stringify([{ inseeCodes: [parseInt(city.codeInsee, 10)] }]);
   const params = new URLSearchParams({
-    idtt: "2", // Achat
-    ci: city.codeInsee,
-    pxMax: String(maxPrice),
+    projects: "2", // Achat
+    places,
+    price: `NaN/${maxPrice}`,
+    qsVersion: "1.0",
   });
   return `https://www.seloger.com/list.htm?${params}`;
 }
