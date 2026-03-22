@@ -10,6 +10,11 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/e2e/.auth/
+/e2e/_adhoc.spec.ts
 
 # next.js
 /.next/
