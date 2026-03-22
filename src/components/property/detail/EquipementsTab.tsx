@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Property } from "@/domains/property/types";
 import { parseAmenities } from "@/domains/property/amenities";
 import { calculateEquipmentImpact } from "@/domains/property/equipment-calculator";
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function EquipementsTab({ property, marketData, isOwner = false }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   // Local state for optimistic toggles
@@ -50,6 +52,7 @@ export default function EquipementsTab({ property, marketData, isOwner = false }
         const autoRent = Math.round(newSummary.adjustedRentPerM2 * property.surface);
         await updatePropertyField(property.id, "monthly_rent", autoRent, "Loyer auto (localité + équipements)", "estimated");
       }
+      router.refresh();
     });
   }
 
@@ -73,10 +76,7 @@ export default function EquipementsTab({ property, marketData, isOwner = false }
   return (
     <div className="space-y-4 mt-4">
       <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-base font-semibold text-gray-900">Équipements</h3>
-          {isPending && <span className="text-xs text-gray-400">Sauvegarde...</span>}
-        </div>
+        <h3 className="text-base font-semibold text-gray-900 mb-1">Équipements</h3>
 
         {/* Impact summary */}
         <div className="mb-4 p-4 bg-tiili-surface rounded-xl">
@@ -145,6 +145,12 @@ export default function EquipementsTab({ property, marketData, isOwner = false }
           );
         })}
       </section>
+
+      {isPending && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[#1a1a2e] text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg z-50">
+          Enregistrement...
+        </div>
+      )}
     </div>
   );
 }
