@@ -14,6 +14,9 @@ export default async function ShareSearchPage({
     redirect("/searches");
   }
 
-  await saveSavedSearchAction(url, title || undefined);
+  const result = await saveSavedSearchAction(url, title || undefined);
+  if (result.error) {
+    redirect(`/login?callbackUrl=${encodeURIComponent(`/share/search?url=${encodeURIComponent(url)}`)}`);
+  }
   redirect("/searches");
 }

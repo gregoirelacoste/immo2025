@@ -122,10 +122,15 @@ export function getSearchSiteKey(url: string): string {
 // ─── Internal ───
 
 function detectSite(url: string): SiteConfig | null {
-  for (const site of SITES) {
-    if (site.hostPattern.test(url)) {
-      return site;
+  try {
+    const hostname = new URL(url).hostname;
+    for (const site of SITES) {
+      if (site.hostPattern.test(hostname)) {
+        return site;
+      }
     }
+  } catch {
+    // invalid URL
   }
   return null;
 }

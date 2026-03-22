@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { SavedSearch } from "@/domains/search-bookmark/types";
 import type { SiteInfo } from "@/domains/scraping/app-parsers";
@@ -43,8 +43,26 @@ function CompatibleSitesModal({
   sites: SiteInfo[];
   onClose: () => void;
 }) {
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    },
+    [onClose]
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sites compatibles"
+      onClick={onClose}
+    >
       <div className="absolute inset-0 bg-black/40" />
       <div
         className="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-5 animate-in fade-in zoom-in-95 duration-200"
@@ -54,7 +72,7 @@ function CompatibleSitesModal({
           <h3 className="text-base font-semibold text-[#1a1a2e]">Sites compatibles</h3>
           <button
             onClick={onClose}
-            className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -83,7 +101,7 @@ function CompatibleSitesLink({ sites }: { sites: SiteInfo[] }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-xs text-gray-400 hover:text-amber-600 underline underline-offset-2 transition-colors"
+        className="min-h-[44px] inline-flex items-center text-xs text-gray-400 hover:text-amber-600 underline underline-offset-2 transition-colors"
       >
         {sites.length} sites compatibles
       </button>
@@ -154,14 +172,14 @@ function SavedSearchCard({ search, sites }: { search: SavedSearch; sites: SiteIn
                   setEditing(false);
                 }
               }}
-              className="flex-1 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-amber-500"
+              className="flex-1 text-sm border border-gray-300 rounded px-2 py-1 min-h-[44px] focus:outline-none focus:border-amber-500"
               autoFocus
               disabled={isPending}
             />
             <button
               onClick={handleRename}
               disabled={isPending}
-              className="min-w-[36px] min-h-[36px] flex items-center justify-center text-green-600 hover:bg-green-50 rounded"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-green-600 hover:bg-green-50 rounded"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
@@ -171,7 +189,7 @@ function SavedSearchCard({ search, sites }: { search: SavedSearch; sites: SiteIn
         ) : (
           <button
             onClick={() => setEditing(true)}
-            className="text-sm font-medium text-[#1a1a2e] text-left flex items-center gap-1 group"
+            className="text-sm font-medium text-[#1a1a2e] text-left flex items-center gap-1 group min-h-[44px]"
           >
             <span className="truncate">{search.name}</span>
             <svg className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -210,15 +228,13 @@ function SavedSearchCard({ search, sites }: { search: SavedSearch; sites: SiteIn
 
 // ─── Main list ───
 
-export default function SavedSearchList({
-  searches,
-  isLoggedIn,
-  supportedSites,
-}: {
+interface Props {
   searches: SavedSearch[];
   isLoggedIn: boolean;
   supportedSites: SiteInfo[];
-}) {
+}
+
+export default function SavedSearchList({ searches, isLoggedIn, supportedSites }: Props) {
   if (!isLoggedIn) {
     return (
       <div className="text-center py-16 px-4">

@@ -22,10 +22,10 @@ export default async function SharePage({
 
   // Search URL → bookmark instead of creating a property
   if (url && isSearchUrl(url)) {
-    const searchParams = new URLSearchParams();
-    searchParams.set("url", url);
-    if (title) searchParams.set("title", title);
-    redirect(`/share/search?${searchParams.toString()}`);
+    const searchRedirectParams = new URLSearchParams();
+    searchRedirectParams.set("url", url);
+    if (title) searchRedirectParams.set("title", title);
+    redirect(`/share/search?${searchRedirectParams.toString()}`);
   }
 
   // Combiner titre + texte pour l'IA (infos partagées par l'app source)
