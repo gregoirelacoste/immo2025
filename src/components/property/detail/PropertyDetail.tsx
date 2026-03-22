@@ -28,6 +28,8 @@ import PhotoGallery from "./PhotoGallery";
 import LocaliteTab from "./LocaliteTab";
 import AmenagementTab from "./AmenagementTab";
 import FinancementTab from "./FinancementTab";
+import HelpTip from "@/components/ui/HelpTip";
+import CompletenessChecklist from "./CompletenessChecklist";
 import CashflowBreakdownModal from "./CashflowBreakdownModal";
 import YieldBreakdownModal from "./YieldBreakdownModal";
 import LoanCostBreakdownModal from "./LoanCostBreakdownModal";
@@ -227,6 +229,7 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
                       >
                         {calcs.net_yield.toFixed(2)}% net
                       </button>
+                      <HelpTip text="Rendement net = (loyer annuel − charges) / coût total du projet. Cliquez pour le détail." />
                       <button
                         onClick={() => setCashflowModalOpen(true)}
                         className={`text-sm font-bold font-[family-name:var(--font-mono)] underline decoration-dotted underline-offset-2 cursor-pointer hover:opacity-80 transition-opacity ${
@@ -235,6 +238,7 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
                       >
                         {calcs.monthly_cashflow > 0 ? "+" : ""}{Math.round(calcs.monthly_cashflow)}{"\u202f"}€/mois
                       </button>
+                      <HelpTip text="Cash-flow = loyer mensuel − mensualité crédit − charges − taxe foncière. Positif = l'investissement s'autofinance." />
                     </div>
                   )}
                 </div>
@@ -265,6 +269,9 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
         }}
         onOpenDrawer={() => setSimDrawerOpen(true)}
       />
+
+      {/* Completeness checklist — only for property owners */}
+      {isOwner && <CompletenessChecklist property={property} />}
 
       {/* Tab navigation */}
       <TabNavigation />

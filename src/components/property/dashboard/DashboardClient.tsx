@@ -24,8 +24,9 @@ export default function DashboardClient({ properties: initialProperties, current
   const [sortAsc, setSortAsc] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Set<PropertyStatus>>(new Set(PROPERTY_STATUSES));
   const [favoriteFilter, setFavoriteFilter] = useState(false);
-  const [onlyMine, setOnlyMine] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "mine" | "fav">("all");
+  const hasOtherUsersProperties = !!currentUserId && initialProperties.some(p => p.user_id !== currentUserId);
+  const [onlyMine, setOnlyMine] = useState(hasOtherUsersProperties);
+  const [activeTab, setActiveTab] = useState<"all" | "mine" | "fav">(hasOtherUsersProperties ? "mine" : "all");
 
   const allSelected = statusFilter.size === PROPERTY_STATUSES.length;
 
@@ -298,7 +299,79 @@ export default function DashboardClient({ properties: initialProperties, current
         </div>
       )}
 
-      {properties.length === 0 ? (
+      {(properties.length === 0 || (activeTab === "mine" && mineCount === 0)) && currentUserId ? (
+        <div className="bg-white rounded-xl border border-tiili-border p-8 md:p-10">
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 mx-auto mb-3 bg-amber-50 rounded-full flex items-center justify-center">
+              <svg className="w-7 h-7 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold text-[#1a1a2e] mb-1">Ajoutez votre premier bien</h2>
+            <p className="text-sm text-gray-400 max-w-md mx-auto">
+              tiili calcule rendement, cash-flow et score d&apos;investissement automatiquement.
+            </p>
+          </div>
+
+          <div className="grid gap-3 max-w-lg mx-auto">
+            <Link
+              href="/property/new"
+              className="flex items-start gap-3 p-4 rounded-xl border border-tiili-border hover:border-amber-300 hover:bg-amber-50/30 transition-colors group"
+            >
+              <span className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0 group-hover:bg-amber-200 transition-colors">
+                <svg className="w-5 h-5 text-amber-700" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+                </svg>
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-[#1a1a2e]">Coller un lien d&apos;annonce</p>
+                <p className="text-xs text-gray-400 mt-0.5">LeBonCoin, SeLoger, PAP... le lien est conservé et les données extraites si possible</p>
+              </div>
+            </Link>
+
+            <Link
+              href="/property/new"
+              className="flex items-start gap-3 p-4 rounded-xl border border-tiili-border hover:border-amber-300 hover:bg-amber-50/30 transition-colors group"
+            >
+              <span className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 group-hover:bg-blue-200 transition-colors">
+                <svg className="w-5 h-5 text-blue-700" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-[#1a1a2e]">Copier-coller le texte d&apos;une annonce</p>
+                <p className="text-xs text-gray-400 mt-0.5">L&apos;IA extrait prix, surface, loyer et plus depuis le texte brut</p>
+              </div>
+            </Link>
+
+            <Link
+              href="/property/new"
+              className="flex items-start gap-3 p-4 rounded-xl border border-tiili-border hover:border-amber-300 hover:bg-amber-50/30 transition-colors group"
+            >
+              <span className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 group-hover:bg-gray-200 transition-colors">
+                <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Z" />
+                </svg>
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-[#1a1a2e]">Saisir manuellement</p>
+                <p className="text-xs text-gray-400 mt-0.5">Remplissez les champs vous-même, les calculs se font en temps réel</p>
+              </div>
+            </Link>
+          </div>
+
+          {properties.length > 0 && activeTab === "mine" && (
+            <p className="text-center mt-4">
+              <button
+                onClick={() => handleTabChange("all")}
+                className="text-xs text-gray-400 hover:text-amber-600 underline underline-offset-2 transition-colors"
+              >
+                Voir les {properties.length} biens publics
+              </button>
+            </p>
+          )}
+        </div>
+      ) : properties.length === 0 && !currentUserId ? (
         <div className="bg-white rounded-xl border border-tiili-border p-12 text-center">
           <p className="text-[#9ca3af] text-lg mb-4">
             Aucun bien enregistré pour le moment.
