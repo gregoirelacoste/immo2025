@@ -127,6 +127,56 @@ export default function AdminBlogClient({ stats, initialArticles }: Props) {
         <KpiCard label="Cette semaine" value={stats.thisWeek} />
       </div>
 
+      {/* Planning automatique */}
+      <details className="bg-white rounded-xl border border-gray-200">
+        <summary className="px-6 py-4 cursor-pointer select-none flex items-center gap-2 text-sm font-semibold text-gray-900 hover:bg-gray-50 rounded-xl">
+          <span className="text-base">&#x1F552;</span> Publication automatique — 12 articles/semaine
+        </summary>
+        <div className="px-6 pb-5 border-t border-gray-100 pt-4">
+          <p className="text-sm text-gray-600 mb-3">
+            Cron GitHub Actions, tous les jours à <strong>8h (heure FR)</strong>, lun-sam. Chaque run produit <strong>2 articles</strong> :
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
+                  <th className="pb-2 pr-4">Jour</th>
+                  <th className="pb-2 pr-4">Actu quotidienne</th>
+                  <th className="pb-2">Article thématique</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-700">
+                <tr className="border-b border-gray-50">
+                  <td className="py-1.5 pr-4 font-medium">Lun / Mer / Ven</td>
+                  <td className="py-1.5 pr-4"><span className="inline-block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded">actu_marche</span></td>
+                  <td className="py-1.5"><span className="inline-block bg-emerald-50 text-emerald-700 text-xs px-2 py-0.5 rounded">guide_ville</span> <span className="text-xs text-gray-400">(rotation ~30 villes)</span></td>
+                </tr>
+                <tr className="border-b border-gray-50">
+                  <td className="py-1.5 pr-4 font-medium">Mardi</td>
+                  <td className="py-1.5 pr-4"><span className="inline-block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded">actu_marche</span></td>
+                  <td className="py-1.5"><span className="inline-block bg-purple-50 text-purple-700 text-xs px-2 py-0.5 rounded">conseil_investissement</span></td>
+                </tr>
+                <tr className="border-b border-gray-50">
+                  <td className="py-1.5 pr-4 font-medium">Jeudi</td>
+                  <td className="py-1.5 pr-4"><span className="inline-block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded">actu_marche</span></td>
+                  <td className="py-1.5"><span className="inline-block bg-orange-50 text-orange-700 text-xs px-2 py-0.5 rounded">fiscalite</span> / <span className="inline-block bg-orange-50 text-orange-700 text-xs px-2 py-0.5 rounded">financement</span> <span className="text-xs text-gray-400">(alternance)</span></td>
+                </tr>
+                <tr>
+                  <td className="py-1.5 pr-4 font-medium">Samedi</td>
+                  <td className="py-1.5 pr-4"><span className="inline-block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded">actu_marche</span></td>
+                  <td className="py-1.5"><span className="inline-block bg-rose-50 text-rose-700 text-xs px-2 py-0.5 rounded">etude_de_cas</span> <span className="text-xs text-gray-400">(rotation villes)</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4 space-y-1.5 text-xs text-gray-500">
+            <p><strong>Actu marché :</strong> fetch RSS (Google News, Les Échos, Le Figaro, Capital) → contenu complet des 5 meilleurs articles → synthèse Gemini avec sources citées.</p>
+            <p><strong>Autres catégories :</strong> données ville (DVF, INSEE, Géorisques) + données DB existantes → rédaction Gemini.</p>
+            <p><strong>Pipeline :</strong> Collecte données → Gemini 2.5 Flash → Sauvegarde Turso → Publication → Revalidation cache Vercel.</p>
+          </div>
+        </div>
+      </details>
+
       {/* Formulaire de génération */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Générer un article</h2>
