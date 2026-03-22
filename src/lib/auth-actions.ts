@@ -38,13 +38,13 @@ export async function isAdmin(): Promise<boolean> {
   return role === "admin";
 }
 
-/** Returns userId and admin status from a single auth() call — avoids duplicate session lookups */
-export async function getAuthContext(): Promise<{ userId: string | undefined; isAdmin: boolean }> {
+/** Returns userId, admin and premium status from a single auth() call — avoids duplicate session lookups */
+export async function getAuthContext(): Promise<{ userId: string | undefined; isAdmin: boolean; isPremium: boolean }> {
   const session = await auth();
   const userId = session?.user?.id;
-  if (!userId) return { userId: undefined, isAdmin: false };
+  if (!userId) return { userId: undefined, isAdmin: false, isPremium: false };
   const role = (session.user as unknown as Record<string, unknown>).role as string | undefined;
-  return { userId, isAdmin: role === "admin" };
+  return { userId, isAdmin: role === "admin", isPremium: role === "premium" || role === "admin" };
 }
 
 export async function loginWithCredentials(

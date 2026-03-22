@@ -14,7 +14,7 @@ export function getClient(): Client {
 }
 
 // Bump this when adding new migrations so cold starts re-run them
-const SCHEMA_VERSION = 15;
+const SCHEMA_VERSION = 16;
 
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints
@@ -449,6 +449,27 @@ async function initializeDatabase(client: Client): Promise<void> {
       avg_energy_consumption REAL DEFAULT NULL,
       avg_ges_class TEXT DEFAULT NULL,
       dpe_count INTEGER DEFAULT NULL,
+      source TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (locality_id, valid_from),
+      FOREIGN KEY (locality_id) REFERENCES localities(id) ON DELETE CASCADE
+    );
+  `);
+
+  // Qualitative neighborhood research (AI-generated via Google Search grounding)
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS locality_qualitative (
+      locality_id TEXT NOT NULL,
+      valid_from TEXT NOT NULL,
+      neighborhood_vibe TEXT DEFAULT NULL,
+      neighborhood_strengths TEXT DEFAULT NULL,
+      neighborhood_weaknesses TEXT DEFAULT NULL,
+      neighborhood_urban_projects TEXT DEFAULT NULL,
+      neighborhood_transport_details TEXT DEFAULT NULL,
+      neighborhood_safety TEXT DEFAULT NULL,
+      neighborhood_investment_outlook TEXT DEFAULT NULL,
+      neighborhood_main_employers TEXT DEFAULT NULL,
+      neighborhood_target_tenants TEXT DEFAULT NULL,
       source TEXT DEFAULT '',
       created_at TEXT DEFAULT (datetime('now')),
       PRIMARY KEY (locality_id, valid_from),

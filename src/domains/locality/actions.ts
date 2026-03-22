@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireUserId } from "@/lib/auth-actions";
+import { requireUserId, getAuthContext } from "@/lib/auth-actions";
 import {
   createLocality,
   updateLocality,
@@ -24,6 +24,9 @@ import {
 } from "./types";
 import { enrichLocality } from "./enrichment/pipeline";
 import type { EnrichLocalityResult } from "./enrichment/types";
+import { getPropertyByIdPublic } from "@/domains/property/repository";
+import { getLatestLocalityFields } from "./repository";
+import { researchNeighborhood, RESEARCH_CACHE_DAYS } from "./enrichment/research";
 
 // ─── Public action: check if a locality exists in DB ───
 
@@ -389,5 +392,118 @@ export async function backfillPostalCodes(): Promise<{
     return { success: true, updated, skipped, errors };
   } catch (e) {
     return { success: false, updated: 0, skipped: 0, errors: [], error: (e as Error).message };
+  }
+}
+
+// ─── Premium: Neighborhood qualitative research ───
+
+/**
+ * Search for qualitative neighborhood data via Gemini + Google Search grounding.
+ * Premium-gated. Creates the quartier locality if it doesn't exist yet.
+ * Caches results for 30 days per quartier locality.
+ */
+export async function searchQuartier(
+  propertyId: string,
+  options?: { force?: boolean }
+): Promise<{ success: boolean; fields?: Partial<LocalityDataFields>; error?: string }> {
+  try {
+    const { userId, isPremium, isAdmin } = await getAuthContext();
+    if (!userId) return { success: false, error: "Non authentifié" };
+    if (!isPremium && !isAdmin) return { success: false, error: "Fonctionnalité premium" };
+
+    // 1. Fetch property (with ownership check)
+    const property = await getPropertyByIdPublic(propertyId);
+    if (!property) return { success: false, error: "Bien introuvable" };
+    if (!property.city) return { success: false, error: "Ville non renseignée pour ce bien" };
+    if (property.user_id && property.user_id !== userId && !isAdmin) {
+      return { success: false, error: "Accès non autorisé" };
+    }
+
+    const neighborhoodName = property.neighborhood?.trim() || property.city;
+
+    // 2. Find or create the quartier locality
+    const ville = await findLocalityByCity(property.city, property.postal_code || undefined);
+    if (!ville) return { success: false, error: `Ville "${property.city}" introuvable en base` };
+
+    let quartierLocality: Awaited<ReturnType<typeof getLocalityById>>;
+    const db = await (await import("@/infrastructure/database/client")).getDb();
+    const existing = await db.execute({
+      sql: "SELECT * FROM localities WHERE LOWER(name) = LOWER(?) AND parent_id = ? AND type = 'quartier' LIMIT 1",
+      args: [neighborhoodName, ville.id],
+    });
+
+    if (existing.rows[0]) {
+      quartierLocality = {
+        id: existing.rows[0].id as string,
+        name: existing.rows[0].name as string,
+        type: "quartier" as const,
+        parent_id: ville.id,
+        code: (existing.rows[0].code as string) || "",
+        postal_codes: (existing.rows[0].postal_codes as string) || "[]",
+        created_at: existing.rows[0].created_at as string,
+        updated_at: existing.rows[0].updated_at as string,
+      };
+    } else {
+      const id = await createLocality({
+        name: neighborhoodName,
+        type: "quartier",
+        parent_id: ville.id,
+        code: "",
+        postal_codes: ville.postal_codes || "[]",
+      });
+      quartierLocality = await getLocalityById(id);
+    }
+
+    if (!quartierLocality) return { success: false, error: "Erreur création quartier" };
+
+    // 3. Fetch ville quantitative data (used for both cache return and context injection)
+    const resolved = await resolveLocalityData(property.city, property.postal_code || undefined);
+    const villeFields = resolved?.fields || {};
+
+    // Helper: merge quartier qualitative data with ville quantitative data
+    const mergeWithQuartier = async () => {
+      const quartierFields = await getLatestLocalityFields(quartierLocality!.id);
+      return { ...villeFields, ...quartierFields };
+    };
+
+    // 4. Check cache — skip if enriched recently (< 30 days)
+    if (!options?.force) {
+      const cacheCheck = await db.execute({
+        sql: `SELECT created_at FROM locality_qualitative WHERE locality_id = ? ORDER BY valid_from DESC LIMIT 1`,
+        args: [quartierLocality.id],
+      });
+      if (cacheCheck.rows[0]) {
+        const createdAt = new Date(cacheCheck.rows[0].created_at as string);
+        const daysSince = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSince < RESEARCH_CACHE_DAYS) {
+          const mergedFields = await mergeWithQuartier();
+          return { success: true, fields: mergedFields };
+        }
+      }
+    }
+
+    // 5. Run Gemini research
+    const qualitativeFields = await researchNeighborhood(
+      property.city,
+      neighborhoodName,
+      property.postal_code || "",
+      villeFields
+    );
+
+    // 6. Persist to locality_qualitative
+    const today = new Date().toISOString().split("T")[0];
+    await upsertLocalityData(quartierLocality.id, today, qualitativeFields, "ai:gemini-search");
+
+    revalidatePath(`/property/${propertyId}`);
+
+    // Return merged fields (ville quantitative + quartier qualitative)
+    const mergedFields = await mergeWithQuartier();
+    return { success: true, fields: mergedFields };
+  } catch (e) {
+    console.error("[searchQuartier] Research failed:", e);
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Erreur lors de la recherche quartier",
+    };
   }
 }

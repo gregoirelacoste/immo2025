@@ -260,7 +260,7 @@ export async function getLatestLocalityFields(
   localityId: string,
   asOfDate?: string
 ): Promise<LocalityDataFields> {
-  const [prices, rental, charges, airbnb, socio, infra, risks, energy] = await Promise.all([
+  const [prices, rental, charges, airbnb, socio, infra, risks, energy, qualitative] = await Promise.all([
     getLatestRow<Record<string, unknown>>("locality_prices", localityId, asOfDate),
     getLatestRow<Record<string, unknown>>("locality_rental", localityId, asOfDate),
     getLatestRow<Record<string, unknown>>("locality_charges", localityId, asOfDate),
@@ -269,8 +269,9 @@ export async function getLatestLocalityFields(
     getLatestRow<Record<string, unknown>>("locality_infra", localityId, asOfDate),
     getLatestRow<Record<string, unknown>>("locality_risks", localityId, asOfDate),
     getLatestRow<Record<string, unknown>>("locality_energy", localityId, asOfDate),
+    getLatestRow<Record<string, unknown>>("locality_qualitative", localityId, asOfDate),
   ]);
-  return assembleFields(prices, rental, charges, airbnb, socio, infra, risks, energy);
+  return assembleFields(prices, rental, charges, airbnb, socio, infra, risks, energy, qualitative);
 }
 
 /**
@@ -283,7 +284,7 @@ export async function getLatestLocalityFieldsBatch(
 ): Promise<Map<string, LocalityDataFields>> {
   if (localityIds.length === 0) return new Map();
 
-  const [pricesMap, rentalMap, chargesMap, airbnbMap, socioMap, infraMap, risksMap, energyMap] = await Promise.all([
+  const [pricesMap, rentalMap, chargesMap, airbnbMap, socioMap, infraMap, risksMap, energyMap, qualitativeMap] = await Promise.all([
     getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_prices", localityIds, asOfDate),
     getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_rental", localityIds, asOfDate),
     getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_charges", localityIds, asOfDate),
@@ -292,6 +293,7 @@ export async function getLatestLocalityFieldsBatch(
     getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_infra", localityIds, asOfDate),
     getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_risks", localityIds, asOfDate),
     getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_energy", localityIds, asOfDate),
+    getLatestRowBatch<Record<string, unknown> & { locality_id: string }>("locality_qualitative", localityIds, asOfDate),
   ]);
 
   const result = new Map<string, LocalityDataFields>();
@@ -306,6 +308,7 @@ export async function getLatestLocalityFieldsBatch(
       infraMap.get(id),
       risksMap.get(id),
       energyMap.get(id),
+      qualitativeMap.get(id),
     ));
   }
   return result;
@@ -352,6 +355,16 @@ export async function getLatestSourcesBatch(
 }
 
 /** Assemble a LocalityDataFields object from individual thematic rows */
+function parseJsonArray(val: unknown): string[] | null {
+  if (!val) return null;
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string") {
+    try { const parsed = JSON.parse(val); return Array.isArray(parsed) ? parsed : null; }
+    catch { return null; }
+  }
+  return null;
+}
+
 function assembleFields(
   prices?: Record<string, unknown>,
   rental?: Record<string, unknown>,
@@ -361,6 +374,7 @@ function assembleFields(
   infra?: Record<string, unknown>,
   risks?: Record<string, unknown>,
   energy?: Record<string, unknown>,
+  qualitative?: Record<string, unknown>,
 ): LocalityDataFields {
   const f: LocalityDataFields = {};
 
@@ -430,6 +444,17 @@ function assembleFields(
     f.avg_ges_class = (energy.avg_ges_class as string | null) ?? null;
     f.dpe_count = (energy.dpe_count as number | null) ?? null;
   }
+  if (qualitative) {
+    f.neighborhood_vibe = (qualitative.neighborhood_vibe as string | null) ?? null;
+    f.neighborhood_strengths = parseJsonArray(qualitative.neighborhood_strengths);
+    f.neighborhood_weaknesses = parseJsonArray(qualitative.neighborhood_weaknesses);
+    f.neighborhood_urban_projects = parseJsonArray(qualitative.neighborhood_urban_projects);
+    f.neighborhood_transport_details = (qualitative.neighborhood_transport_details as string | null) ?? null;
+    f.neighborhood_safety = (qualitative.neighborhood_safety as LocalityDataFields["neighborhood_safety"]) ?? null;
+    f.neighborhood_investment_outlook = (qualitative.neighborhood_investment_outlook as string | null) ?? null;
+    f.neighborhood_main_employers = parseJsonArray(qualitative.neighborhood_main_employers);
+    f.neighborhood_target_tenants = (qualitative.neighborhood_target_tenants as string | null) ?? null;
+  }
 
   return f;
 }
@@ -465,7 +490,10 @@ export async function upsertLocalityData(
       const v = tableFields[col];
       // Handle special types
       if (col === "university_nearby") return v != null ? (v ? 1 : 0) : null;
-      if (col === "natural_risks") return v ? JSON.stringify(v) : null;
+      if (col === "natural_risks" || col === "neighborhood_strengths" || col === "neighborhood_weaknesses"
+        || col === "neighborhood_urban_projects" || col === "neighborhood_main_employers") {
+        return v ? JSON.stringify(v) : null;
+      }
       return v ?? null;
     });
 

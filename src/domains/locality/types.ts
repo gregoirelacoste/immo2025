@@ -32,7 +32,7 @@ export interface Locality {
   updated_at: string;
 }
 
-/** Names of the 7 thematic tables */
+/** Names of the 8 thematic tables */
 export const LOCALITY_TABLE_NAMES = [
   "locality_prices",
   "locality_rental",
@@ -42,6 +42,7 @@ export const LOCALITY_TABLE_NAMES = [
   "locality_infra",
   "locality_risks",
   "locality_energy",
+  "locality_qualitative",
 ] as const;
 
 export type LocalityTableName = (typeof LOCALITY_TABLE_NAMES)[number];
@@ -116,6 +117,17 @@ export interface LocalityDataFields {
   avg_energy_consumption?: number | null;
   avg_ges_class?: string | null;
   dpe_count?: number | null;
+
+  // Données qualitatives (recherche IA quartier)
+  neighborhood_vibe?: string | null;
+  neighborhood_strengths?: string[] | null;
+  neighborhood_weaknesses?: string[] | null;
+  neighborhood_urban_projects?: string[] | null;
+  neighborhood_transport_details?: string | null;
+  neighborhood_safety?: "sur" | "moyen" | "preoccupant" | null;
+  neighborhood_investment_outlook?: string | null;
+  neighborhood_main_employers?: string[] | null;
+  neighborhood_target_tenants?: string | null;
 }
 
 /** All field keys of LocalityDataFields */
@@ -165,6 +177,15 @@ export const LOCALITY_DATA_FIELD_KEYS: (keyof LocalityDataFields)[] = [
   "avg_energy_consumption",
   "avg_ges_class",
   "dpe_count",
+  "neighborhood_vibe",
+  "neighborhood_strengths",
+  "neighborhood_weaknesses",
+  "neighborhood_urban_projects",
+  "neighborhood_transport_details",
+  "neighborhood_safety",
+  "neighborhood_investment_outlook",
+  "neighborhood_main_employers",
+  "neighborhood_target_tenants",
 ];
 
 /** Mapping: field key → which thematic table it belongs to */
@@ -214,6 +235,15 @@ export const FIELD_TO_TABLE: Record<keyof LocalityDataFields, LocalityTableName>
   avg_energy_consumption: "locality_energy",
   avg_ges_class: "locality_energy",
   dpe_count: "locality_energy",
+  neighborhood_vibe: "locality_qualitative",
+  neighborhood_strengths: "locality_qualitative",
+  neighborhood_weaknesses: "locality_qualitative",
+  neighborhood_urban_projects: "locality_qualitative",
+  neighborhood_transport_details: "locality_qualitative",
+  neighborhood_safety: "locality_qualitative",
+  neighborhood_investment_outlook: "locality_qualitative",
+  neighborhood_main_employers: "locality_qualitative",
+  neighborhood_target_tenants: "locality_qualitative",
 };
 
 /** Resolved locality data with source tracking per field */

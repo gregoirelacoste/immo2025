@@ -197,6 +197,118 @@ export default function LocalityDataView({ cityName, fields: f, dataSources: ds 
           </span>
         </div>
       )}
+      {/* Analyse quartier (AI research) */}
+      {f.neighborhood_vibe && (
+        <div className="space-y-4">
+          {/* Ambiance */}
+          <div className="bg-white rounded-xl border border-tiili-border p-4">
+            <div className="flex items-center mb-2">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Analyse quartier</h3>
+              <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium rounded bg-purple-50 text-purple-600">
+                Recherche IA
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">{f.neighborhood_vibe}</p>
+          </div>
+
+          {/* Forces / Faiblesses */}
+          {((f.neighborhood_strengths && f.neighborhood_strengths.length > 0) || (f.neighborhood_weaknesses && f.neighborhood_weaknesses.length > 0)) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {f.neighborhood_strengths && f.neighborhood_strengths.length > 0 && (
+                <div className="bg-green-50 rounded-xl p-4">
+                  <h4 className="text-sm font-semibold text-green-700 uppercase tracking-wider mb-2">Points forts</h4>
+                  <ul className="space-y-1.5">
+                    {f.neighborhood_strengths.map((s, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-green-800">
+                        <span className="text-green-500 mt-0.5 shrink-0">+</span>
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {f.neighborhood_weaknesses && f.neighborhood_weaknesses.length > 0 && (
+                <div className="bg-orange-50 rounded-xl p-4">
+                  <h4 className="text-sm font-semibold text-orange-700 uppercase tracking-wider mb-2">Points faibles</h4>
+                  <ul className="space-y-1.5">
+                    {f.neighborhood_weaknesses.map((s, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-orange-800">
+                        <span className="text-orange-500 mt-0.5 shrink-0">-</span>
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Transports + Sécurité */}
+          {(f.neighborhood_transport_details || f.neighborhood_safety) && (
+            <div className="bg-gray-50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Transports et sécurité</h3>
+              {f.neighborhood_transport_details && (
+                <p className="text-sm text-gray-600 leading-relaxed mb-2">{f.neighborhood_transport_details}</p>
+              )}
+              {f.neighborhood_safety && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Sécurité :</span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                    f.neighborhood_safety === "sur" ? "bg-green-100 text-green-700" :
+                    f.neighborhood_safety === "moyen" ? "bg-amber-100 text-amber-700" :
+                    "bg-red-100 text-red-700"
+                  }`}>
+                    {f.neighborhood_safety === "sur" ? "Sûr" : f.neighborhood_safety === "moyen" ? "Moyen" : "Préoccupant"}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Projets urbains */}
+          {f.neighborhood_urban_projects && f.neighborhood_urban_projects.length > 0 && (
+            <div className="bg-gray-50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Projets urbains</h3>
+              <ul className="space-y-1.5">
+                {f.neighborhood_urban_projects.map((p, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                    <span className="text-blue-500 mt-0.5 shrink-0">&#9679;</span>
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Employeurs + Locataires cibles */}
+          {(f.neighborhood_main_employers?.length || f.neighborhood_target_tenants) && (
+            <div className="bg-gray-50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Emploi et locataires</h3>
+              {f.neighborhood_main_employers && f.neighborhood_main_employers.length > 0 && (
+                <div className="mb-2">
+                  <span className="text-sm text-gray-500">Employeurs : </span>
+                  <span className="text-sm text-gray-700">{f.neighborhood_main_employers.join(", ")}</span>
+                </div>
+              )}
+              {f.neighborhood_target_tenants && (
+                <div>
+                  <span className="text-sm text-gray-500">Locataires cibles : </span>
+                  <span className="text-sm text-gray-700">{f.neighborhood_target_tenants}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Perspectives investissement */}
+          {f.neighborhood_investment_outlook && (
+            <div className="bg-amber-50 rounded-xl border border-amber-200 p-4">
+              <h3 className="text-sm font-semibold text-amber-700 uppercase tracking-wider mb-2">Perspectives investissement</h3>
+              <p className="text-sm text-amber-900 leading-relaxed">{f.neighborhood_investment_outlook}</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Property vs Market comparison */}
       {propertyComparison && (f.avg_purchase_price_per_m2 || f.avg_rent_per_m2) && (
         <div className="bg-white rounded-xl border border-tiili-border p-4">

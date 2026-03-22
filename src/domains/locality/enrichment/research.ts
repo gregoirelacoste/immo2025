@@ -1,0 +1,177 @@
+/**
+ * Neighborhood qualitative research via Gemini with Google Search grounding.
+ * Searches the web for qualitative data about a specific neighborhood:
+ * vibe, strengths/weaknesses, urban projects, transport, safety, investment outlook.
+ */
+
+import { callGeminiWithSearch } from "@/infrastructure/ai/gemini";
+import type { LocalityDataFields } from "@/domains/locality/types";
+
+/** What the Gemini prompt returns (before we map to LocalityDataFields) */
+export interface NeighborhoodResearchPayload {
+  vibe: string;
+  strengths: string[];
+  weaknesses: string[];
+  urban_projects: string[];
+  transport_details: string;
+  safety_perception: string;
+  investment_outlook: string;
+  main_employers: string[];
+  target_tenants: string;
+}
+
+/** Cache validity in days */
+export const RESEARCH_CACHE_DAYS = 30;
+
+function buildResearchPrompt(
+  city: string,
+  neighborhood: string,
+  postalCode: string,
+  quantData: Partial<LocalityDataFields>
+): string {
+  // Format quantitative context
+  const contextLines: string[] = [];
+  if (quantData.avg_purchase_price_per_m2)
+    contextLines.push(`Prix moyen d'achat : ${Math.round(quantData.avg_purchase_price_per_m2).toLocaleString("fr-FR")} €/m²`);
+  if (quantData.median_purchase_price_per_m2)
+    contextLines.push(`Prix médian d'achat : ${Math.round(quantData.median_purchase_price_per_m2).toLocaleString("fr-FR")} €/m²`);
+  if (quantData.avg_rent_per_m2)
+    contextLines.push(`Loyer moyen : ${quantData.avg_rent_per_m2.toFixed(1)} €/m²`);
+  if (quantData.population)
+    contextLines.push(`Population : ${quantData.population.toLocaleString("fr-FR")} habitants`);
+  if (quantData.median_income)
+    contextLines.push(`Revenu médian : ${quantData.median_income.toLocaleString("fr-FR")} €/an`);
+  if (quantData.unemployment_rate != null)
+    contextLines.push(`Taux de chômage : ${quantData.unemployment_rate.toFixed(1)}%`);
+  if (quantData.vacancy_rate != null)
+    contextLines.push(`Taux de vacance locative : ${quantData.vacancy_rate.toFixed(1)}%`);
+  if (quantData.public_transport_score != null)
+    contextLines.push(`Score transports en commun : ${quantData.public_transport_score}/10`);
+  if (quantData.risk_level)
+    contextLines.push(`Niveau de risques naturels : ${quantData.risk_level}`);
+  if (quantData.price_trend_pct != null)
+    contextLines.push(`Évolution des prix : ${quantData.price_trend_pct > 0 ? "+" : ""}${quantData.price_trend_pct.toFixed(1)}%/an`);
+
+  const quantContext = contextLines.length > 0
+    ? `\n\nDonnées quantitatives connues sur ${city} :\n${contextLines.map(l => `- ${l}`).join("\n")}\n`
+    : "";
+
+  const locationDesc = neighborhood
+    ? `le quartier "${neighborhood}" à ${city} (${postalCode})`
+    : `la ville de ${city} (${postalCode})`;
+
+  return `Tu es un expert en investissement locatif en France. Recherche des informations actuelles et précises sur ${locationDesc}.
+${quantContext}
+Recherche sur le web et synthétise les informations suivantes :
+
+1. **vibe** : Décris l'ambiance et l'atmosphère du quartier en 2-3 phrases. Quel type d'endroit est-ce ? (calme résidentiel, animé étudiant, quartier en mutation, centre historique, zone pavillonnaire, etc.)
+
+2. **strengths** : Liste 3 à 5 points forts de ce quartier/cette ville pour un investissement locatif (ex: "Quartier calme et familial", "Proche des commodités et commerces", "Bon réseau de transports"). Sois spécifique au lieu.
+
+3. **weaknesses** : Liste 2 à 4 points faibles ou risques (ex: "Peu de transports en commun", "Stationnement difficile", "Quartier bruyant le week-end"). Sois honnête et spécifique.
+
+4. **urban_projects** : Liste les projets urbains en cours ou prévus qui pourraient impacter la valeur immobilière (nouvelle ligne de tramway, rénovation urbaine, ZAC, écoquartier, etc.). Si aucun projet connu, retourne un tableau vide.
+
+5. **transport_details** : Décris les transports en commun disponibles (lignes de métro/tramway/bus, gares SNCF, temps de trajet vers le centre-ville ou les pôles d'emploi). 2-3 phrases.
+
+6. **safety_perception** : Évalue la perception de sécurité du quartier parmi : "sur", "moyen", ou "preoccupant". Base-toi sur les données disponibles et la réputation.
+
+7. **investment_outlook** : Donne ton analyse d'investissement en 2-3 phrases. Le quartier est-il en hausse, stable, ou en déclin ? Quel potentiel de plus-value ou de rendement ?
+
+8. **main_employers** : Liste les principaux employeurs ou pôles d'emploi à proximité (hôpitaux, universités, zones d'activités, entreprises majeures). Si pas d'info spécifique, retourne un tableau vide.
+
+9. **target_tenants** : Décris le profil type des locataires potentiels dans ce quartier (étudiants, jeunes actifs, familles, retraités, cadres, etc.) en 1-2 phrases.
+
+IMPORTANT : Retourne ta réponse sous forme d'un unique objet JSON valide enveloppé dans un bloc \`\`\`json ... \`\`\`. Les champs texte sont en français. Les champs tableau contiennent des chaînes de caractères. Exemple de format :
+
+\`\`\`json
+{
+  "vibe": "...",
+  "strengths": ["...", "..."],
+  "weaknesses": ["...", "..."],
+  "urban_projects": ["...", "..."],
+  "transport_details": "...",
+  "safety_perception": "sur",
+  "investment_outlook": "...",
+  "main_employers": ["...", "..."],
+  "target_tenants": "..."
+}
+\`\`\`
+
+Ne retourne RIEN d'autre que le bloc JSON.`;
+}
+
+function cleanJsonBlock(raw: string): string {
+  const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (match) return match[1].trim();
+  // Fallback: try to find raw JSON object
+  const braceMatch = raw.match(/\{[\s\S]*\}/);
+  if (braceMatch) return braceMatch[0].trim();
+  return raw.trim();
+}
+
+function validatePayload(raw: Record<string, unknown>): NeighborhoodResearchPayload {
+  const toStringArray = (v: unknown): string[] => {
+    if (!Array.isArray(v)) return [];
+    return v.filter((s): s is string => typeof s === "string").map(s => s.trim()).filter(Boolean);
+  };
+
+  return {
+    vibe: typeof raw.vibe === "string" ? raw.vibe.trim() : "",
+    strengths: toStringArray(raw.strengths),
+    weaknesses: toStringArray(raw.weaknesses),
+    urban_projects: toStringArray(raw.urban_projects),
+    transport_details: typeof raw.transport_details === "string" ? raw.transport_details.trim() : "",
+    safety_perception: ["sur", "moyen", "preoccupant"].includes(String(raw.safety_perception))
+      ? String(raw.safety_perception)
+      : "moyen",
+    investment_outlook: typeof raw.investment_outlook === "string" ? raw.investment_outlook.trim() : "",
+    main_employers: toStringArray(raw.main_employers),
+    target_tenants: typeof raw.target_tenants === "string" ? raw.target_tenants.trim() : "",
+  };
+}
+
+/**
+ * Map validated research payload to LocalityDataFields.
+ */
+export function mapResearchToFields(payload: NeighborhoodResearchPayload): Partial<LocalityDataFields> {
+  return {
+    neighborhood_vibe: payload.vibe || null,
+    neighborhood_strengths: payload.strengths.length > 0 ? payload.strengths : null,
+    neighborhood_weaknesses: payload.weaknesses.length > 0 ? payload.weaknesses : null,
+    neighborhood_urban_projects: payload.urban_projects.length > 0 ? payload.urban_projects : null,
+    neighborhood_transport_details: payload.transport_details || null,
+    neighborhood_safety: (payload.safety_perception as LocalityDataFields["neighborhood_safety"]) || null,
+    neighborhood_investment_outlook: payload.investment_outlook || null,
+    neighborhood_main_employers: payload.main_employers.length > 0 ? payload.main_employers : null,
+    neighborhood_target_tenants: payload.target_tenants || null,
+  };
+}
+
+/**
+ * Run neighborhood research via Gemini with Google Search grounding.
+ */
+export async function researchNeighborhood(
+  city: string,
+  neighborhood: string,
+  postalCode: string,
+  quantData: Partial<LocalityDataFields>
+): Promise<Partial<LocalityDataFields>> {
+  const prompt = buildResearchPrompt(city, neighborhood, postalCode, quantData);
+
+  const rawResponse = await callGeminiWithSearch(prompt, {
+    temperature: 0.3,
+    maxOutputTokens: 4096,
+  });
+
+  const jsonStr = cleanJsonBlock(rawResponse);
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    throw new Error("Échec du parsing de la réponse IA (recherche quartier)");
+  }
+
+  const payload = validatePayload(parsed);
+  return mapResearchToFields(payload);
+}

@@ -77,6 +77,7 @@ interface Props {
   property: Property;
   isOwner?: boolean;
   isLoggedIn?: boolean;
+  isPremium?: boolean;
   photos?: Photo[];
   simulations?: Simulation[];
 }
@@ -86,7 +87,7 @@ function parseJson<T>(json: string, fallback: T): T {
   catch { return fallback; }
 }
 
-export default function PropertyDetail({ property, isOwner = false, isLoggedIn = false, photos = [], simulations = [] }: Props) {
+export default function PropertyDetail({ property, isOwner = false, isLoggedIn = false, isPremium = false, photos = [], simulations = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -159,7 +160,7 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
     return () => observer.disconnect();
   }, []);
 
-  const VALID_TABS: TabId[] = ["bien", "financement", "travaux", "equipements", "amenagement"];
+  const VALID_TABS: TabId[] = ["bien", "financement", "travaux", "equipements", "amenagement", "localite"];
   const rawTab = searchParams.get("tab") as TabId;
   const activeTab = VALID_TABS.includes(rawTab) ? rawTab : "bien";
 
@@ -396,8 +397,10 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
         <AmenagementTab property={property} isOwner={isOwner} />
       )}
 
-      {/* ═══════════════════ LOCALITÉ (toujours visible, hors onglets) ═══════════════════ */}
-      <LocaliteTab property={property} />
+      {/* ═══════════════════ ONGLET LOCALITÉ ═══════════════════ */}
+      {activeTab === "localite" && (
+        <LocaliteTab property={property} isPremium={isPremium} />
+      )}
 
       {/* Cashflow breakdown modal — opens on cashflow click */}
       <CashflowBreakdownModal

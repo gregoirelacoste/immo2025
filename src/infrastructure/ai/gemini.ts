@@ -130,3 +130,47 @@ export async function callGeminiVision(
 
   return text;
 }
+
+/**
+ * Gemini call with Google Search grounding (flash, capable model).
+ * Used for neighborhood research — fetches real-time web data.
+ * NOTE: responseMimeType is NOT supported with grounding — JSON must be parsed from text.
+ */
+export async function callGeminiWithSearch(
+  prompt: string,
+  config: Omit<GeminiConfig, "responseMimeType">
+): Promise<string> {
+  const apiKey = getApiKey();
+
+  const response = await fetch(
+    `${GEMINI_API_BASE}/${GEMINI_VISION_MODEL}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(60_000),
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        tools: [{ googleSearch: {} }],
+        generationConfig: {
+          temperature: config.temperature,
+          maxOutputTokens: config.maxOutputTokens,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini Search API error ${response.status}: ${errorText}`);
+  }
+
+  const result = await response.json();
+  const text: string =
+    result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+  if (!text.trim()) {
+    throw new Error("L'IA (recherche web) a retourné une réponse vide");
+  }
+
+  return text;
+}

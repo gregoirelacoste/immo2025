@@ -8,6 +8,7 @@ const TABS = [
   { id: "travaux", label: "Travaux" },
   { id: "equipements", label: "Équip." },
   { id: "amenagement", label: "Meublé" },
+  { id: "localite", label: "Localité" },
 ] as const;
 
 export type TabId = typeof TABS[number]["id"];

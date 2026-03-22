@@ -12,7 +12,7 @@ export default async function PropertyPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { userId, isAdmin: admin } = await getAuthContext();
+  const { userId, isAdmin: admin, isPremium } = await getAuthContext();
 
   const { id } = await params;
   const property = await getPropertyById(id, userId, admin);
@@ -36,6 +36,7 @@ export default async function PropertyPage({
             property={property}
             isOwner={isOwner}
             isLoggedIn={!!userId}
+            isPremium={isPremium}
             photos={photos}
             simulations={simulations}
           />
