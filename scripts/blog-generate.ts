@@ -33,6 +33,26 @@ function loadEnvFile(filename: string) {
 loadEnvFile(".env.local");
 loadEnvFile(".env");
 
+// ── Validate required env vars (fail fast in CI) ──
+
+const dbUrl = process.env.TURSO_DATABASE_URL || "";
+if (!dbUrl || dbUrl.startsWith("file:")) {
+  console.error("❌ TURSO_DATABASE_URL non configuré ou pointe vers un fichier local.");
+  console.error("   L'article serait sauvegardé dans une SQLite jetable, pas en production.");
+  console.error("   → Vérifie que le secret TURSO_DATABASE_URL est défini dans GitHub (environment: Production).");
+  process.exit(1);
+}
+
+if (!process.env.GEMINI_API_KEY) {
+  console.error("❌ GEMINI_API_KEY manquant — impossible de générer l'article.");
+  process.exit(1);
+}
+
+if (!process.env.REVALIDATE_SECRET) {
+  console.warn("⚠️  REVALIDATE_SECRET manquant — le cache ne sera pas invalidé après publication.");
+  console.warn("   → L'article sera en base mais potentiellement invisible jusqu'au prochain revalidate ISR.");
+}
+
 import { runPipeline, PipelineResult } from "../src/domains/blog/pipeline";
 import { ARTICLE_CATEGORIES, ArticleCategory } from "../src/domains/blog/types";
 

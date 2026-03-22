@@ -174,10 +174,16 @@ Thèmes à couvrir (ordre libre) : prix vs moyenne ville, marché locatif, rende
 points de vigilance, transports/commodités, projets urbains, CTA.
 FAQ optionnelle (2-3 questions si pertinent).`,
 
-  actu_marche: `Rédige un ARTICLE D'ACTUALITÉ MARCHÉ basé sur les actualités RSS fournies.
+  actu_marche: `Rédige un ARTICLE D'ACTUALITÉ MARCHÉ basé sur les articles sources fournis dans <source_articles>.
 Longueur : 800-1 500 mots.
-Prends un angle — ne résume pas les actus, identifie un fil rouge ou une tendance de fond.
-Thèmes : chiffres clés, impact concret pour un investisseur, zoom ville/région si pertinent, CTA.
+IMPORTANT : tu disposes du contenu complet de vrais articles de presse. Utilise-les comme matière première :
+- Identifie un fil rouge ou une tendance de fond — ne résume PAS chaque article séparément.
+- Cite les chiffres clés et les faits vérifiables issus des sources.
+- Ajoute ton analyse : impact concret pour un investisseur locatif.
+- Mentionne les sources (ex: "selon Les Échos", "d'après Capital") pour crédibiliser.
+- Zoom ville/région si pertinent d'après les données.
+- CTA vers tiili.io.
+NE PAS copier/coller les sources. Synthétise et réécris avec ta propre voix.
 Extraire les tendances prix/loyers dans extracted_data.`,
 
   analyse_comparative: `Rédige une ANALYSE COMPARATIVE entre les villes mentionnées.

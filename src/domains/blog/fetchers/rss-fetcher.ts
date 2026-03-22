@@ -162,14 +162,63 @@ async function fetchSingleFeed(config: RssFeedConfig): Promise<RssItem[]> {
   }
 }
 
+/** Fetch le contenu texte complet d'un article depuis son URL */
+async function fetchArticleContent(url: string): Promise<string> {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (compatible; tiili.io/news-fetcher/1.0; +https://tiili.io)",
+      Accept: "text/html",
+    },
+    signal: AbortSignal.timeout(15_000),
+    redirect: "follow",
+  });
+
+  if (!res.ok) return "";
+
+  const html = await res.text();
+
+  // Extraire le contenu principal (balise <article> ou <main> en priorité)
+  const articleMatch =
+    html.match(/<article[^>]*>([\s\S]*?)<\/article>/i) ||
+    html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+  const body = articleMatch?.[1] || html;
+
+  // Nettoyer : retirer scripts, styles, nav, aside, footer, ads
+  let text = body;
+  for (const tag of ["script", "style", "nav", "aside", "footer", "figure", "iframe", "noscript", "svg"]) {
+    text = text.replace(new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?</${tag}>`, "gi"), "");
+  }
+
+  // Retirer les balises HTML, garder le texte
+  text = text
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Tronquer à ~4000 chars pour ne pas exploser le contexte
+  return text.slice(0, 4000);
+}
+
 /**
  * Collecte et agrège les actualités RSS immobilier.
  * Filtre par pertinence et retourne les N meilleures.
+ * Si enrichContent=true, fetch le contenu complet des top articles.
  */
 export async function fetchRssNews(options?: {
   cityName?: string;
   maxItems?: number;
   additionalFeeds?: RssFeedConfig[];
+  /** Fetcher le contenu complet des top articles (pour actu_marche) */
+  enrichContent?: boolean;
+  /** Nombre d'articles à enrichir (défaut: 5) */
+  enrichCount?: number;
 }): Promise<RssItem[]> {
   const maxItems = options?.maxItems ?? 10;
   const feeds = [...IMMO_RSS_FEEDS, ...(options?.additionalFeeds ?? [])];
@@ -201,5 +250,24 @@ export async function fetchRssNews(options?: {
 
   scored.sort((a, b) => b.score - a.score);
 
-  return scored.slice(0, maxItems).map((s) => s.item);
+  const topItems = scored.slice(0, maxItems).map((s) => s.item);
+
+  // Enrichir avec le contenu complet si demandé
+  if (options?.enrichContent) {
+    const enrichCount = Math.min(options.enrichCount ?? 5, topItems.length);
+    const toEnrich = topItems.slice(0, enrichCount);
+
+    const contentResults = await Promise.allSettled(
+      toEnrich.map((item) => fetchArticleContent(item.link))
+    );
+
+    for (let i = 0; i < contentResults.length; i++) {
+      const result = contentResults[i];
+      if (result.status === "fulfilled" && result.value.length > 200) {
+        toEnrich[i].fullContent = result.value;
+      }
+    }
+  }
+
+  return topItems;
 }

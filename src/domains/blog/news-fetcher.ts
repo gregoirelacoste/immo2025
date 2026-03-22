@@ -115,8 +115,14 @@ export async function collectNewsContext(
         : Promise.resolve(null),
 
       // RSS : filtré par ville si pertinent
+      // Pour actu_marche : enrichir avec le contenu complet des top articles
       needsNews
-        ? fetchRssNews({ cityName: city, maxItems: maxNews })
+        ? fetchRssNews({
+            cityName: city,
+            maxItems: maxNews,
+            enrichContent: category === "actu_marche",
+            enrichCount: 5,
+          })
         : Promise.resolve([]),
     ]);
 
@@ -209,14 +215,34 @@ export function serializeNewsContext(ctx: NewsContext): string {
   }
 
   if (ctx.news.length > 0) {
-    sections.push(`\n<recent_news>`);
-    for (const item of ctx.news) {
-      sections.push(`- [${item.source}] ${item.title}`);
-      sections.push(`  Date : ${item.pubDate}`);
-      if (item.snippet) sections.push(`  Résumé : ${item.snippet}`);
-      sections.push(`  URL : ${item.link}`);
+    // Séparer les articles enrichis (avec contenu complet) des simples
+    const enriched = ctx.news.filter((n) => n.fullContent);
+    const others = ctx.news.filter((n) => !n.fullContent);
+
+    if (enriched.length > 0) {
+      sections.push(`\n<source_articles>`);
+      sections.push(
+        `Ces ${enriched.length} articles sont des sources réelles à synthétiser et réécrire (NE PAS copier tel quel) :`
+      );
+      for (const item of enriched) {
+        sections.push(`\n--- [${item.source}] ${item.title} ---`);
+        sections.push(`Date : ${item.pubDate}`);
+        sections.push(`URL : ${item.link}`);
+        sections.push(`Contenu :\n${item.fullContent}`);
+      }
+      sections.push(`</source_articles>`);
     }
-    sections.push(`</recent_news>`);
+
+    if (others.length > 0) {
+      sections.push(`\n<recent_news>`);
+      for (const item of others) {
+        sections.push(`- [${item.source}] ${item.title}`);
+        sections.push(`  Date : ${item.pubDate}`);
+        if (item.snippet) sections.push(`  Résumé : ${item.snippet}`);
+        sections.push(`  URL : ${item.link}`);
+      }
+      sections.push(`</recent_news>`);
+    }
   }
 
   if (ctx.fetchErrors.length > 0) {

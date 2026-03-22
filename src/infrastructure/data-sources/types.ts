@@ -100,4 +100,6 @@ export interface RssItem {
   pubDate: string;
   source: string;
   snippet: string;
+  /** Contenu complet de l'article (texte nettoyé), rempli pour les top articles */
+  fullContent?: string;
 }
