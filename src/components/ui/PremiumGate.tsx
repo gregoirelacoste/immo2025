@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState, useEffect, useCallback } from "react";
+import { ReactNode, useEffect, useCallback } from "react";
 
 interface Props {
   /** Icon rendered inside the amber circle (SVG element) */
@@ -98,25 +98,4 @@ export function PremiumGateModal(props: Props & { onClose: () => void }) {
   );
 }
 
-/**
- * Hook helper — wraps a callback to show PremiumGateModal if not premium.
- * Returns [handleClick, modalElement] to render in the component.
- */
-export function usePremiumGate(
-  isPremium: boolean,
-  gateProps: Props
-): [() => void, ReactNode] {
-  const [showGate, setShowGate] = useState(false);
 
-  const handleClick = useCallback(() => {
-    if (!isPremium) {
-      setShowGate(true);
-    }
-  }, [isPremium]);
-
-  const modal = showGate ? (
-    <PremiumGateModal {...gateProps} onClose={() => setShowGate(false)} />
-  ) : null;
-
-  return [handleClick, modal];
-}

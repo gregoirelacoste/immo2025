@@ -383,6 +383,10 @@ function assembleFields(
     f.median_purchase_price_per_m2 = (prices.median_purchase_price_per_m2 as number | null) ?? null;
     f.transaction_count = (prices.transaction_count as number | null) ?? null;
     f.price_trend_pct = (prices.price_trend_pct as number | null) ?? null;
+    f.avg_price_t1_per_m2 = (prices.avg_price_t1_per_m2 as number | null) ?? null;
+    f.avg_price_t2_per_m2 = (prices.avg_price_t2_per_m2 as number | null) ?? null;
+    f.avg_price_t3_per_m2 = (prices.avg_price_t3_per_m2 as number | null) ?? null;
+    f.avg_price_t4plus_per_m2 = (prices.avg_price_t4plus_per_m2 as number | null) ?? null;
   }
   if (rental) {
     f.avg_rent_per_m2 = (rental.avg_rent_per_m2 as number | null) ?? null;

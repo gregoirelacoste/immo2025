@@ -165,8 +165,11 @@ export async function callGeminiWithSearch(
   }
 
   const result = await response.json();
-  const text: string =
-    result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  // Grounding responses may have multiple parts (text + metadata) — collect all text
+  const parts = result?.candidates?.[0]?.content?.parts;
+  const text: string = Array.isArray(parts)
+    ? parts.filter((p: { text?: string }) => p.text).map((p: { text: string }) => p.text).join("")
+    : "";
 
   if (!text.trim()) {
     throw new Error("L'IA (recherche web) a retourné une réponse vide");

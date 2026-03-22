@@ -32,7 +32,7 @@ export interface Locality {
   updated_at: string;
 }
 
-/** Names of the 8 thematic tables */
+/** Names of the 9 thematic tables */
 export const LOCALITY_TABLE_NAMES = [
   "locality_prices",
   "locality_rental",

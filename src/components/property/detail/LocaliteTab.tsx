@@ -91,7 +91,7 @@ export default function LocaliteTab({ property, isPremium = false }: Props) {
         <button
           onClick={handleSearchClick}
           disabled={researchLoading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-wait"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-wait"
         >
           {researchLoading ? (
             <>

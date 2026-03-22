@@ -134,7 +134,7 @@ function validatePayload(raw: Record<string, unknown>): NeighborhoodResearchPayl
 /**
  * Map validated research payload to LocalityDataFields.
  */
-export function mapResearchToFields(payload: NeighborhoodResearchPayload): Partial<LocalityDataFields> {
+function mapResearchToFields(payload: NeighborhoodResearchPayload): Partial<LocalityDataFields> {
   return {
     neighborhood_vibe: payload.vibe || null,
     neighborhood_strengths: payload.strengths.length > 0 ? payload.strengths : null,
@@ -169,6 +169,7 @@ export async function researchNeighborhood(
   try {
     parsed = JSON.parse(jsonStr);
   } catch {
+    console.error("[researchNeighborhood] Failed to parse JSON from AI:", jsonStr.substring(0, 500));
     throw new Error("Échec du parsing de la réponse IA (recherche quartier)");
   }
 
