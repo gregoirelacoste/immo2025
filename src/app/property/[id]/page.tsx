@@ -35,6 +35,7 @@ export default async function PropertyPage({
           <PropertyDetail
             property={property}
             isOwner={isOwner}
+            isLoggedIn={!!userId}
             photos={photos}
             simulations={simulations}
           />

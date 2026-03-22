@@ -5,17 +5,30 @@ import Link from "next/link";
 import { Property } from "@/domains/property/types";
 import { formatCurrency } from "@/lib/calculations";
 import DownloadReportButton from "@/components/property/DownloadReportButton";
+import { useAuthGate } from "@/components/ui/AuthGate";
 
 interface Props {
   property: Property;
   isOwner: boolean;
+  isLoggedIn?: boolean;
   onDelete: () => void;
 }
 
-export default function PropertyHeader({ property, isOwner, onDelete }: Props) {
+export default function PropertyHeader({ property, isOwner, isLoggedIn = false, onDelete }: Props) {
   const [shared, setShared] = useState(false);
   const sharedTimer = useRef<ReturnType<typeof setTimeout>>(null);
   useEffect(() => () => { if (sharedTimer.current) clearTimeout(sharedTimer.current); }, []);
+
+  const [handleGatedVisit, authModal] = useAuthGate(isLoggedIn, {
+    icon: (
+      <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+      </svg>
+    ),
+    title: "Mode visite",
+    description: "Prenez des photos et des notes pendant vos visites pour comparer les biens.",
+  });
 
   async function handleShare() {
     const title = property.city || "Bien immobilier";
@@ -67,16 +80,29 @@ export default function PropertyHeader({ property, isOwner, onDelete }: Props) {
         </div>
       </div>
       <div className="flex gap-1.5 shrink-0">
-        <Link
-          href={`/property/${property.id}/visit`}
-          className="p-2.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 min-h-[44px] min-w-[44px] flex items-center justify-center print:hidden"
-          title="Mode visite"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
-          </svg>
-        </Link>
+        {isLoggedIn ? (
+          <Link
+            href={`/property/${property.id}/visit`}
+            className="p-2.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 min-h-[44px] min-w-[44px] flex items-center justify-center print:hidden"
+            title="Mode visite"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+            </svg>
+          </Link>
+        ) : (
+          <button
+            onClick={handleGatedVisit}
+            className="p-2.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 min-h-[44px] min-w-[44px] flex items-center justify-center print:hidden"
+            title="Mode visite"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+            </svg>
+          </button>
+        )}
         <DownloadReportButton />
         <button
           onClick={handleShare}
@@ -105,6 +131,7 @@ export default function PropertyHeader({ property, isOwner, onDelete }: Props) {
           </button>
         )}
       </div>
+      {authModal}
     </div>
   );
 }

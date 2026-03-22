@@ -4,18 +4,30 @@ import { useMemo, useState } from "react";
 import { Property } from "@/domains/property/types";
 import { Simulation } from "@/domains/simulation/types";
 import { formatCurrency, getEffectiveRent } from "@/lib/calculations";
+import { useAuthGate } from "@/components/ui/AuthGate";
 
 interface Props {
   property: Property;
   simulations: Simulation[];
   activeSim: Simulation;
   activeSimId: string;
+  isLoggedIn?: boolean;
   onSimSwitch: (simId: string) => void;
   onOpenDrawer: () => void;
 }
 
-export default function SimulationBanner({ property, simulations, activeSim, activeSimId, onSimSwitch, onOpenDrawer }: Props) {
+export default function SimulationBanner({ property, simulations, activeSim, activeSimId, isLoggedIn = false, onSimSwitch, onOpenDrawer }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const [handleGatedClick, authModal] = useAuthGate(isLoggedIn, {
+    icon: (
+      <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V13.5Zm0 2.25h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V18Zm2.498-6.75h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V13.5Zm0 2.25h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V18Zm2.504-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18Zm2.505-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5ZM8.25 6h7.5v2.25h-7.5V6ZM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25Z" />
+      </svg>
+    ),
+    title: "Simulez vos scénarios",
+    description: "Comparez différents taux, durées et loyers pour optimiser votre investissement.",
+  });
 
   const isSystem = activeSimId === "__system__";
   const effectiveRent = useMemo(() => getEffectiveRent(property, activeSim), [property, activeSim]);
@@ -95,7 +107,7 @@ export default function SimulationBanner({ property, simulations, activeSim, act
 
         {/* Right: edit button */}
         <button
-          onClick={onOpenDrawer}
+          onClick={isLoggedIn ? onOpenDrawer : handleGatedClick}
           className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors shrink-0"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -104,6 +116,7 @@ export default function SimulationBanner({ property, simulations, activeSim, act
           Simuler
         </button>
       </div>
+      {authModal}
     </div>
   );
 }

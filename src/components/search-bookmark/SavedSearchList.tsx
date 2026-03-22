@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition, useEffect, useCallback } from "react";
-import Link from "next/link";
 import { SavedSearch } from "@/domains/search-bookmark/types";
 import type { SiteInfo } from "@/domains/scraping/app-parsers";
 import {
@@ -9,6 +8,7 @@ import {
   deleteSavedSearchAction,
 } from "@/domains/search-bookmark/actions";
 import { useRouter } from "next/navigation";
+import AuthGate from "@/components/ui/AuthGate";
 
 // ─── Site badge styling (keyed by site source) ───
 
@@ -237,34 +237,17 @@ interface Props {
 export default function SavedSearchList({ searches, isLoggedIn, supportedSites }: Props) {
   if (!isLoggedIn) {
     return (
-      <div className="text-center py-16 px-4">
-        <div className="w-16 h-16 mx-auto mb-4 bg-amber-50 rounded-full flex items-center justify-center">
+      <AuthGate
+        icon={
           <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
           </svg>
-        </div>
-        <p className="text-gray-700 font-medium mb-1">Sauvegardez vos recherches</p>
-        <p className="text-gray-400 text-sm max-w-xs mx-auto mb-2">
-          Retrouvez vos recherches immobilières favorites en un clic. Connectez-vous pour commencer.
-        </p>
-        <div className="mb-6">
-          <CompatibleSitesLink sites={supportedSites} />
-        </div>
-        <div className="flex flex-col items-center gap-3">
-          <Link
-            href="/register"
-            className="inline-flex items-center justify-center px-6 py-3 min-h-[44px] bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 transition-colors shadow-[0_2px_8px_rgba(217,119,6,0.25)]"
-          >
-            Créer un compte
-          </Link>
-          <Link
-            href="/login"
-            className="text-sm text-amber-600 hover:underline"
-          >
-            Déjà un compte ? Se connecter
-          </Link>
-        </div>
-      </div>
+        }
+        title="Sauvegardez vos recherches"
+        description="Retrouvez vos recherches immobilières favorites en un clic. Connectez-vous pour commencer."
+      >
+        <CompatibleSitesLink sites={supportedSites} />
+      </AuthGate>
     );
   }
 

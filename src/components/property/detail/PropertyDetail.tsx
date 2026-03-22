@@ -76,6 +76,7 @@ function ScoreBrick({ score, grade }: { score: number | null; grade: ReturnType<
 interface Props {
   property: Property;
   isOwner?: boolean;
+  isLoggedIn?: boolean;
   photos?: Photo[];
   simulations?: Simulation[];
 }
@@ -85,7 +86,7 @@ function parseJson<T>(json: string, fallback: T): T {
   catch { return fallback; }
 }
 
-export default function PropertyDetail({ property, isOwner = false, photos = [], simulations = [] }: Props) {
+export default function PropertyDetail({ property, isOwner = false, isLoggedIn = false, photos = [], simulations = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -195,7 +196,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
 
   return (
     <div className="space-y-0 pb-safe">
-      <PropertyHeader property={property} isOwner={isOwner} onDelete={handleDelete} />
+      <PropertyHeader property={property} isOwner={isOwner} isLoggedIn={isLoggedIn} onDelete={handleDelete} />
 
       {/* Hero — KPIs + score */}
       <section ref={heroRef} className="bg-white rounded-xl border border-tiili-border p-4 md:p-6 mb-2">
@@ -252,6 +253,7 @@ export default function PropertyDetail({ property, isOwner = false, photos = [],
         simulations={simulations}
         activeSim={effectiveSim}
         activeSimId={localActiveSimId}
+        isLoggedIn={isLoggedIn}
         onSimSwitch={async (simId) => {
           setLocalActiveSimId(simId);
           setLiveSimFromEditor(null);
