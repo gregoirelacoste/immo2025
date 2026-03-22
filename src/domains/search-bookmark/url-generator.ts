@@ -36,16 +36,16 @@ function leboncoinUrl(city: CityInfo, maxPrice: number): string {
   return `https://www.leboncoin.fr/recherche?${params}`;
 }
 
-/** Build a SeLoger search URL using places with INSEE code */
-function selogerUrl(city: CityInfo, maxPrice: number): string {
-  const places = JSON.stringify([{ inseeCodes: [parseInt(city.codeInsee, 10)] }]);
-  const params = new URLSearchParams({
-    projects: "2", // Achat
-    places,
-    price: `NaN/${maxPrice}`,
-    qsVersion: "1.0",
-  });
-  return `https://www.seloger.com/list.htm?${params}`;
+/** Build a SeLoger search URL: /immobilier/achat/immo-{slug}-{dept}/ */
+function selogerUrl(city: CityInfo): string {
+  const slug = city.name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  const dept = city.codeInsee.slice(0, 2);
+  return `https://www.seloger.com/immobilier/achat/immo-${slug}-${dept}/`;
 }
 
 export function generateSearchUrls(
@@ -54,7 +54,7 @@ export function generateSearchUrls(
 ): GeneratedSearchLink[] {
   return [
     { site: "leboncoin", label: "Leboncoin", url: leboncoinUrl(city, maxPrice) },
-    { site: "seloger", label: "SeLoger", url: selogerUrl(city, maxPrice) },
+    { site: "seloger", label: "SeLoger", url: selogerUrl(city) },
     { site: "bienici", label: "Bien'ici", url: bieniciUrl(city, maxPrice) },
   ];
 }
