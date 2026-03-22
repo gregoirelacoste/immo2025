@@ -28,8 +28,8 @@ function bieniciUrl(city: CityInfo, maxPrice: number): string {
   return `https://www.bienici.com/recherche/achat/${slugify(city.name)}-${city.postalCode}?prix-max=${maxPrice}`;
 }
 
-function leboncoinUrl(city: CityInfo): string {
-  return `https://www.leboncoin.fr/cl/ventes_immobilieres/cp_${slugify(city.name)}_${city.postalCode}`;
+function leboncoinUrl(city: CityInfo, maxPrice: number): string {
+  return `https://www.leboncoin.fr/recherche?category=9&locations=${encodeURIComponent(city.name)}_${city.postalCode}&price=min-${maxPrice}`;
 }
 
 function selogerUrl(city: CityInfo): string {
@@ -42,7 +42,7 @@ export function generateSearchUrls(
   maxPrice: number
 ): GeneratedSearchLink[] {
   return [
-    { site: "leboncoin", label: "Leboncoin", url: leboncoinUrl(city) },
+    { site: "leboncoin", label: "Leboncoin", url: leboncoinUrl(city, maxPrice) },
     { site: "seloger", label: "SeLoger", url: selogerUrl(city) },
     { site: "bienici", label: "Bien'ici", url: bieniciUrl(city, maxPrice) },
   ];
