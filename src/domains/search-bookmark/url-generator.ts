@@ -26,24 +26,26 @@ function bieniciUrl(city: CityInfo, maxPrice: number): string {
   return `https://www.bienici.com/recherche/achat/${slug}-${city.postalCode}?prix-max=${maxPrice}`;
 }
 
-/** Build a LeBonCoin search URL: /recherche?category=9&locations={city}&price=-{price} */
+/** Build a LeBonCoin search URL: /recherche?category=9&locations={city}&price=0-{price} */
 function leboncoinUrl(city: CityInfo, maxPrice: number): string {
   const params = new URLSearchParams({
     category: "9", // Ventes immobilières
-    locations: city.name,
-    price: `-${maxPrice}`,
+    locations: `${city.name}_${city.postalCode}`,
+    price: `0-${maxPrice}`,
   });
   return `https://www.leboncoin.fr/recherche?${params}`;
 }
 
-/** Build a SeLoger search URL: /list.htm?idtt=2&ci={insee}&pxMax={price} */
-function selogerUrl(city: CityInfo, maxPrice: number): string {
-  const params = new URLSearchParams({
-    idtt: "2", // Achat
-    ci: city.codeInsee,
-    pxMax: String(maxPrice),
-  });
-  return `https://www.seloger.com/list.htm?${params}`;
+/** Build a SeLoger search URL: /immobilier/achat/immo-{slug}-{dept}/ */
+function selogerUrl(city: CityInfo): string {
+  const slug = city.name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  const dept = city.codeInsee.slice(0, 2);
+  return `https://www.seloger.com/immobilier/achat/immo-${slug}-${dept}/`;
 }
 
 export function generateSearchUrls(
@@ -52,7 +54,7 @@ export function generateSearchUrls(
 ): GeneratedSearchLink[] {
   return [
     { site: "leboncoin", label: "Leboncoin", url: leboncoinUrl(city, maxPrice) },
-    { site: "seloger", label: "SeLoger", url: selogerUrl(city, maxPrice) },
+    { site: "seloger", label: "SeLoger", url: selogerUrl(city) },
     { site: "bienici", label: "Bien'ici", url: bieniciUrl(city, maxPrice) },
   ];
 }
