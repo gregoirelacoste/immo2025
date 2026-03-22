@@ -1,0 +1,72 @@
+name: Bulk — Ajout de villes quotidien
+
+on:
+  schedule:
+    # Tous les jours à 4h00 UTC (avant le blog à 6h)
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: 'Nombre de villes par batch'
+        required: false
+        default: '100'
+        type: string
+      dry_run:
+        description: 'Dry run (pas de sauvegarde)'
+        required: false
+        default: false
+        type: boolean
+      status_only:
+        description: 'Afficher la progression uniquement'
+        required: false
+        default: false
+        type: boolean
+      reset_cursor:
+        description: 'Remettre le curseur à 0'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: bulk-cities
+  cancel-in-progress: false
+
+jobs:
+  bulk-add:
+    runs-on: ubuntu-latest
+    environment: Production
+    timeout-minutes: 30
+    env:
+      TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # ── Scheduled run: batch-next 100 ──
+      - name: Batch quotidien (cron)
+        if: github.event_name == 'schedule'
+        run: npx tsx scripts/bulk-add-cities.ts --batch-next 100
+
+      # ── Manual dispatch ──
+      - name: Status only
+        if: github.event_name == 'workflow_dispatch' && inputs.status_only == true
+        run: npx tsx scripts/bulk-add-cities.ts --status
+
+      - name: Reset cursor
+        if: github.event_name == 'workflow_dispatch' && inputs.reset_cursor == true
+        run: npx tsx scripts/bulk-add-cities.ts --reset-cursor
+
+      - name: Batch manuel
+        if: github.event_name == 'workflow_dispatch' && inputs.status_only == false && inputs.reset_cursor == false
+        run: >-
+          npx tsx scripts/bulk-add-cities.ts
+          --batch-next ${{ inputs.batch_size || '100' }}
+          ${{ inputs.dry_run == true && '--dry-run' || '' }}

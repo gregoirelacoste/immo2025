@@ -1,19 +1,56 @@
+#!/usr/bin/env npx tsx
 /**
- * Bulk add & enrich cities — generates guide pages for SEO.
+ * Bulk add & enrich cities — generates locality pages for SEO.
  *
- * Usage:
- *   npx tsx scripts/bulk-add-cities.ts                     # add top 100 French cities
- *   npx tsx scripts/bulk-add-cities.ts --top 200           # add top 200
- *   npx tsx scripts/bulk-add-cities.ts --list "Albi,Rodez" # add specific cities
- *   npx tsx scripts/bulk-add-cities.ts --file cities.txt   # one city per line
- *   npx tsx scripts/bulk-add-cities.ts --dept 81           # all cities in a department
- *   npx tsx scripts/bulk-add-cities.ts --dry-run           # preview without creating
+ * Usage (CI / cron — uses cursor in DB):
+ *   npx tsx scripts/bulk-add-cities.ts --batch-next 100           # process next 100 cities
+ *   npx tsx scripts/bulk-add-cities.ts --batch-next 100 --dry-run # preview next batch
+ *   npx tsx scripts/bulk-add-cities.ts --status                   # show progress
+ *   npx tsx scripts/bulk-add-cities.ts --reset-cursor             # restart from 0
+ *
+ * Usage (manual / one-shot — no cursor):
+ *   npx tsx scripts/bulk-add-cities.ts --top 200                  # top 200 by population
+ *   npx tsx scripts/bulk-add-cities.ts --list "Albi,Rodez"        # specific cities
+ *   npx tsx scripts/bulk-add-cities.ts --file cities.txt           # one city per line
+ *   npx tsx scripts/bulk-add-cities.ts --dept 81                   # all cities in a dept
  *
  * Each city is resolved via geo.api.gouv.fr, created in DB, and enriched
  * with DVF, INSEE, Géorisques, loyers, DPE, etc.
  */
 
+// ── Load .env.local (tsx doesn't do it like Next.js) ──
+import { readFileSync } from "fs";
+import { resolve } from "path";
 import * as fs from "fs";
+
+function loadEnvFile(filename: string) {
+  try {
+    const envPath = resolve(process.cwd(), filename);
+    const content = readFileSync(envPath, "utf-8");
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx === -1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      const value = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
+      if (!process.env[key]) process.env[key] = value;
+    }
+  } catch { /* file not found — ok */ }
+}
+
+loadEnvFile(".env.local");
+loadEnvFile(".env");
+
+// ── Validate DB target (refuse local file in batch mode) ──
+const dbUrl = process.env.TURSO_DATABASE_URL || "";
+const isBatchMode = process.argv.includes("--batch-next") || process.argv.includes("--status") || process.argv.includes("--reset-cursor");
+if (isBatchMode && (!dbUrl || dbUrl.startsWith("file:"))) {
+  console.error("❌ TURSO_DATABASE_URL non configuré ou pointe vers un fichier local.");
+  console.error("   En mode --batch-next, les données iraient dans une SQLite jetable, pas en production.");
+  console.error("   → Définir TURSO_DATABASE_URL et TURSO_AUTH_TOKEN pour cibler la DB prod.");
+  process.exit(1);
+}
 
 const GEO_API = "https://geo.api.gouv.fr";
 
@@ -25,11 +62,42 @@ interface GeoCommune {
   departement?: { code: string; nom: string };
 }
 
-/** Fetch top N cities in France by population */
-async function fetchTopCities(limit: number): Promise<GeoCommune[]> {
+// ── Cursor management (stored in DB) ──
+
+const CURSOR_KEY = "bulk_cities";
+
+async function ensureCursorTable(db: import("@libsql/client").Client) {
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS _bulk_progress (
+      key TEXT PRIMARY KEY,
+      value INTEGER NOT NULL DEFAULT 0,
+      total INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+}
+
+async function getCursor(db: import("@libsql/client").Client): Promise<{ offset: number; total: number }> {
+  await ensureCursorTable(db);
+  const row = await db.execute({ sql: "SELECT value, total FROM _bulk_progress WHERE key = ?", args: [CURSOR_KEY] });
+  if (row.rows.length === 0) return { offset: 0, total: 0 };
+  return { offset: Number(row.rows[0].value), total: Number(row.rows[0].total) };
+}
+
+async function setCursor(db: import("@libsql/client").Client, offset: number, total: number) {
+  await ensureCursorTable(db);
+  await db.execute({
+    sql: `INSERT INTO _bulk_progress (key, value, total, updated_at) VALUES (?, ?, ?, datetime('now'))
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value, total = excluded.total, updated_at = datetime('now')`,
+    args: [CURSOR_KEY, offset, total],
+  });
+}
+
+// ── Geo API helpers ──
+
+/** Fetch ALL French communes, sorted deterministically by dept code + commune code */
+async function fetchAllCities(): Promise<GeoCommune[]> {
   const allCities: GeoCommune[] = [];
-  // geo API doesn't support sort by population directly — fetch all communes then sort
-  // Use departments to batch: mainland (01-95) + DOM (971-976)
   const depts: string[] = [];
   for (let i = 1; i <= 95; i++) depts.push(String(i).padStart(2, "0"));
   depts.push("971", "972", "973", "974", "976");
@@ -48,17 +116,26 @@ async function fetchTopCities(limit: number): Promise<GeoCommune[]> {
     } catch {
       // Skip failed departments
     }
-    // Rate limit
     await new Promise((r) => setTimeout(r, 50));
   }
 
   console.log(`  Total communes fetched: ${allCities.length}`);
 
-  // Sort by population descending, take top N
+  // Deterministic sort: population DESC (biggest cities first → most useful for SEO)
+  // Tie-breaker: commune code ASC for stability
   return allCities
     .filter((c) => c.population != null && c.population > 0)
-    .sort((a, b) => (b.population ?? 0) - (a.population ?? 0))
-    .slice(0, limit);
+    .sort((a, b) => {
+      const popDiff = (b.population ?? 0) - (a.population ?? 0);
+      if (popDiff !== 0) return popDiff;
+      return a.code.localeCompare(b.code);
+    });
+}
+
+/** Fetch top N cities by population */
+async function fetchTopCities(limit: number): Promise<GeoCommune[]> {
+  const all = await fetchAllCities();
+  return all.slice(0, limit);
 }
 
 /** Fetch all cities in a department */
@@ -103,14 +180,158 @@ async function resolveCity(name: string): Promise<GeoCommune | null> {
   }
 }
 
+// ── Process a batch of cities ──
+
+async function processCities(
+  cities: GeoCommune[],
+  isDryRun: boolean,
+  label: string,
+): Promise<{ created: number; skipped: number; errors: number }> {
+  const { getDb } = await import("@/infrastructure/database/client");
+  await getDb();
+  const { ensureLocalityEnriched } = await import("@/domains/locality/enrichment/ensure");
+  const { findLocalityByCity } = await import("@/domains/locality/repository");
+
+  let created = 0;
+  let skipped = 0;
+  let errors = 0;
+
+  console.log(`\n${isDryRun ? "[DRY-RUN] " : ""}${label} — ${cities.length} cities\n`);
+
+  for (let i = 0; i < cities.length; i++) {
+    const city = cities[i];
+    const progress = `[${i + 1}/${cities.length}]`;
+
+    const existing = await findLocalityByCity(city.nom, undefined, city.code);
+    if (existing) {
+      console.log(`${progress} ${city.nom} (${city.code}) — already exists, skipping`);
+      skipped++;
+      continue;
+    }
+
+    if (isDryRun) {
+      const pop = city.population ? ` (pop: ${city.population.toLocaleString("fr-FR")})` : "";
+      console.log(`${progress} Would add: ${city.nom} (${city.code})${pop}`);
+      created++;
+      continue;
+    }
+
+    try {
+      console.log(`${progress} Adding ${city.nom} (${city.code})...`);
+      await ensureLocalityEnriched(city.nom, undefined, city.code);
+      created++;
+      console.log(`  -> OK`);
+    } catch (e) {
+      console.error(`  -> ERROR: ${e instanceof Error ? e.message : e}`);
+      errors++;
+    }
+
+    // Rate limit: 300ms between cities to be gentle on APIs
+    await new Promise((r) => setTimeout(r, 300));
+  }
+
+  console.log(`\n--- Summary ---`);
+  console.log(`Created: ${created}`);
+  console.log(`Skipped (already exist): ${skipped}`);
+  console.log(`Errors: ${errors}`);
+  console.log(`Total: ${cities.length}`);
+
+  return { created, skipped, errors };
+}
+
+// ── Main ──
+
 async function main() {
   const args = process.argv.slice(2);
   const isDryRun = args.includes("--dry-run");
+  const batchIdx = args.indexOf("--batch-next");
+  const statusFlag = args.includes("--status");
+  const resetFlag = args.includes("--reset-cursor");
   const topIdx = args.indexOf("--top");
   const listIdx = args.indexOf("--list");
   const fileIdx = args.indexOf("--file");
   const deptIdx = args.indexOf("--dept");
 
+  // ── Batch mode with cursor ──
+  if (statusFlag || resetFlag || batchIdx !== -1) {
+    const { getDb } = await import("@/infrastructure/database/client");
+    const db = await getDb();
+
+    if (resetFlag) {
+      await setCursor(db, 0, 0);
+      console.log("✅ Cursor reset to 0.");
+      return;
+    }
+
+    if (statusFlag) {
+      const cursor = await getCursor(db);
+      if (cursor.total === 0) {
+        console.log("No batch in progress. Run --batch-next to start.");
+      } else {
+        const pct = ((cursor.offset / cursor.total) * 100).toFixed(1);
+        console.log(`Progress: ${cursor.offset} / ${cursor.total} (${pct}%)`);
+        const remaining = cursor.total - cursor.offset;
+        console.log(`Remaining: ${remaining} cities`);
+        if (remaining <= 0) console.log("✅ All cities have been processed!");
+      }
+      return;
+    }
+
+    // --batch-next N
+    const batchSize = parseInt(args[batchIdx + 1] || "100");
+    if (isNaN(batchSize) || batchSize <= 0) {
+      console.error("--batch-next requires a positive number");
+      process.exit(1);
+    }
+
+    // Fetch the full deterministic list
+    const allCities = await fetchAllCities();
+    const total = allCities.length;
+
+    // Read cursor
+    const cursor = await getCursor(db);
+    const offset = cursor.total === total ? cursor.offset : cursor.offset;
+
+    // If total changed (geo API update), log it but keep offset
+    if (cursor.total > 0 && cursor.total !== total) {
+      console.warn(`⚠️  Total communes changed: ${cursor.total} → ${total}. Keeping offset at ${offset}.`);
+    }
+
+    if (offset >= total) {
+      console.log(`✅ All ${total} cities have been processed! Nothing to do.`);
+      console.log("   Use --reset-cursor to restart from scratch.");
+      return;
+    }
+
+    const batch = allCities.slice(offset, offset + batchSize);
+    const endOffset = offset + batch.length;
+
+    console.log(`Cursor: ${offset} / ${total} — processing cities #${offset + 1} to #${endOffset}`);
+
+    const result = await processCities(batch, isDryRun, `Batch ${offset + 1}–${endOffset} / ${total}`);
+
+    // Update cursor (advance even if some errored — they can be retried with --list)
+    if (!isDryRun) {
+      await setCursor(db, endOffset, total);
+      const remaining = total - endOffset;
+      console.log(`\nCursor updated: ${endOffset} / ${total}`);
+      if (remaining > 0) {
+        console.log(`Remaining: ${remaining} cities (~${Math.ceil(remaining / batchSize)} more runs)`);
+      } else {
+        console.log("✅ All cities have been processed!");
+      }
+    }
+
+    // Exit with error if too many failures (useful for CI alerting)
+    if (result.errors > batch.length * 0.5) {
+      console.error("❌ Too many errors (>50%) — something may be wrong.");
+      process.exit(1);
+    }
+
+    return;
+  }
+
+  // ── One-shot modes (no cursor) ──
   let cities: GeoCommune[] = [];
 
   if (deptIdx !== -1) {
@@ -158,56 +379,7 @@ async function main() {
     return;
   }
 
-  console.log(`\n${isDryRun ? "[DRY-RUN] " : ""}Processing ${cities.length} cities...\n`);
-
-  // Init DB (runs migrations) then import domain code
-  const { getDb } = await import("@/infrastructure/database/client");
-  await getDb();
-  const { ensureLocalityEnriched } = await import("@/domains/locality/enrichment/ensure");
-  const { findLocalityByCity } = await import("@/domains/locality/repository");
-
-  let created = 0;
-  let skipped = 0;
-  let errors = 0;
-
-  for (let i = 0; i < cities.length; i++) {
-    const city = cities[i];
-    const progress = `[${i + 1}/${cities.length}]`;
-
-    // Check if already exists
-    const existing = await findLocalityByCity(city.nom, undefined, city.code);
-    if (existing) {
-      console.log(`${progress} ${city.nom} (${city.code}) — already exists, skipping`);
-      skipped++;
-      continue;
-    }
-
-    if (isDryRun) {
-      const pop = city.population ? ` (pop: ${city.population.toLocaleString("fr-FR")})` : "";
-      console.log(`${progress} Would add: ${city.nom} (${city.code})${pop}`);
-      created++;
-      continue;
-    }
-
-    try {
-      console.log(`${progress} Adding ${city.nom} (${city.code})...`);
-      await ensureLocalityEnriched(city.nom, undefined, city.code);
-      created++;
-      console.log(`  -> OK`);
-    } catch (e) {
-      console.error(`  -> ERROR: ${e instanceof Error ? e.message : e}`);
-      errors++;
-    }
-
-    // Rate limit: 300ms between cities to be gentle on APIs
-    await new Promise((r) => setTimeout(r, 300));
-  }
-
-  console.log(`\n--- Summary ---`);
-  console.log(`Created: ${created}`);
-  console.log(`Skipped (already exist): ${skipped}`);
-  console.log(`Errors: ${errors}`);
-  console.log(`Total: ${cities.length}`);
+  await processCities(cities, isDryRun, "Processing");
 }
 
 main().catch(console.error);
