@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect, useCallback } from "react";
 
 interface Props {
   /** Icon rendered inside the amber circle (SVG element) */
@@ -14,14 +14,10 @@ interface Props {
   children?: ReactNode;
 }
 
-/**
- * Reusable CTA block for features that require authentication.
- * Shows an icon, title, description, optional extra content, and
- * "Créer un compte" / "Se connecter" buttons.
- */
-export default function AuthGate({ icon, title, description, children }: Props) {
+/** Shared CTA content used by both inline and modal variants */
+function AuthGateContent({ icon, title, description, children }: Props) {
   return (
-    <div className="text-center py-16 px-4">
+    <>
       <div className="w-16 h-16 mx-auto mb-4 bg-amber-50 rounded-full flex items-center justify-center">
         {icon}
       </div>
@@ -44,6 +40,87 @@ export default function AuthGate({ icon, title, description, children }: Props) 
           Déjà un compte ? Se connecter
         </Link>
       </div>
+    </>
+  );
+}
+
+/**
+ * Inline CTA block for features that require authentication.
+ * Replaces the page content when the user is not logged in.
+ */
+export default function AuthGate(props: Props) {
+  return (
+    <div className="text-center py-16 px-4">
+      <AuthGateContent {...props} />
     </div>
   );
+}
+
+/**
+ * Modal variant of AuthGate — opens as an overlay.
+ * Use when the feature button stays visible but requires auth on click.
+ */
+export function AuthGateModal(props: Props & { onClose: () => void }) {
+  const { onClose, ...contentProps } = props;
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    },
+    [onClose]
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={contentProps.title}
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/40" />
+      <div
+        className="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <AuthGateContent {...contentProps} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Hook helper — wraps a callback to show AuthGateModal if not logged in.
+ * Returns [handleClick, modalElement] to render in the component.
+ */
+export function useAuthGate(
+  isLoggedIn: boolean,
+  gateProps: Props
+): [() => void, ReactNode] {
+  const [showGate, setShowGate] = useState(false);
+
+  const handleClick = useCallback(() => {
+    if (!isLoggedIn) {
+      setShowGate(true);
+    }
+  }, [isLoggedIn]);
+
+  const modal = showGate ? (
+    <AuthGateModal {...gateProps} onClose={() => setShowGate(false)} />
+  ) : null;
+
+  return [handleClick, modal];
 }
