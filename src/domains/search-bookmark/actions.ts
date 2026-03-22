@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUserId } from "@/lib/auth-actions";
-import { getSearchSiteName } from "@/domains/scraping/app-parsers";
+import { getSearchSiteName, getSearchSiteKey } from "@/domains/scraping/app-parsers";
 import {
   createSavedSearch,
   findSavedSearchByUrl,
@@ -23,7 +23,7 @@ export async function saveSavedSearchAction(
       return { id: existing.id };
     }
 
-    const site = getSearchSiteName(url).toLowerCase();
+    const site = getSearchSiteKey(url);
     const displayName =
       name ||
       `Recherche ${getSearchSiteName(url)} - ${new Date().toLocaleDateString("fr-FR")}`;

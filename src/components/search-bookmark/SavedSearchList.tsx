@@ -14,11 +14,21 @@ function SiteBadge({ site }: { site: string }) {
     leboncoin: "bg-orange-100 text-orange-700",
     seloger: "bg-blue-100 text-blue-700",
     pap: "bg-green-100 text-green-700",
+    bienici: "bg-teal-100 text-teal-700",
+    logicimmo: "bg-purple-100 text-purple-700",
+    figaro: "bg-red-100 text-red-700",
+    ouestfrance: "bg-sky-100 text-sky-700",
+    superimmo: "bg-indigo-100 text-indigo-700",
   };
   const labels: Record<string, string> = {
     leboncoin: "Leboncoin",
     seloger: "SeLoger",
     pap: "PAP",
+    bienici: "Bien'ici",
+    logicimmo: "Logic-Immo",
+    figaro: "Figaro Immo",
+    ouestfrance: "Ouest-France",
+    superimmo: "Superimmo",
   };
   const cls = colors[site] || "bg-gray-100 text-gray-700";
   const label = labels[site] || site;
@@ -160,7 +170,7 @@ export default function SavedSearchList({
         </div>
         <p className="text-gray-700 font-medium mb-1">Sauvegardez vos recherches</p>
         <p className="text-gray-400 text-sm max-w-xs mx-auto mb-6">
-          Retrouvez vos recherches Leboncoin favorites en un clic. Connectez-vous pour commencer.
+          Retrouvez vos recherches immobilières favorites en un clic. Connectez-vous pour commencer.
         </p>
         <div className="flex flex-col items-center gap-3">
           <Link
@@ -190,7 +200,7 @@ export default function SavedSearchList({
         </div>
         <p className="text-gray-600 font-medium mb-1">Aucune recherche sauvegardée</p>
         <p className="text-gray-400 text-sm max-w-xs mx-auto">
-          Partagez une page de recherche Leboncoin depuis l&apos;app pour l&apos;ajouter ici.
+          Partagez une page de recherche depuis Leboncoin, SeLoger, Bien&apos;ici, PAP ou d&apos;autres sites pour l&apos;ajouter ici.
         </p>
       </div>
     );

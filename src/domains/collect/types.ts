@@ -45,7 +45,16 @@ export interface ShareData {
   receivedAt: number;
 }
 
-export type ShareSource = "leboncoin" | "seloger" | "pap" | "generic";
+export type ShareSource =
+  | "leboncoin"
+  | "seloger"
+  | "pap"
+  | "bienici"
+  | "logicimmo"
+  | "figaro"
+  | "ouestfrance"
+  | "superimmo"
+  | "generic";
 
 export interface ShareHints {
   price?: number;
