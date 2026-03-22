@@ -12,6 +12,7 @@ import {
   getLatestLocalityFieldsBatch,
   getLatestSourcesBatch,
 } from "./repository";
+import { getDb } from "@/infrastructure/database/client";
 
 /**
  * Resolve locality data for a property, with field-by-field fallback up the hierarchy.
@@ -27,13 +28,38 @@ export async function resolveLocalityData(
   city: string,
   postalCode?: string,
   codeInsee?: string,
-  irisCode?: string
+  irisCode?: string,
+  neighborhood?: string
 ): Promise<ResolvedLocalityData | null> {
   let locality: Locality | undefined;
 
   // Try IRIS quartier first if code provided
   if (irisCode) {
     locality = await findLocalityByCode(irisCode, "quartier");
+  }
+
+  // Try named quartier if neighborhood provided (e.g. from AI research)
+  if (!locality && neighborhood) {
+    const ville = await findLocalityByCity(city, postalCode, codeInsee);
+    if (ville) {
+      const db = await getDb();
+      const result = await db.execute({
+        sql: "SELECT * FROM localities WHERE LOWER(name) = LOWER(?) AND parent_id = ? AND type = 'quartier' LIMIT 1",
+        args: [neighborhood, ville.id],
+      });
+      if (result.rows[0]) {
+        locality = {
+          id: result.rows[0].id as string,
+          name: result.rows[0].name as string,
+          type: "quartier" as const,
+          parent_id: ville.id,
+          code: (result.rows[0].code as string) || "",
+          postal_codes: (result.rows[0].postal_codes as string) || "[]",
+          created_at: result.rows[0].created_at as string,
+          updated_at: result.rows[0].updated_at as string,
+        };
+      }
+    }
   }
 
   // Fall back to commune resolution

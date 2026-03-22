@@ -165,13 +165,21 @@ export async function callGeminiWithSearch(
   }
 
   const result = await response.json();
+
+  // Log response structure for debugging
+  const candidate = result?.candidates?.[0];
+  if (!candidate?.content?.parts) {
+    console.error("[callGeminiWithSearch] Unexpected response structure:", JSON.stringify(result).substring(0, 1000));
+  }
+
   // Grounding responses may have multiple parts (text + metadata) — collect all text
-  const parts = result?.candidates?.[0]?.content?.parts;
+  const parts = candidate?.content?.parts;
   const text: string = Array.isArray(parts)
     ? parts.filter((p: { text?: string }) => p.text).map((p: { text: string }) => p.text).join("")
     : "";
 
   if (!text.trim()) {
+    console.error("[callGeminiWithSearch] Empty text. Full response:", JSON.stringify(result).substring(0, 2000));
     throw new Error("L'IA (recherche web) a retourné une réponse vide");
   }
 

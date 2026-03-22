@@ -67,7 +67,8 @@ export async function checkLocalityExists(
 
 export async function fetchLocalityFields(
   city: string,
-  postalCode?: string
+  postalCode?: string,
+  neighborhood?: string
 ): Promise<{
   cityName: string;
   fields: LocalityDataFields;
@@ -75,7 +76,7 @@ export async function fetchLocalityFields(
   fieldSources: Partial<Record<keyof LocalityDataFields, { localityName: string; localityType: string }>>;
 } | null> {
   try {
-    const resolved = await resolveLocalityData(city, postalCode);
+    const resolved = await resolveLocalityData(city, postalCode, undefined, undefined, neighborhood);
     if (!resolved) return null;
 
     // Strip localityId from fieldSources (don't expose internal IDs to client)

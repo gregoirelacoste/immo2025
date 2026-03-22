@@ -102,9 +102,28 @@ Ne retourne RIEN d'autre que le bloc JSON.`;
 }
 
 function cleanJsonBlock(raw: string): string {
-  const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (match) return match[1].trim();
-  // Fallback: try to find raw JSON object
+  // 1. Try fenced code block (```json ... ```)
+  const fencedMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fencedMatch) return fencedMatch[1].trim();
+
+  // 2. Try to find a balanced JSON object by matching braces
+  const start = raw.indexOf("{");
+  if (start === -1) return raw.trim();
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < raw.length; i++) {
+    const ch = raw[i];
+    if (escape) { escape = false; continue; }
+    if (ch === "\\") { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{") depth++;
+    if (ch === "}") { depth--; if (depth === 0) return raw.substring(start, i + 1); }
+  }
+
+  // 3. Fallback: greedy match
   const braceMatch = raw.match(/\{[\s\S]*\}/);
   if (braceMatch) return braceMatch[0].trim();
   return raw.trim();
@@ -163,6 +182,9 @@ export async function researchNeighborhood(
     temperature: 0.3,
     maxOutputTokens: 4096,
   });
+
+  console.log("[researchNeighborhood] Raw AI response length:", rawResponse.length);
+  console.log("[researchNeighborhood] Raw AI response (first 800 chars):", rawResponse.substring(0, 800));
 
   const jsonStr = cleanJsonBlock(rawResponse);
   let parsed: Record<string, unknown>;

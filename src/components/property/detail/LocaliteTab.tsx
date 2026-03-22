@@ -27,7 +27,7 @@ export default function LocaliteTab({ property, isPremium = false }: Props) {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const result = await fetchLocalityFields(property.city, property.postal_code || undefined);
+      const result = await fetchLocalityFields(property.city, property.postal_code || undefined, property.neighborhood || undefined);
       if (cancelled) return;
       if (result) {
         setCityName(result.cityName);
@@ -40,7 +40,7 @@ export default function LocaliteTab({ property, isPremium = false }: Props) {
     if (property.city) load();
     else setLoading(false);
     return () => { cancelled = true; };
-  }, [property.city, property.postal_code]);
+  }, [property.city, property.postal_code, property.neighborhood]);
 
   const pricePerM2 = property.surface > 0 ? property.purchase_price / property.surface : null;
   const rentPerM2 = property.monthly_rent > 0 && property.surface > 0
