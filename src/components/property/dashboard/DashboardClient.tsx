@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 
 import { Property, PROPERTY_STATUSES, PROPERTY_STATUS_CONFIG, type PropertyStatus } from "@/domains/property/types";
@@ -24,6 +24,15 @@ export default function DashboardClient({ properties: initialProperties, current
   const [sortAsc, setSortAsc] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Set<PropertyStatus>>(new Set(PROPERTY_STATUSES));
   const [favoriteFilter, setFavoriteFilter] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(true); // true par défaut pour éviter flash
+  useEffect(() => {
+    setBannerDismissed(localStorage.getItem("tiili-welcome-dismissed") === "1");
+  }, []);
+  function dismissBanner() {
+    localStorage.setItem("tiili-welcome-dismissed", "1");
+    setBannerDismissed(true);
+  }
+
   const hasOtherUsersProperties = !!currentUserId && initialProperties.some(p => p.user_id !== currentUserId);
   const [onlyMine, setOnlyMine] = useState(hasOtherUsersProperties);
   const [activeTab, setActiveTab] = useState<"all" | "mine" | "fav">(hasOtherUsersProperties ? "mine" : "all");
@@ -184,6 +193,45 @@ export default function DashboardClient({ properties: initialProperties, current
 
   return (
     <div className="pb-safe">
+      {/* ═══ Welcome banner for anonymous visitors ═══ */}
+      {!currentUserId && !bannerDismissed && (
+        <div className="bg-white rounded-xl border border-tiili-border p-5 md:p-6 mb-4 relative">
+          <button
+            onClick={dismissBanner}
+            className="absolute top-3 right-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-300 hover:text-gray-500 transition-colors"
+            aria-label="Fermer"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-[#1a1a2e] mb-1">
+                Analysez un investissement locatif en 30 secondes
+              </h2>
+              <p className="text-sm text-gray-500 max-w-lg">
+                Collez un lien d&apos;annonce ou le texte d&apos;une fiche — tiili calcule rendement, cash-flow et score automatiquement. Les biens ci-dessous sont des exemples publics.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+              <Link
+                href="/property/new"
+                className="inline-flex items-center justify-center px-5 py-2.5 min-h-[44px] bg-amber-600 text-white text-sm font-semibold rounded-xl hover:bg-amber-700 transition-colors shadow-[0_2px_8px_rgba(217,119,6,0.25)]"
+              >
+                Essayer gratuitement
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex items-center justify-center px-5 py-2.5 min-h-[44px] border border-tiili-border text-sm font-medium text-gray-600 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Créer un compte
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ Sticky header with tabs + status filters ═══ */}
       <div className="md:hidden sticky top-12 z-30 bg-white border-b border-tiili-border -mx-4">
         {/* Tabs */}
