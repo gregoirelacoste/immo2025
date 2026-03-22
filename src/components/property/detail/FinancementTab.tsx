@@ -96,7 +96,14 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
     return get("maintenance_per_m2") * property.surface;
   }, [get, property.surface]);
 
+  // Local-only update (instant, no server call)
   const handleChange = useCallback((field: string, value: number) => {
+    const key = field as keyof Property;
+    setLocalValues(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  // Server persist (called by StepperField onCommit — debounced for +/- clicks)
+  const handleCommit = useCallback((field: string, value: number) => {
     const key = field as keyof Property;
     setLocalValues(prev => ({ ...prev, [key]: value }));
 
@@ -119,7 +126,7 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
       }
       router.refresh();
     });
-  }, [property.id, property.purchase_price, property.property_type, property.renovation_cost, effectiveNotary, get, router]);
+  }, [property.id, property.purchase_price, property.property_type, property.renovation_cost, effectiveNotary, get, router, furnitureCost]);
 
   return (
     <div className="space-y-4 mt-4">
@@ -141,6 +148,7 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
             config={config}
             value={get(config.field)}
             onChange={handleChange}
+            onCommit={handleCommit}
             readOnly={!isOwner}
           />
         ))}
@@ -181,6 +189,7 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
                 config={config}
                 value={isNotary && value === 0 ? effectiveNotary : value}
                 onChange={handleChange}
+                onCommit={handleCommit}
                 readOnly={!isOwner}
               />
               {isNotary && value === 0 && (
@@ -216,6 +225,7 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
               config={config}
               value={get(config.field)}
               onChange={handleChange}
+              onCommit={handleCommit}
               readOnly={!isOwner}
             />
             {config.field === "gli_rate" && gliAnnualCost > 0 && (

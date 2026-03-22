@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 
 export interface StepperFieldConfig {
   field: string;
@@ -22,7 +22,7 @@ interface Props {
   value: number;
   /** Called on every change (stepper click or text commit) — use for local state */
   onChange: (field: string, v: number) => void;
-  /** Called alongside onChange — use for server persist (optional) */
+  /** Called after a pause in stepper clicks (debounced) or on text commit — use for server persist */
   onCommit?: (field: string, v: number) => void;
   readOnly?: boolean;
 }
@@ -36,6 +36,15 @@ export default function StepperField({
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [textValue, setTextValue] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced commit for stepper +/- clicks (500ms)
+  const debouncedCommit = useCallback((field: string, v: number) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onCommit?.(field, v);
+    }, 500);
+  }, [onCommit]);
 
   if (readOnly) {
     return (
@@ -58,6 +67,8 @@ export default function StepperField({
     const minVal = config.min ?? 0;
     if (!isNaN(parsed) && parsed >= minVal) {
       onChange(config.field, parsed);
+      // Text commit is immediate (user pressed Enter or blurred)
+      if (debounceRef.current) clearTimeout(debounceRef.current);
       onCommit?.(config.field, parsed);
     }
     setEditing(false);
@@ -67,7 +78,8 @@ export default function StepperField({
     const minVal = config.min ?? 0;
     const next = Math.max(minVal, +(value + dir * config.step).toFixed(config.decimals ?? 0));
     onChange(config.field, next);
-    onCommit?.(config.field, next);
+    // Stepper clicks are debounced — waits for pause before committing
+    debouncedCommit(config.field, next);
   }
 
   return (
