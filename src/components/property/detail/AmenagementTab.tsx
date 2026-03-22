@@ -52,18 +52,22 @@ export default function AmenagementTab({ property, isOwner }: Props) {
   // Fiscal impact for the selected cost
   const fiscalWithFurniture = useMemo(() => {
     const cost = selectedCost > 0 ? selectedCost : 5000;
-    return calculateFiscalImpact(
-      property.monthly_rent * 12,
-      property.purchase_price,
-      property.renovation_cost,
-      property.condo_charges,
-      property.property_tax,
-      0,
-      property.loan_amount,
-      property.interest_rate,
-      30,
-      cost
-    );
+    const interestYear1 = property.loan_amount * (property.interest_rate / 100);
+    return calculateFiscalImpact({
+      annualRent: property.monthly_rent * 12,
+      purchasePrice: property.purchase_price,
+      renovationCost: property.renovation_cost,
+      deductibleCharges: {
+        condoCharges: property.condo_charges,
+        propertyTax: property.property_tax,
+        pnoInsurance: property.pno_insurance || 0,
+        maintenance: (property.maintenance_per_m2 || 0) * (property.surface || 0),
+        gliCost: 0,
+        loanInsurance: 0,
+        interestYear1,
+      },
+      furnitureCost: cost,
+    });
   }, [property, selectedCost]);
 
   const effectiveCost = selectedCost > 0 ? selectedCost : 5000;

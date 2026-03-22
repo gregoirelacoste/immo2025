@@ -23,14 +23,8 @@ interface LineItem {
 export default function CashflowBreakdownModal({ open, onClose, property, simulation, calcs }: Props) {
   if (!open) return null;
 
+  const { cashflowBreakdown: cf, chargesBreakdown: ch } = calcs;
   const vacancyRate = simulation.vacancy_rate ?? property.vacancy_rate ?? 5;
-  const monthlyRent = simulation.monthly_rent > 0 ? simulation.monthly_rent : property.monthly_rent;
-  const annualRentBrut = monthlyRent * 12;
-  const annualRentNet = annualRentBrut * (1 - vacancyRate / 100);
-  const maintenanceCost = (simulation.maintenance_per_m2 || 0) * (property.surface || 0);
-  const pnoInsurance = simulation.pno_insurance || 0;
-  const gliRate = simulation.gli_rate || 0;
-  const gliCost = annualRentNet * (gliRate / 100);
 
   const sections: { title: string; items: LineItem[]; subtotal?: LineItem }[] = [
     {
@@ -38,19 +32,19 @@ export default function CashflowBreakdownModal({ open, onClose, property, simula
       items: [
         {
           label: "Loyer mensuel brut",
-          value: monthlyRent,
-          param: `${formatCurrency(monthlyRent)}/mois`,
+          value: cf.grossMonthlyRent,
+          param: `${formatCurrency(cf.grossMonthlyRent)}/mois`,
           positive: true,
         },
         {
           label: "Vacance locative",
-          value: -(annualRentBrut - annualRentNet) / 12,
+          value: -cf.vacancyCost,
           param: `${vacancyRate}% du loyer`,
         },
       ],
       subtotal: {
         label: "Revenu net mensuel",
-        value: annualRentNet / 12,
+        value: cf.netMonthlyRent,
         bold: true,
         positive: true,
       },
@@ -61,7 +55,7 @@ export default function CashflowBreakdownModal({ open, onClose, property, simula
         {
           label: "Mensualité crédit",
           value: -calcs.monthly_payment,
-          param: `${formatCurrency(simulation.loan_amount || property.loan_amount)} à ${simulation.interest_rate}% sur ${simulation.loan_duration} ans`,
+          param: `${formatCurrency(calcs.total_project_cost - calcs.total_notary_fees)} à ${simulation.interest_rate}% sur ${simulation.loan_duration} ans`,
         },
         {
           label: "Assurance emprunteur",
@@ -73,51 +67,44 @@ export default function CashflowBreakdownModal({ open, onClose, property, simula
     {
       title: "Charges d'exploitation",
       items: [
-        ...(property.condo_charges > 0
+        ...(ch.condo > 0
           ? [{
               label: "Charges de copropriété",
-              value: -property.condo_charges / 12,
-              param: `${formatCurrency(property.condo_charges)}/an`,
+              value: -ch.condo / 12,
+              param: `${formatCurrency(ch.condo)}/an`,
             }]
           : []),
-        ...(property.property_tax > 0
+        ...(ch.propertyTax > 0
           ? [{
               label: "Taxe foncière",
-              value: -property.property_tax / 12,
-              param: `${formatCurrency(property.property_tax)}/an`,
+              value: -ch.propertyTax / 12,
+              param: `${formatCurrency(ch.propertyTax)}/an`,
             }]
           : []),
-        ...(pnoInsurance > 0
+        ...(ch.pnoInsurance > 0
           ? [{
               label: "Assurance PNO",
-              value: -pnoInsurance / 12,
-              param: `${formatCurrency(pnoInsurance)}/an`,
+              value: -ch.pnoInsurance / 12,
+              param: `${formatCurrency(ch.pnoInsurance)}/an`,
             }]
           : []),
-        ...(maintenanceCost > 0
+        ...(ch.maintenance > 0
           ? [{
               label: "Provision entretien",
-              value: -maintenanceCost / 12,
+              value: -ch.maintenance / 12,
               param: `${simulation.maintenance_per_m2} €/m²/an × ${property.surface} m²`,
             }]
           : []),
-        ...(gliCost > 0
+        ...(ch.gliCost > 0
           ? [{
               label: "Garantie loyers impayés (GLI)",
-              value: -gliCost / 12,
-              param: `${gliRate}% du loyer net`,
+              value: -ch.gliCost / 12,
+              param: `${simulation.gli_rate}% du loyer net`,
             }]
           : []),
       ],
     },
   ];
-
-  const totalChargesExploit =
-    property.condo_charges / 12 +
-    property.property_tax / 12 +
-    pnoInsurance / 12 +
-    maintenanceCost / 12 +
-    gliCost / 12;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={onClose}>
@@ -196,19 +183,19 @@ export default function CashflowBreakdownModal({ open, onClose, property, simula
               <div className="flex justify-between">
                 <span className="text-gray-600">Revenu net (après vacance)</span>
                 <span className="font-semibold text-green-600 font-[family-name:var(--font-mono)]">
-                  +{Math.round(annualRentNet / 12)}{"\u202f"}€
+                  +{Math.round(cf.netMonthlyRent)}{"\u202f"}€
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Financement (crédit + assurance)</span>
                 <span className="font-semibold text-red-600 font-[family-name:var(--font-mono)]">
-                  -{Math.round(calcs.monthly_payment + calcs.monthly_insurance)}{"\u202f"}€
+                  -{Math.round(cf.monthlyFinancing)}{"\u202f"}€
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Charges d&apos;exploitation</span>
                 <span className="font-semibold text-red-600 font-[family-name:var(--font-mono)]">
-                  -{Math.round(totalChargesExploit)}{"\u202f"}€
+                  -{Math.round(cf.monthlyCharges)}{"\u202f"}€
                 </span>
               </div>
               <div className="flex justify-between pt-2 border-t border-gray-200">

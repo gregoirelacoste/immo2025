@@ -1,4 +1,4 @@
-import { Property, PropertyCalculations, FiscalImpact, CapitalGainsTax, ExitSimulation } from "@/domains/property/types";
+import { Property, PropertyCalculations, FiscalImpact, CapitalGainsTax, ExitSimulation, ChargesBreakdown, LoanBreakdown, CashflowBreakdown } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
 
 export function calculateNotaryFees(
@@ -24,39 +24,77 @@ export function calculateMonthlyPayment(
   );
 }
 
-/** Calcul de l'impact fiscal simplifié (TMI par défaut 30%) */
-export function calculateFiscalImpact(
-  annualRent: number,
-  purchasePrice: number,
-  renovationCost: number,
-  condoCharges: number,
-  propertyTax: number,
-  monthlyInsurance: number,
-  loanAmount: number,
-  interestRate: number,
-  tmi: number = 30,
-  furnitureCost: number = 5000
-): FiscalImpact {
-  // Micro-BIC : abattement 50%
-  const micro_bic_taxable = annualRent * 0.5;
-  const micro_bic_tax = micro_bic_taxable * (tmi / 100);
+/** Paramètres pour le calcul fiscal */
+export interface FiscalParams {
+  annualRent: number;
+  purchasePrice: number;
+  renovationCost: number;
+  deductibleCharges: {
+    condoCharges: number;      // charges copro annuelles
+    propertyTax: number;       // taxe foncière annuelle
+    pnoInsurance: number;      // assurance PNO annuelle
+    maintenance: number;       // provision entretien annuelle
+    gliCost: number;           // GLI annuelle
+    loanInsurance: number;     // assurance emprunteur annuelle
+    interestYear1: number;     // intérêts année 1 (approximation)
+  };
+  tmi?: number;                // tranche marginale d'imposition (défaut 30%)
+  psRate?: number;             // prélèvements sociaux (défaut 17.2%)
+  furnitureCost?: number;      // coût mobilier (défaut 5000€)
+}
 
-  // LMNP Réel : amortissement + déduction charges
-  const amort_bien = (purchasePrice * 0.85) / 30;  // hors terrain (~15%), sur 30 ans
-  const amort_travaux = renovationCost > 0 ? renovationCost / 10 : 0; // sur 10 ans
-  const effectiveFurnitureCost = furnitureCost > 0 ? furnitureCost : 5000;
-  const amort_meubles = effectiveFurnitureCost / 7;  // mobilier sur 7 ans
-  const interests_year1 = loanAmount * (interestRate / 100); // approximation année 1
-  const charges_deductibles = condoCharges + propertyTax + monthlyInsurance * 12 + interests_year1;
+/** Constantes fiscales françaises */
+const FISCAL_DEFAULTS = {
+  TMI: 30,
+  PS_RATE: 17.2,
+  BUILDING_LAND_RATIO: 0.85,   // 85% hors terrain
+  BUILDING_DURATION: 30,        // amortissement bien sur 30 ans
+  RENOVATION_DURATION: 10,      // amortissement travaux sur 10 ans
+  FURNITURE_DURATION: 7,        // amortissement mobilier sur 7 ans
+  FURNITURE_COST_DEFAULT: 5000, // forfait mobilier par défaut
+  MICRO_BIC_ABATEMENT: 0.5,    // abattement 50% micro-BIC
+} as const;
+
+/** Calcul de l'impact fiscal : IR (TMI) + Prélèvements Sociaux (17.2%) */
+export function calculateFiscalImpact(params: FiscalParams): FiscalImpact {
+  const tmi = params.tmi ?? FISCAL_DEFAULTS.TMI;
+  const psRate = params.psRate ?? FISCAL_DEFAULTS.PS_RATE;
+  const { annualRent, purchasePrice, renovationCost, deductibleCharges } = params;
+  const furnitureCost = (params.furnitureCost ?? 0) > 0
+    ? params.furnitureCost!
+    : FISCAL_DEFAULTS.FURNITURE_COST_DEFAULT;
+
+  // --- Micro-BIC : abattement 50% ---
+  const micro_bic_taxable = annualRent * FISCAL_DEFAULTS.MICRO_BIC_ABATEMENT;
+  const micro_bic_tax = micro_bic_taxable * (tmi / 100);
+  const social_contributions_micro = micro_bic_taxable * (psRate / 100);
+
+  // --- LMNP Réel : amortissement + déduction charges ---
+  const amort_bien = (purchasePrice * FISCAL_DEFAULTS.BUILDING_LAND_RATIO) / FISCAL_DEFAULTS.BUILDING_DURATION;
+  const amort_travaux = renovationCost > 0 ? renovationCost / FISCAL_DEFAULTS.RENOVATION_DURATION : 0;
+  const amort_meubles = furnitureCost / FISCAL_DEFAULTS.FURNITURE_DURATION;
+
+  const charges_deductibles =
+    deductibleCharges.condoCharges +
+    deductibleCharges.propertyTax +
+    deductibleCharges.pnoInsurance +
+    deductibleCharges.maintenance +
+    deductibleCharges.gliCost +
+    deductibleCharges.loanInsurance +
+    deductibleCharges.interestYear1;
+
   const resultat_reel = annualRent - charges_deductibles - amort_bien - amort_travaux - amort_meubles;
   const lmnp_reel_tax = Math.max(0, resultat_reel) * (tmi / 100);
+  const social_contributions_reel = Math.max(0, resultat_reel) * (psRate / 100);
 
   return {
     micro_bic_tax: Math.round(micro_bic_tax),
     lmnp_reel_tax: Math.round(lmnp_reel_tax),
     fiscal_savings: Math.round(micro_bic_tax - lmnp_reel_tax),
-    net_net_income_micro: Math.round(annualRent - micro_bic_tax),
-    net_net_income_reel: Math.round(annualRent - lmnp_reel_tax),
+    net_net_income_micro: Math.round(annualRent - micro_bic_tax - social_contributions_micro),
+    net_net_income_reel: Math.round(annualRent - lmnp_reel_tax - social_contributions_reel),
+    social_contributions_micro: Math.round(social_contributions_micro),
+    social_contributions_reel: Math.round(social_contributions_reel),
   };
 }
 
@@ -151,12 +189,13 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
     charges.annualMaintenanceCost / 12 -
     gli_cost / 12;
 
-  // --- Airbnb (pas de GLI en Airbnb) ---
+  // --- Airbnb (pas de GLI en Airbnb, mais copro + PNO + maintenance + TF) ---
   const airbnb_annual_income =
     airbnb_price_per_night * 365 * (airbnb_occupancy_rate / 100);
 
   const airbnb_annual_charges =
     airbnb_charges * 12 +
+    condo_charges +
     property_tax +
     charges.pnoInsurance +
     charges.annualMaintenanceCost;
@@ -174,30 +213,80 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
     monthly_payment -
     monthly_insurance -
     airbnb_charges -
+    condo_charges / 12 -
     property_tax / 12 -
     charges.pnoInsurance / 12 -
     charges.annualMaintenanceCost / 12;
 
   // --- Fiscalité ---
-  const fiscal = calculateFiscalImpact(
-    annual_rent_income,
-    purchase_price,
-    renovation_cost,
-    condo_charges,
-    property_tax,
-    monthly_insurance,
-    loan_amount,
-    interest_rate,
-    30,
-    property.furniture_cost ?? 0
-  );
+  const interests_year1 = loan_amount * (interest_rate / 100);
+  const fiscal = calculateFiscalImpact({
+    annualRent: annual_rent_income,
+    purchasePrice: purchase_price,
+    renovationCost: renovation_cost,
+    deductibleCharges: {
+      condoCharges: condo_charges,
+      propertyTax: property_tax,
+      pnoInsurance: charges.pnoInsurance,
+      maintenance: charges.annualMaintenanceCost,
+      gliCost: gli_cost,
+      loanInsurance: monthly_insurance * 12,
+      interestYear1: interests_year1,
+    },
+    furnitureCost: property.furniture_cost ?? 0,
+  });
 
-  // Rendement net-net (après impôts selon régime choisi)
-  const annual_tax = fiscal_regime === "lmnp_reel" ? fiscal.lmnp_reel_tax : fiscal.micro_bic_tax;
+  // Rendement net-net (après impôts + PS selon régime choisi)
+  const annual_tax = fiscal_regime === "lmnp_reel"
+    ? fiscal.lmnp_reel_tax + fiscal.social_contributions_reel
+    : fiscal.micro_bic_tax + fiscal.social_contributions_micro;
   const net_net_yield =
     purchase_price > 0
       ? ((annual_rent_income - annual_charges - annual_tax) / total_project_cost) * 100
       : 0;
+
+  // --- Breakdowns détaillés ---
+  const chargesBreakdown: ChargesBreakdown = {
+    condo: condo_charges,
+    propertyTax: property_tax,
+    pnoInsurance: charges.pnoInsurance,
+    maintenance: charges.annualMaintenanceCost,
+    gliCost: gli_cost,
+  };
+
+  // Loan breakdown : calcul intérêts/capital année 1
+  const monthlyRate = interest_rate / 100 / 12;
+  const totalMonths = loan_duration * 12;
+  const totalPayments = monthly_payment * totalMonths;
+  const totalInterest = totalPayments - loan_amount;
+  const totalInsurance = monthly_insurance * totalMonths;
+  let year1Interest = 0;
+  if (monthlyRate > 0 && loan_amount > 0) {
+    let remaining = loan_amount;
+    for (let m = 0; m < 12 && m < totalMonths; m++) {
+      const monthInterest = remaining * monthlyRate;
+      year1Interest += monthInterest;
+      remaining -= (monthly_payment - monthInterest);
+    }
+  }
+  const year1Capital = loan_amount > 0 ? monthly_payment * Math.min(12, totalMonths) - year1Interest : 0;
+
+  const loanBreakdown: LoanBreakdown = {
+    year1Interest: Math.round(year1Interest),
+    year1Capital: Math.round(year1Capital),
+    totalInterest: Math.round(totalInterest),
+    totalInsurance: Math.round(totalInsurance),
+  };
+
+  const grossMonthlyRent = monthly_rent;
+  const netMonthlyRent = annual_rent_income / 12;
+  const cashflowBreakdown: CashflowBreakdown = {
+    grossMonthlyRent,
+    vacancyCost: Math.round((grossMonthlyRent - netMonthlyRent) * 100) / 100,
+    netMonthlyRent: Math.round(netMonthlyRent * 100) / 100,
+    monthlyCharges: Math.round((annual_charges / 12) * 100) / 100,
+    monthlyFinancing: Math.round((monthly_payment + monthly_insurance) * 100) / 100,
+  };
 
   return {
     monthly_payment: Math.round(monthly_payment * 100) / 100,
@@ -217,7 +306,23 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
     airbnb_monthly_cashflow: Math.round(airbnb_monthly_cashflow * 100) / 100,
     airbnb_annual_income: Math.round(airbnb_annual_income),
     airbnb_annual_charges: Math.round(airbnb_annual_charges),
+    chargesBreakdown,
+    loanBreakdown,
+    cashflowBreakdown,
   };
+}
+
+/** Calcule le montant du prêt à partir des composants du projet.
+ *  Source unique de vérité — utilisé par calculateSimulation, SimulationEditor, etc.
+ */
+export function computeLoanAmount(
+  purchasePrice: number,
+  notaryFees: number,
+  renovationCost: number,
+  furnitureCost: number,
+  personalContribution: number
+): number {
+  return Math.max(0, purchasePrice + notaryFees + renovationCost + furnitureCost - personalContribution);
 }
 
 /** Calculate results for a simulation by overlaying simulation params on top of property base data.
@@ -225,13 +330,11 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
  *  - monthly_rent uses simulation override if > 0, otherwise falls back to property value.
  */
 export function calculateSimulation(property: Property, simulation: Simulation): PropertyCalculations {
-  // Always recompute loan_amount from property price + notary + renovation + furniture - contribution
-  // to ensure consistency (stored loan_amount may be stale).
   const notary = simulation.notary_fees > 0
     ? simulation.notary_fees
     : calculateNotaryFees(property.purchase_price, property.property_type);
   const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
-  const computedLoan = Math.max(0, property.purchase_price + notary + simulation.renovation_cost + furnitureCost - simulation.personal_contribution);
+  const computedLoan = computeLoanAmount(property.purchase_price, notary, simulation.renovation_cost, furnitureCost, simulation.personal_contribution);
 
   const merged: Property = {
     ...property,
@@ -378,9 +481,14 @@ export function calculateExitSimulation(
   // Prix de revente estimé
   const salePrice = Math.round(property.purchase_price * Math.pow(1 + appreciation, holdingDuration));
 
-  // Capital restant dû
+  // Capital restant dû — recalcule le loan pour cohérence (comme calculateSimulation)
+  const notary = simulation.notary_fees > 0
+    ? simulation.notary_fees
+    : calculateNotaryFees(property.purchase_price, property.property_type);
+  const furnitureCostExit = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
+  const effectiveLoan = computeLoanAmount(property.purchase_price, notary, simulation.renovation_cost, furnitureCostExit, simulation.personal_contribution);
   const remainingCapital = Math.round(calculateRemainingCapital(
-    simulation.loan_amount,
+    effectiveLoan,
     simulation.interest_rate,
     simulation.loan_duration,
     holdingDuration
@@ -405,7 +513,6 @@ export function calculateExitSimulation(
   );
 
   // Investissement total (argent sorti de poche hors mensualités)
-  const furnitureCostExit = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
   const totalInvested = simulation.personal_contribution
     + calcs.total_notary_fees
     + simulation.loan_fees

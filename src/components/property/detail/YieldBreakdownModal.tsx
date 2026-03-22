@@ -15,10 +15,10 @@ interface Props {
 export default function YieldBreakdownModal({ open, onClose, property, simulation, calcs }: Props) {
   if (!open) return null;
 
-  const monthlyRent = simulation.monthly_rent > 0 ? simulation.monthly_rent : property.monthly_rent;
-  const annualRentBrut = monthlyRent * 12;
+  const { cashflowBreakdown: cf, chargesBreakdown: ch } = calcs;
+  const annualRentBrut = cf.grossMonthlyRent * 12;
+  const annualRentNet = calcs.annual_rent_income;
   const vacancyRate = simulation.vacancy_rate ?? property.vacancy_rate ?? 5;
-  const annualRentNet = annualRentBrut * (1 - vacancyRate / 100);
 
   const purchasePrice = property.purchase_price;
   const notaryFees = calcs.total_notary_fees;
@@ -26,15 +26,6 @@ export default function YieldBreakdownModal({ open, onClose, property, simulatio
   const renovationCost = simulation.renovation_cost ?? property.renovation_cost ?? 0;
   const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
   const totalProjectCost = calcs.total_project_cost;
-
-  const condoCharges = property.condo_charges || 0;
-  const propertyTax = property.property_tax || 0;
-  const pnoInsurance = simulation.pno_insurance || 0;
-  const maintenanceCost = (simulation.maintenance_per_m2 || 0) * (property.surface || 0);
-  const gliRate = simulation.gli_rate || 0;
-  const gliCost = annualRentNet * (gliRate / 100);
-
-  const annualCharges = condoCharges + propertyTax + pnoInsurance + maintenanceCost + gliCost;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={onClose}>
@@ -85,7 +76,7 @@ export default function YieldBreakdownModal({ open, onClose, property, simulatio
               <div className="px-3 py-2.5 flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm text-gray-700">Loyer mensuel</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">{formatCurrency(monthlyRent)}/mois × 12</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{formatCurrency(cf.grossMonthlyRent)}/mois × 12</p>
                 </div>
                 <span className="text-sm font-semibold text-green-600 font-[family-name:var(--font-mono)] shrink-0">
                   {formatCurrency(annualRentBrut)}/an
@@ -138,15 +129,15 @@ export default function YieldBreakdownModal({ open, onClose, property, simulatio
             <div className="mt-2">
               <p className="text-xs text-gray-500 font-medium mb-1">− Charges annuelles d&apos;exploitation</p>
               <div className="bg-gray-50 rounded-lg divide-y divide-gray-100">
-                {condoCharges > 0 && <Row label="Charges de copropriété" value={condoCharges} param={`${formatCurrency(condoCharges)}/an`} />}
-                {propertyTax > 0 && <Row label="Taxe foncière" value={propertyTax} param={`${formatCurrency(propertyTax)}/an`} />}
-                {pnoInsurance > 0 && <Row label="Assurance PNO" value={pnoInsurance} param={`${formatCurrency(pnoInsurance)}/an`} />}
-                {maintenanceCost > 0 && <Row label="Provision entretien" value={maintenanceCost} param={`${simulation.maintenance_per_m2} €/m²/an × ${property.surface} m²`} />}
-                {gliCost > 0 && <Row label="GLI" value={Math.round(gliCost)} param={`${gliRate}% du loyer net`} />}
+                {ch.condo > 0 && <Row label="Charges de copropriété" value={ch.condo} param={`${formatCurrency(ch.condo)}/an`} />}
+                {ch.propertyTax > 0 && <Row label="Taxe foncière" value={ch.propertyTax} param={`${formatCurrency(ch.propertyTax)}/an`} />}
+                {ch.pnoInsurance > 0 && <Row label="Assurance PNO" value={ch.pnoInsurance} param={`${formatCurrency(ch.pnoInsurance)}/an`} />}
+                {ch.maintenance > 0 && <Row label="Provision entretien" value={ch.maintenance} param={`${simulation.maintenance_per_m2} €/m²/an × ${property.surface} m²`} />}
+                {ch.gliCost > 0 && <Row label="GLI" value={Math.round(ch.gliCost)} param={`${simulation.gli_rate}% du loyer net`} />}
                 <div className="px-3 py-2.5 flex items-center justify-between bg-gray-100/60">
                   <span className="text-sm font-semibold text-gray-800">Total charges</span>
                   <span className="text-sm font-bold font-[family-name:var(--font-mono)] text-red-600">
-                    −{formatCurrency(Math.round(annualCharges))}
+                    −{formatCurrency(calcs.annual_charges)}
                   </span>
                 </div>
               </div>
@@ -155,7 +146,7 @@ export default function YieldBreakdownModal({ open, onClose, property, simulatio
             {/* Formula */}
             <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
               <p className="text-xs text-amber-700">
-                ({formatCurrency(annualRentNet)} − {formatCurrency(Math.round(annualCharges))}) ÷ {formatCurrency(totalProjectCost)} × 100 = <span className="font-bold">{calcs.net_yield.toFixed(2)}%</span>
+                ({formatCurrency(annualRentNet)} − {formatCurrency(calcs.annual_charges)}) ÷ {formatCurrency(totalProjectCost)} × 100 = <span className="font-bold">{calcs.net_yield.toFixed(2)}%</span>
               </p>
             </div>
           </div>
