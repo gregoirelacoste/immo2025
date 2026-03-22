@@ -66,6 +66,18 @@ const SITES: SiteConfig[] = [
   },
 ];
 
+/** Serializable site info for UI consumption — auto-derived from SITES registry */
+export interface SiteInfo {
+  key: string;
+  label: string;
+}
+
+/** All supported sites — single source of truth for the UI */
+export const SUPPORTED_SITES: SiteInfo[] = SITES.map(({ source, label }) => ({
+  key: source,
+  label,
+}));
+
 // ─── Public API ───
 
 /** Detect the source app from a URL and extract quick hints from shared text */

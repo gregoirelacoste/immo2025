@@ -3,35 +3,30 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { SavedSearch } from "@/domains/search-bookmark/types";
+import type { SiteInfo } from "@/domains/scraping/app-parsers";
 import {
   renameSavedSearchAction,
   deleteSavedSearchAction,
 } from "@/domains/search-bookmark/actions";
 import { useRouter } from "next/navigation";
 
-function SiteBadge({ site }: { site: string }) {
-  const colors: Record<string, string> = {
-    leboncoin: "bg-orange-100 text-orange-700",
-    seloger: "bg-blue-100 text-blue-700",
-    pap: "bg-green-100 text-green-700",
-    bienici: "bg-teal-100 text-teal-700",
-    logicimmo: "bg-purple-100 text-purple-700",
-    figaro: "bg-red-100 text-red-700",
-    ouestfrance: "bg-sky-100 text-sky-700",
-    superimmo: "bg-indigo-100 text-indigo-700",
-  };
-  const labels: Record<string, string> = {
-    leboncoin: "Leboncoin",
-    seloger: "SeLoger",
-    pap: "PAP",
-    bienici: "Bien'ici",
-    logicimmo: "Logic-Immo",
-    figaro: "Figaro Immo",
-    ouestfrance: "Ouest-France",
-    superimmo: "Superimmo",
-  };
-  const cls = colors[site] || "bg-gray-100 text-gray-700";
-  const label = labels[site] || site;
+// ─── Site badge styling (keyed by site source) ───
+
+const SITE_COLORS: Record<string, string> = {
+  leboncoin: "bg-orange-100 text-orange-700",
+  seloger: "bg-blue-100 text-blue-700",
+  pap: "bg-green-100 text-green-700",
+  bienici: "bg-teal-100 text-teal-700",
+  logicimmo: "bg-purple-100 text-purple-700",
+  figaro: "bg-red-100 text-red-700",
+  ouestfrance: "bg-sky-100 text-sky-700",
+  superimmo: "bg-indigo-100 text-indigo-700",
+};
+
+function SiteBadge({ site, sites }: { site: string; sites: SiteInfo[] }) {
+  const info = sites.find((s) => s.key === site);
+  const cls = SITE_COLORS[site] || "bg-gray-100 text-gray-700";
+  const label = info?.label || site;
   return (
     <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}>
       {label}
@@ -39,7 +34,67 @@ function SiteBadge({ site }: { site: string }) {
   );
 }
 
-function SavedSearchCard({ search }: { search: SavedSearch }) {
+// ─── Compatible sites modal ───
+
+function CompatibleSitesModal({
+  sites,
+  onClose,
+}: {
+  sites: SiteInfo[];
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40" />
+      <div
+        className="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-5 animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-[#1a1a2e]">Sites compatibles</h3>
+          <button
+            onClick={onClose}
+            className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <ul className="space-y-2">
+          {sites.map((s) => (
+            <li key={s.key} className="flex items-center gap-2.5 py-1.5">
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${SITE_COLORS[s.key]?.split(" ")[0] || "bg-gray-200"}`} />
+              <span className="text-sm text-gray-700">{s.label}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-xs text-gray-400 text-center">
+          Partagez une page de recherche depuis ces sites pour la sauvegarder.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function CompatibleSitesLink({ sites }: { sites: SiteInfo[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs text-gray-400 hover:text-amber-600 underline underline-offset-2 transition-colors"
+      >
+        {sites.length} sites compatibles
+      </button>
+      {open && <CompatibleSitesModal sites={sites} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+// ─── Search card ───
+
+function SavedSearchCard({ search, sites }: { search: SavedSearch; sites: SiteInfo[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(search.name);
@@ -80,7 +135,7 @@ function SavedSearchCard({ search }: { search: SavedSearch }) {
     <div className="bg-white rounded-xl border border-tiili-border shadow-sm p-4 flex items-start gap-3">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <SiteBadge site={search.site} />
+          <SiteBadge site={search.site} sites={sites} />
           <span className="text-[10px] text-gray-400">
             {new Date(search.created_at).toLocaleDateString("fr-FR")}
           </span>
@@ -153,12 +208,16 @@ function SavedSearchCard({ search }: { search: SavedSearch }) {
   );
 }
 
+// ─── Main list ───
+
 export default function SavedSearchList({
   searches,
   isLoggedIn,
+  supportedSites,
 }: {
   searches: SavedSearch[];
   isLoggedIn: boolean;
+  supportedSites: SiteInfo[];
 }) {
   if (!isLoggedIn) {
     return (
@@ -169,9 +228,12 @@ export default function SavedSearchList({
           </svg>
         </div>
         <p className="text-gray-700 font-medium mb-1">Sauvegardez vos recherches</p>
-        <p className="text-gray-400 text-sm max-w-xs mx-auto mb-6">
+        <p className="text-gray-400 text-sm max-w-xs mx-auto mb-2">
           Retrouvez vos recherches immobilières favorites en un clic. Connectez-vous pour commencer.
         </p>
+        <div className="mb-6">
+          <CompatibleSitesLink sites={supportedSites} />
+        </div>
         <div className="flex flex-col items-center gap-3">
           <Link
             href="/register"
@@ -199,18 +261,24 @@ export default function SavedSearchList({
           </svg>
         </div>
         <p className="text-gray-600 font-medium mb-1">Aucune recherche sauvegardée</p>
-        <p className="text-gray-400 text-sm max-w-xs mx-auto">
-          Partagez une page de recherche depuis Leboncoin, SeLoger, Bien&apos;ici, PAP ou d&apos;autres sites pour l&apos;ajouter ici.
+        <p className="text-gray-400 text-sm max-w-xs mx-auto mb-2">
+          Partagez une page de recherche depuis votre navigateur pour l&apos;ajouter ici.
         </p>
+        <CompatibleSitesLink sites={supportedSites} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      {searches.map((s) => (
-        <SavedSearchCard key={s.id} search={s} />
-      ))}
+    <div>
+      <div className="flex flex-col gap-3">
+        {searches.map((s) => (
+          <SavedSearchCard key={s.id} search={s} sites={supportedSites} />
+        ))}
+      </div>
+      <div className="text-center mt-4">
+        <CompatibleSitesLink sites={supportedSites} />
+      </div>
     </div>
   );
 }
