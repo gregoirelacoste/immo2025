@@ -46,6 +46,7 @@ const ALL_FIELDS = [...LOAN_FIELDS, ...FEES_FIELDS, ...CHARGES_FIELDS];
 export default function FinancementTab({ property, isOwner = false }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Local optimistic state
   const [localValues, setLocalValues] = useState<Partial<Record<keyof Property, number>>>({});
@@ -109,8 +110,10 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
 
     const config = ALL_FIELDS.find(c => c.field === field);
 
+    setSaveError(null);
     startTransition(async () => {
-      await updatePropertyField(property.id, field, value, "Onglet Financement", "declared");
+      const res = await updatePropertyField(property.id, field, value, "Onglet Financement", "declared");
+      if (!res.success) { setSaveError(res.error ?? "Erreur d'enregistrement"); return; }
       // Also recalculate loan_amount when contribution/notary changes
       if (field === "personal_contribution" || field === "notary_fees") {
         const nf = field === "notary_fees"
@@ -118,7 +121,8 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
           : effectiveNotary;
         const contrib = field === "personal_contribution" ? value : get("personal_contribution");
         const newLoan = Math.max(0, property.purchase_price + nf + property.renovation_cost + furnitureCost - contrib);
-        await updatePropertyField(property.id, "loan_amount", newLoan, "Calcul auto", "estimated");
+        const res2 = await updatePropertyField(property.id, "loan_amount", newLoan, "Calcul auto", "estimated");
+        if (!res2.success) { setSaveError(res2.error ?? "Erreur d'enregistrement"); return; }
         await syncFieldToSimulations(property.id, "loan_amount", newLoan);
       }
       if (config?.syncToSim) {
@@ -245,6 +249,12 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
       {isPending && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[#1a1a2e] text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg z-50">
           Enregistrement...
+        </div>
+      )}
+      {saveError && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg z-50 flex items-center gap-2">
+          {saveError}
+          <button onClick={() => setSaveError(null)} className="underline">OK</button>
         </div>
       )}
     </div>

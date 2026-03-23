@@ -20,6 +20,7 @@ interface Props {
 export default function EquipementsTab({ property, marketData, isOwner = false }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Local state for optimistic toggles
   const [localAmenities, setLocalAmenities] = useState<string[]>(() =>
@@ -44,13 +45,16 @@ export default function EquipementsTab({ property, marketData, isOwner = false }
       : localAmenities.filter((k) => k !== key);
     setLocalAmenities(next);
 
+    setSaveError(null);
     startTransition(async () => {
-      await updatePropertyField(property.id, "amenities", JSON.stringify(next), "Saisie manuelle", "declared");
+      const res = await updatePropertyField(property.id, "amenities", JSON.stringify(next), "Saisie manuelle", "declared");
+      if (!res.success) { setSaveError(res.error ?? "Erreur d'enregistrement"); return; }
       // In auto rent mode, recalculate and persist monthly_rent from equipment impact
       if (property.rent_mode !== "manual" && marketRentPerM2 > 0 && property.surface > 0) {
         const newSummary = calculateEquipmentImpact(marketRentPerM2, next);
         const autoRent = Math.round(newSummary.adjustedRentPerM2 * property.surface);
-        await updatePropertyField(property.id, "monthly_rent", autoRent, "Loyer auto (localité + équipements)", "estimated");
+        const res2 = await updatePropertyField(property.id, "monthly_rent", autoRent, "Loyer auto (localité + équipements)", "estimated");
+        if (!res2.success) { setSaveError(res2.error ?? "Erreur d'enregistrement"); return; }
       }
       router.refresh();
     });
@@ -149,6 +153,12 @@ export default function EquipementsTab({ property, marketData, isOwner = false }
       {isPending && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[#1a1a2e] text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg z-50">
           Enregistrement...
+        </div>
+      )}
+      {saveError && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg z-50 flex items-center gap-2">
+          {saveError}
+          <button onClick={() => setSaveError(null)} className="underline">OK</button>
         </div>
       )}
     </div>

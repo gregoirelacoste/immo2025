@@ -15,6 +15,7 @@ import {
 import { TRAVAUX_POSTES, TRAVAUX_CATEGORIES, RATING_FACTORS, RATING_LABELS, type TravauxPoste } from "@/domains/property/travaux-registry";
 import { updatePropertyField } from "@/domains/property/actions";
 import { syncFieldToSimulations } from "@/domains/simulation/actions";
+import type { Confidence } from "@/domains/property/prefill";
 import { formatCurrency } from "@/lib/calculations";
 import StarRating from "@/components/ui/StarRating";
 
@@ -26,6 +27,7 @@ interface Props {
 export default function TravauxTab({ property, isOwner = false }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Local state for optimistic updates
   const [localRatings, setLocalRatings] = useState<Record<string, number>>(() =>
@@ -49,44 +51,55 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
   const hasAnyTarget = Object.keys(localTargets).length > 0;
   const hasDpe = !!property.dpe_rating;
 
-  // Persist ratings + renovation_cost to DB and sync to all simulations
-  const persistRatings = useCallback(
-    (newRatings: Record<string, number>) => {
-      const newSummary = calculateTravaux(property.surface, JSON.stringify(newRatings), JSON.stringify(localOverrides), JSON.stringify(localTargets));
+  // Persist a set of fields to DB, check results, sync renovation_cost to simulations
+  const persistFields = useCallback(
+    (fields: Array<{ field: string; value: string | number; source: string; mode: Confidence }>, newSummary: ReturnType<typeof calculateTravaux>) => {
+      setSaveError(null);
       startTransition(async () => {
-        await updatePropertyField(property.id, "travaux_ratings", JSON.stringify(newRatings), "Estimation travaux", "estimated");
-        await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
+        for (const f of fields) {
+          const res = await updatePropertyField(property.id, f.field, f.value, f.source, f.mode);
+          if (!res.success) { setSaveError(res.error ?? "Erreur d'enregistrement"); return; }
+        }
+        const res2 = await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
+        if (!res2.success) { setSaveError(res2.error ?? "Erreur d'enregistrement"); return; }
         await syncFieldToSimulations(property.id, "renovation_cost", newSummary.totalRenovationCost);
         router.refresh();
       });
     },
-    [property.id, property.surface, localOverrides, localTargets, router]
+    [property.id, router]
+  );
+
+  const persistRatings = useCallback(
+    (newRatings: Record<string, number>) => {
+      const newSummary = calculateTravaux(property.surface, JSON.stringify(newRatings), JSON.stringify(localOverrides), JSON.stringify(localTargets));
+      persistFields(
+        [{ field: "travaux_ratings", value: JSON.stringify(newRatings), source: "Estimation travaux", mode: "estimated" }],
+        newSummary
+      );
+    },
+    [property.surface, localOverrides, localTargets, persistFields]
   );
 
   const persistTargets = useCallback(
     (newTargets: Record<string, number>) => {
       const newSummary = calculateTravaux(property.surface, JSON.stringify(localRatings), JSON.stringify(localOverrides), JSON.stringify(newTargets));
-      startTransition(async () => {
-        await updatePropertyField(property.id, "travaux_targets", JSON.stringify(newTargets), "Objectif travaux", "declared");
-        await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
-        await syncFieldToSimulations(property.id, "renovation_cost", newSummary.totalRenovationCost);
-        router.refresh();
-      });
+      persistFields(
+        [{ field: "travaux_targets", value: JSON.stringify(newTargets), source: "Objectif travaux", mode: "declared" }],
+        newSummary
+      );
     },
-    [property.id, property.surface, localRatings, localOverrides, router]
+    [property.surface, localRatings, localOverrides, persistFields]
   );
 
   const persistOverrides = useCallback(
     (newOverrides: Record<string, number>) => {
       const newSummary = calculateTravaux(property.surface, JSON.stringify(localRatings), JSON.stringify(newOverrides), JSON.stringify(localTargets));
-      startTransition(async () => {
-        await updatePropertyField(property.id, "travaux_overrides", JSON.stringify(newOverrides), "Estimation travaux", "declared");
-        await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
-        await syncFieldToSimulations(property.id, "renovation_cost", newSummary.totalRenovationCost);
-        router.refresh();
-      });
+      persistFields(
+        [{ field: "travaux_overrides", value: JSON.stringify(newOverrides), source: "Estimation travaux", mode: "declared" }],
+        newSummary
+      );
     },
-    [property.id, property.surface, localRatings, localTargets, router]
+    [property.surface, localRatings, localTargets, persistFields]
   );
 
   function handleRatingChange(key: string, value: number | null) {
@@ -352,13 +365,13 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                           )}
                         </div>
                         {showCost && (
-                          <span className="text-xs font-semibold text-orange-600 shrink-0">
-                            ~{formatCurrency(item.finalCost)}
+                          <span className="text-sm font-bold text-orange-700 shrink-0 font-[family-name:var(--font-mono)]">
+                            {formatCurrency(item.finalCost)}
                           </span>
                         )}
                         {item.isRecurrent && item.monthlyProvision > 0 && (
-                          <span className="text-xs font-semibold text-blue-600 shrink-0">
-                            {item.monthlyProvision} €/mois
+                          <span className="text-sm font-bold text-blue-600 shrink-0 font-[family-name:var(--font-mono)]">
+                            {item.monthlyProvision}{"\u202f"}€/mois
                           </span>
                         )}
                         <svg
@@ -502,6 +515,12 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
       {isPending && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[#1a1a2e] text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg z-50">
           Enregistrement...
+        </div>
+      )}
+      {saveError && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg z-50 flex items-center gap-2">
+          {saveError}
+          <button onClick={() => setSaveError(null)} className="underline">OK</button>
         </div>
       )}
     </div>

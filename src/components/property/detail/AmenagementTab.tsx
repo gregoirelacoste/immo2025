@@ -48,6 +48,7 @@ export default function AmenagementTab({ property, isOwner }: Props) {
   );
   const [expandedPack, setExpandedPack] = useState<PackLevel | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Fiscal impact for the selected cost
   const fiscalWithFurniture = useMemo(() => {
@@ -74,8 +75,10 @@ export default function AmenagementTab({ property, isOwner }: Props) {
   const annualAmort = Math.round(effectiveCost / FURNITURE_AMORTIZATION_YEARS);
 
   function persist(newStatus: MeubleStatus, cost: number) {
+    setSaveError(null);
     startTransition(async () => {
-      await saveMeubleChoice(property.id, newStatus, cost);
+      const res = await saveMeubleChoice(property.id, newStatus, cost);
+      if (!res.success) { setSaveError(res.error ?? "Erreur d'enregistrement"); return; }
       router.refresh();
     });
   }
@@ -439,6 +442,12 @@ export default function AmenagementTab({ property, isOwner }: Props) {
       {isPending && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[#1a1a2e] text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg z-50">
           Enregistrement...
+        </div>
+      )}
+      {saveError && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg z-50 flex items-center gap-2">
+          {saveError}
+          <button onClick={() => setSaveError(null)} className="underline">OK</button>
         </div>
       )}
     </div>
