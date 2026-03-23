@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 
 import { Property, PROPERTY_STATUSES, PROPERTY_STATUS_CONFIG, type PropertyStatus } from "@/domains/property/types";
-import { calculateAll, calculateSimulation, calculateExitSimulation } from "@/lib/calculations";
+import { calculateSimulation, calculateExitSimulation } from "@/lib/calculations";
 import { calculateTravaux } from "@/domains/property/travaux-calculator";
 import type { ExitSimulation } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";

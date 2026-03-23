@@ -101,7 +101,7 @@ function buildSections(properties: Property[], simulationsMap: Record<string, Si
     {
       title: "Bilan (projection)",
       rows: [
-        row("Duree detention", (_p, _c, i) => {
+        row("Durée détention", (_p, _c, i) => {
           const v = exits[i].holdingDuration;
           return { display: `${v} ans`, raw: v };
         }),

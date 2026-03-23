@@ -167,10 +167,10 @@ export default function PropertyCard({ property: p, calcs: c, exitSim, index = 0
         {/* Line 4: ROI + Profit net (projection) */}
         {exitSim.holdingDuration > 0 && (
           <div className="flex items-center gap-2 mt-1">
-            <span className={`text-[11px] font-bold tabular-nums ${exitSim.roi >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+            <span className={`text-[11px] font-bold tabular-nums ${exitSim.roi >= 0 ? "text-green-600" : "text-red-600"}`}>
               ROI {exitSim.roi > 0 ? "+" : ""}{exitSim.roi.toFixed(0)}%
             </span>
-            <span className={`text-[11px] font-semibold tabular-nums ${exitSim.netProfit >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+            <span className={`text-[11px] font-semibold tabular-nums ${exitSim.netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
               {exitSim.netProfit > 0 ? "+" : ""}{fmt(exitSim.netProfit)}{"\u202f"}€
             </span>
             <span className="text-[10px] text-[#bdb4a7]">
