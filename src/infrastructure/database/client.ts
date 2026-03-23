@@ -14,7 +14,7 @@ export function getClient(): Client {
 }
 
 // Bump this when adding new migrations so cold starts re-run them
-const SCHEMA_VERSION = 17;
+const SCHEMA_VERSION = 18;
 
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints

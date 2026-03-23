@@ -12,7 +12,7 @@ import {
   TRAVAUX_PRESETS,
   type TravauxPreset,
 } from "@/domains/property/travaux-calculator";
-import { TRAVAUX_POSTES, TRAVAUX_CATEGORIES, RATING_FACTORS, RATING_LABELS, type TravauxPoste } from "@/domains/property/travaux-registry";
+import { TRAVAUX_POSTES, TRAVAUX_CATEGORIES, type TravauxPoste } from "@/domains/property/travaux-registry";
 import { updatePropertyField } from "@/domains/property/actions";
 import { syncFieldToSimulations } from "@/domains/simulation/actions";
 import type { Confidence } from "@/domains/property/prefill";
@@ -241,70 +241,47 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
           </div>
         )}
 
-        {/* Budget summary with split */}
-        {hasAnyRating && (hasAnyTarget || summary.totalRenovationCost > 0) ? (
-          <div className="mb-4 space-y-2">
-            {/* Total budget */}
-            <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
-              <div className="text-2xl font-extrabold text-orange-700">
-                {formatCurrency(summary.totalRenovationCost)}
+        {/* Budget summary — compact */}
+        {hasAnyRating && summary.totalRenovationCost > 0 ? (
+          <div className="mb-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <div className="text-2xl font-extrabold text-orange-700">
+                  {formatCurrency(summary.totalRenovationCost)}
+                </div>
+                <div className="text-xs text-orange-500 font-medium">Budget travaux estimé</div>
               </div>
-              <div className="text-xs text-orange-500 font-medium">Budget travaux estimé</div>
               {summary.monthlyMaintenanceCost > 0 && (
-                <div className="text-sm text-orange-600 mt-1">
-                  Entretien : +{summary.monthlyMaintenanceCost} €/mois
+                <div className="text-right">
+                  <div className="text-sm font-bold text-blue-600">+{summary.monthlyMaintenanceCost}{"\u202f"}€/mois</div>
+                  <div className="text-[10px] text-blue-400">Entretien</div>
                 </div>
               )}
             </div>
-
-            {/* Split: remise à niveau vs valorisation */}
+            {/* Inline split: remise à niveau / valorisation / négo */}
             {(summary.totalRemiseANiveauCost > 0 || summary.totalValorisationCost > 0) && (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 pt-2 border-t border-orange-100">
                 {summary.totalRemiseANiveauCost > 0 && (
-                  <div className="p-3 bg-red-50 rounded-xl border border-red-100">
-                    <div className="text-lg font-extrabold text-red-700">
-                      {formatCurrency(summary.totalRemiseANiveauCost)}
-                    </div>
-                    <div className="text-[10px] text-red-500 font-semibold uppercase tracking-wider">
-                      Remise à niveau
-                    </div>
-                  </div>
+                  <span className="text-xs text-red-600">
+                    Remise à niveau : <span className="font-semibold">{formatCurrency(summary.totalRemiseANiveauCost)}</span>
+                  </span>
                 )}
                 {summary.totalValorisationCost > 0 && (
-                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                    <div className="text-lg font-extrabold text-emerald-700">
-                      {formatCurrency(summary.totalValorisationCost)}
-                    </div>
-                    <div className="text-[10px] text-emerald-500 font-semibold uppercase tracking-wider">
-                      Valorisation
-                    </div>
-                  </div>
+                  <span className="text-xs text-emerald-600">
+                    Valorisation : <span className="font-semibold">{formatCurrency(summary.totalValorisationCost)}</span>
+                  </span>
+                )}
+                {summary.valorisationResaleValue > 0 && (
+                  <span className="text-xs text-emerald-500">
+                    Plus-value revente : <span className="font-semibold">+{formatCurrency(summary.valorisationResaleValue)}</span>
+                  </span>
                 )}
               </div>
             )}
-
-            {/* Negotiation callout */}
             {summary.totalRemiseANiveauCost > 0 && (
-              <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                <p className="text-xs font-semibold text-blue-700">
-                  Argument de négociation : -{formatCurrency(summary.totalRemiseANiveauCost)}
-                </p>
-                <p className="text-[10px] text-blue-500 mt-0.5">
-                  Travaux nécessaires pour un état acceptable — peut justifier une réduction du prix d'achat.
-                </p>
-              </div>
-            )}
-
-            {/* Valorisation resale value */}
-            {summary.valorisationResaleValue > 0 && (
-              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                <p className="text-xs font-semibold text-emerald-700">
-                  Plus-value travaux estimée : +{formatCurrency(summary.valorisationResaleValue)}
-                </p>
-                <p className="text-[10px] text-emerald-500 mt-0.5">
-                  Retour sur investissement estimé des travaux de valorisation à la revente.
-                </p>
-              </div>
+              <p className="text-[11px] text-blue-600 mt-2">
+                Argument de négo : <span className="font-semibold">-{formatCurrency(summary.totalRemiseANiveauCost)}</span> sur le prix d'achat
+              </p>
             )}
           </div>
         ) : hasAnyRating ? (
@@ -313,11 +290,6 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
               {formatCurrency(summary.totalRenovationCost)}
             </div>
             <div className="text-xs text-orange-500 font-medium">Budget travaux estimé</div>
-            {summary.monthlyMaintenanceCost > 0 && (
-              <div className="text-sm text-orange-600 mt-1">
-                Entretien : +{summary.monthlyMaintenanceCost} €/mois
-              </div>
-            )}
           </div>
         ) : (
           <p className="text-sm text-gray-500 mb-4">
@@ -342,13 +314,13 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                   const hasTarget = item.target !== null && item.rating !== null && item.target > item.rating;
 
                   return (
-                    <div key={item.key} className="rounded-lg border border-gray-100 bg-white">
+                    <div key={item.key} className={`rounded-lg border bg-white ${isExpanded ? "border-amber-200" : "border-gray-100"}`}>
                       {/* Compact row */}
                       <div
-                        className="flex items-center gap-2 px-3 py-2 cursor-pointer min-h-[48px]"
+                        className="flex items-center gap-2 px-3 py-2 cursor-pointer min-h-[44px]"
                         onClick={() => setExpandedKey(isExpanded ? null : item.key)}
                       >
-                        <span className="text-sm font-medium text-gray-700 w-28 shrink-0 truncate">
+                        <span className="text-sm font-medium text-gray-700 w-24 shrink-0 truncate">
                           {item.label}
                         </span>
                         <div className="flex-1 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -365,38 +337,40 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                           )}
                         </div>
                         {showCost && (
-                          <span className="text-sm font-bold text-orange-700 shrink-0 font-[family-name:var(--font-mono)]">
+                          <span className="text-sm font-bold text-orange-700 shrink-0 tabular-nums">
                             {formatCurrency(item.finalCost)}
                           </span>
                         )}
                         {item.isRecurrent && item.monthlyProvision > 0 && (
-                          <span className="text-sm font-bold text-blue-600 shrink-0 font-[family-name:var(--font-mono)]">
-                            {item.monthlyProvision}{"\u202f"}€/mois
+                          <span className="text-sm font-bold text-blue-600 shrink-0 tabular-nums">
+                            {item.monthlyProvision}{"\u202f"}€/m
                           </span>
                         )}
-                        <svg
-                          className={`w-4 h-4 text-gray-300 shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                          stroke="currentColor"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                        </svg>
                       </div>
 
                       {/* Expanded detail */}
                       {isExpanded && (
                         <div className="px-3 pb-3 pt-1 border-t border-gray-50 space-y-2">
+                          {/* Reference cost + cost breakdown inline */}
                           <div className="text-xs text-gray-500">
-                            <span className="font-medium">Coût réf. :</span>{" "}
                             {formatReferenceCostLabel(poste, property.surface, item.referenceCost)}
                           </div>
+
+                          {item.finalCost > 0 && !item.isRecurrent && (item.remiseANiveauCost > 0 || item.valorisationCost > 0) && (
+                            <div className="flex gap-3 text-xs">
+                              {item.remiseANiveauCost > 0 && (
+                                <span className="text-red-600">Remise à niveau : <span className="font-semibold">{formatCurrency(item.remiseANiveauCost)}</span></span>
+                              )}
+                              {item.valorisationCost > 0 && (
+                                <span className="text-emerald-600">Valo : <span className="font-semibold">{formatCurrency(item.valorisationCost)}</span></span>
+                              )}
+                            </div>
+                          )}
 
                           {/* Target selector */}
                           {isOwner && item.rating !== null && !item.isRecurrent && (
                             <div className="flex items-center gap-2">
-                              <label className="text-xs text-gray-500 font-medium">Objectif :</label>
+                              <label className="text-xs text-gray-500 font-medium shrink-0">Objectif :</label>
                               <div className="flex gap-1">
                                 {[3, 4, 5].filter(v => v > (item.rating ?? 0)).map(v => (
                                   <button
@@ -409,7 +383,7 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                     }`}
                                   >
-                                    {v}★ {RATING_LABELS[v]}
+                                    {v}★
                                   </button>
                                 ))}
                                 {item.target !== null && (
@@ -418,70 +392,34 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                                     onClick={(e) => { e.stopPropagation(); handleTargetChange(item.key, null); }}
                                     className="px-2 py-1 text-[10px] text-gray-400 hover:text-red-500 underline min-h-[32px]"
                                   >
-                                    Annuler
+                                    ✕
                                   </button>
                                 )}
                               </div>
                             </div>
                           )}
 
-                          {/* Cost breakdown */}
-                          {item.finalCost > 0 && !item.isRecurrent && (
-                            <div className="text-xs space-y-0.5">
-                              {item.remiseANiveauCost > 0 && (
-                                <div className="flex justify-between text-red-600">
-                                  <span>Remise à niveau</span>
-                                  <span className="font-semibold">{formatCurrency(item.remiseANiveauCost)}</span>
-                                </div>
-                              )}
-                              {item.valorisationCost > 0 && (
-                                <div className="flex justify-between text-emerald-600">
-                                  <span>Valorisation</span>
-                                  <span className="font-semibold">{formatCurrency(item.valorisationCost)}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {item.rating !== null && !item.target && (
-                            <div className="text-xs text-gray-500">
-                              <span className="font-medium">Facteur ({item.rating}★) :</span>{" "}
-                              {Math.round((RATING_FACTORS[item.rating] ?? 0) * 100)}% × {formatCurrency(item.referenceCost)} = {formatCurrency(item.estimatedCost)}
-                            </div>
-                          )}
                           {poste.hint && (
                             <p className="text-xs text-gray-400 italic">{poste.hint}</p>
                           )}
-                          {/* Coefficient de valorisation */}
-                          {!item.isRecurrent && item.valorisationCoefficient > 0 && (
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] text-emerald-600">
-                                ROI revente : {Math.round(item.valorisationCoefficient * 100)}%
-                              </span>
-                              {item.valorisationCost > 0 && (
-                                <span className="text-[10px] text-emerald-500">
-                                  → +{formatCurrency(Math.round(item.valorisationCost * item.valorisationCoefficient))} de plus-value
-                                </span>
-                              )}
-                            </div>
-                          )}
+
                           {isOwner && (
-                            <div className="space-y-1.5 mt-1">
-                              <div className="flex items-center gap-2">
-                                <label className="text-xs text-gray-500">Montant personnalisé :</label>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1.5">
+                                <label className="text-xs text-gray-500">Montant :</label>
                                 <input
                                   type="number"
                                   inputMode="numeric"
                                   placeholder="—"
                                   value={item.overrideCost ?? ""}
                                   onChange={(e) => handleOverrideChange(item.key, e.target.value)}
-                                  className="w-24 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                  className="w-20 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-400"
                                 />
                                 <span className="text-xs text-gray-400">€</span>
                               </div>
                               {!item.isRecurrent && (
-                                <div className="flex items-center gap-2">
-                                  <label className="text-xs text-gray-500">ROI revente :</label>
+                                <div className="flex items-center gap-1.5">
+                                  <label className="text-xs text-gray-500">ROI :</label>
                                   <input
                                     type="number"
                                     inputMode="decimal"
@@ -494,7 +432,7 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                                       const pct = parseInt(e.target.value, 10);
                                       handleOverrideChange(`valo_coeff_${item.key}`, isNaN(pct) ? "" : String(pct / 100));
                                     }}
-                                    className="w-16 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                                    className="w-14 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-400"
                                   />
                                   <span className="text-xs text-gray-400">%</span>
                                 </div>
