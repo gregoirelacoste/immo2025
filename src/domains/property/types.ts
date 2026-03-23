@@ -5,6 +5,7 @@ export interface Property {
   city: string;
   postal_code: string;
   purchase_price: number;
+  negotiated_price: number; // 0 = pas de négociation, > 0 = prix après négociation
   surface: number;
   room_count: number; // nombre de pièces principales (0 = non renseigné)
   property_type: "ancien" | "neuf";

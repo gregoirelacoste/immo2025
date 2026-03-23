@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Property, PropertyCalculations, type PropertyStatus } from "@/domains/property/types";
-import { formatCurrency, formatPercent } from "@/lib/calculations";
+import { formatCurrency, formatPercent, getEffectivePrice } from "@/lib/calculations";
 import InvestmentScoreBadge from "@/components/ui/InvestmentScoreBadge";
 import StatusBadge from "@/components/property/StatusBadge";
 import { getGrade, rentaColor, cashflowColor } from "@/lib/grade";
@@ -109,10 +109,10 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
                 <td className="px-3 py-4 text-sm">
                   <StatusBadge status={(p.property_status || "added") as PropertyStatus} />
                 </td>
-                <td className="px-3 py-4 text-sm text-gray-700 font-[family-name:var(--font-mono)]">{formatCurrency(p.purchase_price)}</td>
+                <td className="px-3 py-4 text-sm text-gray-700 font-[family-name:var(--font-mono)]">{formatCurrency(getEffectivePrice(p))}</td>
                 <td className="px-3 py-4 text-sm text-gray-700">{p.surface} m²</td>
                 <td className="px-3 py-4 text-sm text-gray-700 font-[family-name:var(--font-mono)]">
-                  {p.surface > 0 ? formatCurrency(p.purchase_price / p.surface) : "\u2014"}
+                  {p.surface > 0 ? formatCurrency(getEffectivePrice(p) / p.surface) : "\u2014"}
                 </td>
                 <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${rentaColor(c.net_yield)}`}>
                   {formatPercent(c.net_yield)}
