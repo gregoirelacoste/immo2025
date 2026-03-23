@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 export interface StepperFieldConfig {
   field: string;
@@ -37,6 +37,11 @@ export default function StepperField({
   const [editing, setEditing] = useState(false);
   const [textValue, setTextValue] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear debounce timer on unmount to prevent stale saves
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, []);
 
   // Debounced commit for stepper +/- clicks (500ms)
   const debouncedCommit = useCallback((field: string, v: number) => {
