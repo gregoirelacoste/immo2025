@@ -45,6 +45,14 @@ export default async function AdminPage() {
             <span>Blog</span>
             <span className="text-gray-400">→</span>
           </a>
+          <a
+            href="/admin/statistics"
+            className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 flex items-center gap-2"
+          >
+            <span>📊</span>
+            <span>Statistiques</span>
+            <span className="text-gray-400">→</span>
+          </a>
         </div>
         <AdminLocalitiesClient localities={localities} dataMap={dataMap} />
       </main>
