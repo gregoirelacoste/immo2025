@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Property, PropertyCalculations, PROPERTY_STATUS_CONFIG, type PropertyStatus } from "@/domains/property/types";
+import { Property, PropertyCalculations, ExitSimulation, PROPERTY_STATUS_CONFIG, type PropertyStatus } from "@/domains/property/types";
 import { getGrade, cashflowColor } from "@/lib/grade";
 
 interface Props {
   property: Property;
   calcs: PropertyCalculations;
+  exitSim: ExitSimulation;
   index?: number;
 }
 
@@ -52,7 +53,7 @@ function getCashflowPrefix(cf: number): string {
   return cf > 0 ? "+" : "";
 }
 
-export default function PropertyCard({ property: p, calcs: c, index = 0 }: Props) {
+export default function PropertyCard({ property: p, calcs: c, exitSim, index = 0 }: Props) {
   const grade = getGrade(p.investment_score);
   const status = (p.property_status || "added") as PropertyStatus;
   const scoreNum = p.investment_score ?? 0;
@@ -162,6 +163,21 @@ export default function PropertyCard({ property: p, calcs: c, index = 0 }: Props
             {getCashflowPrefix(c.monthly_cashflow)}{Math.round(c.monthly_cashflow)}€
           </span>
         </div>
+
+        {/* Line 4: ROI + Profit net (projection) */}
+        {exitSim.holdingDuration > 0 && (
+          <div className="flex items-center gap-2 mt-1">
+            <span className={`text-[11px] font-bold tabular-nums ${exitSim.roi >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+              ROI {exitSim.roi > 0 ? "+" : ""}{exitSim.roi.toFixed(0)}%
+            </span>
+            <span className={`text-[11px] font-semibold tabular-nums ${exitSim.netProfit >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+              {exitSim.netProfit > 0 ? "+" : ""}{fmt(exitSim.netProfit)}{"\u202f"}€
+            </span>
+            <span className="text-[10px] text-[#bdb4a7]">
+              /{exitSim.holdingDuration}a
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Time */}

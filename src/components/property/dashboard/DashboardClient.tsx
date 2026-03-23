@@ -4,8 +4,11 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 
 import { Property, PROPERTY_STATUSES, PROPERTY_STATUS_CONFIG, type PropertyStatus } from "@/domains/property/types";
-import { calculateAll, calculateSimulation } from "@/lib/calculations";
+import { calculateAll, calculateSimulation, calculateExitSimulation } from "@/lib/calculations";
+import { calculateTravaux } from "@/domains/property/travaux-calculator";
+import type { ExitSimulation } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
+import { buildSystemSimulation } from "@/domains/simulation/system";
 import { removeProperty, toggleFavorite } from "@/domains/property/actions";
 import SortBar, { SortKey } from "./SortBar";
 import PropertyCard from "./PropertyCard";
@@ -88,11 +91,11 @@ export default function DashboardClient({ properties: initialProperties, current
   const propertiesWithCalcs = useMemo(
     () =>
       filteredProperties.map((p) => {
-        const sim = simulationsMap[p.id];
-        return {
-          property: p,
-          calcs: sim ? calculateSimulation(p, sim) : calculateAll(p),
-        };
+        const sim = simulationsMap[p.id] ?? buildSystemSimulation(p, null);
+        const calcs = calculateSimulation(p, sim);
+        const travauxSummary = calculateTravaux(p.surface, p.travaux_ratings ?? "{}", p.travaux_overrides ?? "{}", p.travaux_targets ?? "{}");
+        const exitSim = calculateExitSimulation(p, sim, calcs, travauxSummary.valorisationResaleValue);
+        return { property: p, calcs, exitSim };
       }),
     [filteredProperties, simulationsMap]
   );
@@ -122,6 +125,10 @@ export default function DashboardClient({ properties: initialProperties, current
         case "airbnb_net_yield":
           aVal = a.calcs.airbnb_net_yield;
           bVal = b.calcs.airbnb_net_yield;
+          break;
+        case "roi":
+          aVal = a.exitSim.roi;
+          bVal = b.exitSim.roi;
           break;
         case "investment_score":
           aVal = a.property.investment_score ?? -1;
@@ -440,11 +447,12 @@ export default function DashboardClient({ properties: initialProperties, current
           <SortBar sortKey={sortKey} sortAsc={sortAsc} onSort={toggleSort} />
 
           <div className="md:hidden flex flex-col gap-2 pt-1">
-            {sorted.map(({ property, calcs }, i) => (
+            {sorted.map(({ property, calcs, exitSim }, i) => (
               <PropertyCard
                 key={property.id}
                 property={property}
                 calcs={calcs}
+                exitSim={exitSim}
                 index={i}
               />
             ))}

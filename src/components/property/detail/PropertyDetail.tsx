@@ -4,7 +4,8 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
-import { calculateSimulation, calculateAll, formatCurrency } from "@/lib/calculations";
+import { calculateSimulation, calculateAll, calculateExitSimulation, formatCurrency } from "@/lib/calculations";
+import { calculateTravaux } from "@/domains/property/travaux-calculator";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
@@ -141,6 +142,14 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
     () => calculateSimulation(property, effectiveSim),
     [property, effectiveSim]
   );
+  const travauxSummary = useMemo(
+    () => calculateTravaux(property.surface, property.travaux_ratings ?? "{}", property.travaux_overrides ?? "{}", property.travaux_targets ?? "{}"),
+    [property.surface, property.travaux_ratings, property.travaux_overrides, property.travaux_targets]
+  );
+  const exitSim = useMemo(
+    () => calculateExitSimulation(property, effectiveSim, calcs, travauxSummary.valorisationResaleValue),
+    [property, effectiveSim, calcs, travauxSummary.valorisationResaleValue]
+  );
   const [refreshing, setRefreshing] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
   const [cashflowModalOpen, setCashflowModalOpen] = useState(false);
@@ -262,6 +271,30 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
                       </button>
                       <HelpTip text="Cash-flow = loyer mensuel − mensualité crédit − charges − taxe foncière. Positif = l'investissement s'autofinance." />
                     </div>
+                  )}
+                  {/* Profit net + ROI — projection sur la durée de détention */}
+                  {exitSim.holdingDuration > 0 && calcs.net_yield > 0 && (
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <span className={`text-xs font-bold font-[family-name:var(--font-mono)] ${
+                        exitSim.netProfit >= 0 ? "text-green-600" : "text-red-600"
+                      }`}>
+                        {exitSim.netProfit > 0 ? "+" : ""}{formatCurrency(exitSim.netProfit)} net
+                      </span>
+                      <span className={`text-xs font-bold font-[family-name:var(--font-mono)] ${
+                        exitSim.roi >= 0 ? "text-green-600" : "text-red-600"
+                      }`}>
+                        ROI {exitSim.roi > 0 ? "+" : ""}{exitSim.roi.toFixed(1)}%
+                      </span>
+                      <span className="text-[10px] text-gray-400">
+                        sur {exitSim.holdingDuration} ans
+                      </span>
+                    </div>
+                  )}
+                  {/* Warning: cashflow négatif mais ROI positif */}
+                  {calcs.monthly_cashflow < 0 && exitSim.roi > 0 && (
+                    <p className="text-[10px] text-amber-600 mt-1">
+                      Effort mensuel de {formatCurrency(Math.abs(Math.round(calcs.monthly_cashflow)))}/mois nécessaire pour tenir la durée
+                    </p>
                   )}
                 </div>
                 {/* Score brick — click opens score modal */}

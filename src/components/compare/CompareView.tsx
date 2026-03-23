@@ -4,7 +4,9 @@ import { useState, useMemo } from "react";
 import Image from "next/image";
 import { Property } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
-import { calculateAll, calculateSimulation, formatCurrency, formatPercent } from "@/lib/calculations";
+import { calculateAll, calculateSimulation, calculateExitSimulation, formatCurrency, formatPercent } from "@/lib/calculations";
+import { calculateTravaux } from "@/domains/property/travaux-calculator";
+import { buildSystemSimulation } from "@/domains/simulation/system";
 import CompareSelector from "./CompareSelector";
 
 const MAX_SELECTED = 4;
@@ -22,9 +24,11 @@ type SectionDef = {
 };
 
 function buildSections(properties: Property[], simulationsMap: Record<string, Simulation>): SectionDef[] {
-  const calcs = properties.map((p) => {
-    const sim = simulationsMap[p.id];
-    return sim ? calculateSimulation(p, sim) : calculateAll(p);
+  const sims = properties.map((p) => simulationsMap[p.id] ?? buildSystemSimulation(p, null));
+  const calcs = properties.map((p, i) => calculateSimulation(p, sims[i]));
+  const exits = properties.map((p, i) => {
+    const ts = calculateTravaux(p.surface, p.travaux_ratings ?? "{}", p.travaux_overrides ?? "{}", p.travaux_targets ?? "{}");
+    return calculateExitSimulation(p, sims[i], calcs[i], ts.valorisationResaleValue);
   });
 
   const row = (
@@ -91,6 +95,27 @@ function buildSections(properties: Property[], simulationsMap: Record<string, Si
         row("Score investissement", (p) => {
           const v = p.investment_score;
           return { display: v != null ? `${v}/100` : "-", raw: v ?? -1 };
+        }, "max"),
+      ],
+    },
+    {
+      title: "Bilan (projection)",
+      rows: [
+        row("Duree detention", (_p, _c, i) => {
+          const v = exits[i].holdingDuration;
+          return { display: `${v} ans`, raw: v };
+        }),
+        row("Profit net total", (_p, _c, i) => {
+          const v = exits[i].netProfit;
+          return { display: formatCurrency(v), raw: v };
+        }, "max"),
+        row("ROI global", (_p, _c, i) => {
+          const v = exits[i].roi;
+          return { display: `${v > 0 ? "+" : ""}${v.toFixed(1)}%`, raw: v };
+        }, "max"),
+        row("Prix de revente", (_p, _c, i) => {
+          const v = exits[i].salePrice;
+          return { display: formatCurrency(v), raw: v };
         }, "max"),
       ],
     },
