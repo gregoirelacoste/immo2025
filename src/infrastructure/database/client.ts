@@ -252,6 +252,8 @@ async function initializeDatabase(client: Client): Promise<void> {
     "ALTER TABLE locality_prices ADD COLUMN avg_price_t4plus_per_m2 REAL DEFAULT NULL",
     // v17 — negotiated price on simulations (0 = no negotiation)
     "ALTER TABLE simulations ADD COLUMN negotiated_price REAL DEFAULT 0",
+    // v18 — travaux targets (objectifs cibles par poste)
+    "ALTER TABLE properties ADD COLUMN travaux_targets TEXT DEFAULT '{}'",
   ];
   const migrationErrors: Array<{ stmt: string; error: unknown }> = [];
   for (const stmt of alterMigrations) {

@@ -3,8 +3,16 @@
 import { useState, useMemo, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Property } from "@/domains/property/types";
-import { calculateTravaux, parseTravauxRatings, parseTravauxOverrides } from "@/domains/property/travaux-calculator";
-import { TRAVAUX_POSTES, TRAVAUX_CATEGORIES, RATING_FACTORS, type TravauxPoste } from "@/domains/property/travaux-registry";
+import {
+  calculateTravaux,
+  parseTravauxRatings,
+  parseTravauxOverrides,
+  parseTravauxTargets,
+  applyPresetToTargets,
+  TRAVAUX_PRESETS,
+  type TravauxPreset,
+} from "@/domains/property/travaux-calculator";
+import { TRAVAUX_POSTES, TRAVAUX_CATEGORIES, RATING_FACTORS, RATING_LABELS, type TravauxPoste } from "@/domains/property/travaux-registry";
 import { updatePropertyField } from "@/domains/property/actions";
 import { syncFieldToSimulations } from "@/domains/simulation/actions";
 import { formatCurrency } from "@/lib/calculations";
@@ -23,23 +31,28 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
   const [localRatings, setLocalRatings] = useState<Record<string, number>>(() =>
     parseTravauxRatings(property.travaux_ratings ?? "{}")
   );
+  const [localTargets, setLocalTargets] = useState<Record<string, number>>(() =>
+    parseTravauxTargets(property.travaux_targets ?? "{}")
+  );
   const [localOverrides, setLocalOverrides] = useState<Record<string, number>>(() =>
     parseTravauxOverrides(property.travaux_overrides ?? "{}")
   );
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [activePreset, setActivePreset] = useState<TravauxPreset>("none");
 
   const summary = useMemo(
-    () => calculateTravaux(property.surface, JSON.stringify(localRatings), JSON.stringify(localOverrides)),
-    [property.surface, localRatings, localOverrides]
+    () => calculateTravaux(property.surface, JSON.stringify(localRatings), JSON.stringify(localOverrides), JSON.stringify(localTargets)),
+    [property.surface, localRatings, localOverrides, localTargets]
   );
 
   const hasAnyRating = Object.keys(localRatings).length > 0;
+  const hasAnyTarget = Object.keys(localTargets).length > 0;
   const hasDpe = !!property.dpe_rating;
 
   // Persist ratings + renovation_cost to DB and sync to all simulations
   const persistRatings = useCallback(
     (newRatings: Record<string, number>) => {
-      const newSummary = calculateTravaux(property.surface, JSON.stringify(newRatings), JSON.stringify(localOverrides));
+      const newSummary = calculateTravaux(property.surface, JSON.stringify(newRatings), JSON.stringify(localOverrides), JSON.stringify(localTargets));
       startTransition(async () => {
         await updatePropertyField(property.id, "travaux_ratings", JSON.stringify(newRatings), "Estimation travaux", "estimated");
         await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
@@ -47,12 +60,25 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
         router.refresh();
       });
     },
-    [property.id, property.surface, localOverrides, router]
+    [property.id, property.surface, localOverrides, localTargets, router]
+  );
+
+  const persistTargets = useCallback(
+    (newTargets: Record<string, number>) => {
+      const newSummary = calculateTravaux(property.surface, JSON.stringify(localRatings), JSON.stringify(localOverrides), JSON.stringify(newTargets));
+      startTransition(async () => {
+        await updatePropertyField(property.id, "travaux_targets", JSON.stringify(newTargets), "Objectif travaux", "declared");
+        await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
+        await syncFieldToSimulations(property.id, "renovation_cost", newSummary.totalRenovationCost);
+        router.refresh();
+      });
+    },
+    [property.id, property.surface, localRatings, localOverrides, router]
   );
 
   const persistOverrides = useCallback(
     (newOverrides: Record<string, number>) => {
-      const newSummary = calculateTravaux(property.surface, JSON.stringify(localRatings), JSON.stringify(newOverrides));
+      const newSummary = calculateTravaux(property.surface, JSON.stringify(localRatings), JSON.stringify(newOverrides), JSON.stringify(localTargets));
       startTransition(async () => {
         await updatePropertyField(property.id, "travaux_overrides", JSON.stringify(newOverrides), "Estimation travaux", "declared");
         await updatePropertyField(property.id, "renovation_cost", newSummary.totalRenovationCost, "Estimation travaux", "estimated");
@@ -60,24 +86,71 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
         router.refresh();
       });
     },
-    [property.id, property.surface, localRatings, router]
+    [property.id, property.surface, localRatings, localTargets, router]
   );
 
   function handleRatingChange(key: string, value: number | null) {
     const next = { ...localRatings };
     if (value === null) {
       delete next[key];
+      // Also remove target if rating is removed
+      const nextTargets = { ...localTargets };
+      delete nextTargets[key];
+      setLocalTargets(nextTargets);
+      persistTargets(nextTargets);
     } else {
       next[key] = value;
+      // If target exists and is now below rating, bump it up
+      if (localTargets[key] != null && localTargets[key] < value) {
+        const nextTargets = { ...localTargets, [key]: value };
+        setLocalTargets(nextTargets);
+        persistTargets(nextTargets);
+      }
     }
     setLocalRatings(next);
     persistRatings(next);
   }
 
+  function handleTargetChange(key: string, value: number | null) {
+    const next = { ...localTargets };
+    const currentRating = localRatings[key];
+    if (value === null || (currentRating != null && value <= currentRating)) {
+      delete next[key];
+    } else {
+      next[key] = value;
+    }
+    setLocalTargets(next);
+    persistTargets(next);
+  }
+
+  function handlePresetChange(preset: TravauxPreset) {
+    setActivePreset(preset);
+    const presetConfig = TRAVAUX_PRESETS.find(p => p.key === preset);
+    if (!presetConfig) return;
+
+    // Clear all targets when "none", otherwise apply preset (keep individual overrides)
+    const individualOverrides: Record<string, number> = {};
+    // Keep targets that were manually set (different from any preset value)
+    for (const [key, val] of Object.entries(localTargets)) {
+      const rating = localRatings[key];
+      if (rating != null && val !== presetConfig.targetRating) {
+        individualOverrides[key] = val;
+      }
+    }
+
+    const newTargets = presetConfig.targetRating === 0
+      ? {}
+      : applyPresetToTargets(localRatings, individualOverrides, presetConfig.targetRating);
+
+    setLocalTargets(newTargets);
+    persistTargets(newTargets);
+  }
+
   function handleOverrideChange(key: string, value: string) {
-    const num = parseInt(value, 10);
+    const isCoefficient = key.startsWith("valo_coeff_");
+    const num = isCoefficient ? parseFloat(value) : parseInt(value, 10);
     const next = { ...localOverrides };
-    if (isNaN(num) || num <= 0) {
+    if (isNaN(num) || (!isCoefficient && num <= 0) || (isCoefficient && num < 0)) {
       delete next[key];
     } else {
       next[key] = num;
@@ -126,8 +199,102 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
           </div>
         )}
 
-        {/* Budget summary */}
-        {hasAnyRating ? (
+        {/* Preset selector — only shown when at least one rating exists */}
+        {hasAnyRating && isOwner && (
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              Objectif de rénovation
+            </p>
+            <div className="flex gap-1.5">
+              {TRAVAUX_PRESETS.map((preset) => (
+                <button
+                  key={preset.key}
+                  type="button"
+                  onClick={() => handlePresetChange(preset.key)}
+                  className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors ${
+                    activePreset === preset.key
+                      ? "bg-amber-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1">
+              {TRAVAUX_PRESETS.find(p => p.key === activePreset)?.description}
+              {" · "}Personnalisable par poste
+            </p>
+          </div>
+        )}
+
+        {/* Budget summary with split */}
+        {hasAnyRating && (hasAnyTarget || summary.totalRenovationCost > 0) ? (
+          <div className="mb-4 space-y-2">
+            {/* Total budget */}
+            <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
+              <div className="text-2xl font-extrabold text-orange-700">
+                {formatCurrency(summary.totalRenovationCost)}
+              </div>
+              <div className="text-xs text-orange-500 font-medium">Budget travaux estimé</div>
+              {summary.monthlyMaintenanceCost > 0 && (
+                <div className="text-sm text-orange-600 mt-1">
+                  Entretien : +{summary.monthlyMaintenanceCost} €/mois
+                </div>
+              )}
+            </div>
+
+            {/* Split: remise à niveau vs valorisation */}
+            {(summary.totalRemiseANiveauCost > 0 || summary.totalValorisationCost > 0) && (
+              <div className="grid grid-cols-2 gap-2">
+                {summary.totalRemiseANiveauCost > 0 && (
+                  <div className="p-3 bg-red-50 rounded-xl border border-red-100">
+                    <div className="text-lg font-extrabold text-red-700">
+                      {formatCurrency(summary.totalRemiseANiveauCost)}
+                    </div>
+                    <div className="text-[10px] text-red-500 font-semibold uppercase tracking-wider">
+                      Remise à niveau
+                    </div>
+                  </div>
+                )}
+                {summary.totalValorisationCost > 0 && (
+                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <div className="text-lg font-extrabold text-emerald-700">
+                      {formatCurrency(summary.totalValorisationCost)}
+                    </div>
+                    <div className="text-[10px] text-emerald-500 font-semibold uppercase tracking-wider">
+                      Valorisation
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Negotiation callout */}
+            {summary.totalRemiseANiveauCost > 0 && (
+              <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                <p className="text-xs font-semibold text-blue-700">
+                  Argument de négociation : -{formatCurrency(summary.totalRemiseANiveauCost)}
+                </p>
+                <p className="text-[10px] text-blue-500 mt-0.5">
+                  Travaux nécessaires pour un état acceptable — peut justifier une réduction du prix d'achat.
+                </p>
+              </div>
+            )}
+
+            {/* Valorisation resale value */}
+            {summary.valorisationResaleValue > 0 && (
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                <p className="text-xs font-semibold text-emerald-700">
+                  Plus-value travaux estimée : +{formatCurrency(summary.valorisationResaleValue)}
+                </p>
+                <p className="text-[10px] text-emerald-500 mt-0.5">
+                  Retour sur investissement estimé des travaux de valorisation à la revente.
+                </p>
+              </div>
+            )}
+          </div>
+        ) : hasAnyRating ? (
           <div className="mb-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
             <div className="text-2xl font-extrabold text-orange-700">
               {formatCurrency(summary.totalRenovationCost)}
@@ -158,7 +325,8 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                 {items.map((item) => {
                   const poste = TRAVAUX_POSTES.find((p) => p.key === item.key)!;
                   const isExpanded = expandedKey === item.key;
-                  const showCost = item.rating !== null && item.finalCost > 0;
+                  const showCost = item.finalCost > 0 && !item.isRecurrent;
+                  const hasTarget = item.target !== null && item.rating !== null && item.target > item.rating;
 
                   return (
                     <div key={item.key} className="rounded-lg border border-gray-100 bg-white">
@@ -170,15 +338,20 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                         <span className="text-sm font-medium text-gray-700 w-28 shrink-0 truncate">
                           {item.label}
                         </span>
-                        <div className="flex-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex-1 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                           <StarRating
                             value={item.rating}
                             onChange={isOwner ? (v) => handleRatingChange(item.key, v) : undefined}
                             readonly={!isOwner}
                             size="sm"
                           />
+                          {hasTarget && (
+                            <span className="text-[10px] text-emerald-600 font-semibold whitespace-nowrap">
+                              →{item.target}★
+                            </span>
+                          )}
                         </div>
-                        {showCost && !item.isRecurrent && (
+                        {showCost && (
                           <span className="text-xs font-semibold text-orange-600 shrink-0">
                             ~{formatCurrency(item.finalCost)}
                           </span>
@@ -206,7 +379,58 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                             <span className="font-medium">Coût réf. :</span>{" "}
                             {formatReferenceCostLabel(poste, property.surface, item.referenceCost)}
                           </div>
-                          {item.rating !== null && (
+
+                          {/* Target selector */}
+                          {isOwner && item.rating !== null && !item.isRecurrent && (
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs text-gray-500 font-medium">Objectif :</label>
+                              <div className="flex gap-1">
+                                {[3, 4, 5].filter(v => v > (item.rating ?? 0)).map(v => (
+                                  <button
+                                    key={v}
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleTargetChange(item.key, item.target === v ? null : v); }}
+                                    className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors min-h-[32px] ${
+                                      item.target === v
+                                        ? "bg-emerald-600 text-white"
+                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                    }`}
+                                  >
+                                    {v}★ {RATING_LABELS[v]}
+                                  </button>
+                                ))}
+                                {item.target !== null && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleTargetChange(item.key, null); }}
+                                    className="px-2 py-1 text-[10px] text-gray-400 hover:text-red-500 underline min-h-[32px]"
+                                  >
+                                    Annuler
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Cost breakdown */}
+                          {item.finalCost > 0 && !item.isRecurrent && (
+                            <div className="text-xs space-y-0.5">
+                              {item.remiseANiveauCost > 0 && (
+                                <div className="flex justify-between text-red-600">
+                                  <span>Remise à niveau</span>
+                                  <span className="font-semibold">{formatCurrency(item.remiseANiveauCost)}</span>
+                                </div>
+                              )}
+                              {item.valorisationCost > 0 && (
+                                <div className="flex justify-between text-emerald-600">
+                                  <span>Valorisation</span>
+                                  <span className="font-semibold">{formatCurrency(item.valorisationCost)}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {item.rating !== null && !item.target && (
                             <div className="text-xs text-gray-500">
                               <span className="font-medium">Facteur ({item.rating}★) :</span>{" "}
                               {Math.round((RATING_FACTORS[item.rating] ?? 0) * 100)}% × {formatCurrency(item.referenceCost)} = {formatCurrency(item.estimatedCost)}
@@ -215,18 +439,53 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                           {poste.hint && (
                             <p className="text-xs text-gray-400 italic">{poste.hint}</p>
                           )}
-                          {isOwner && (
+                          {/* Coefficient de valorisation */}
+                          {!item.isRecurrent && item.valorisationCoefficient > 0 && (
                             <div className="flex items-center gap-2 mt-1">
-                              <label className="text-xs text-gray-500">Montant personnalisé :</label>
-                              <input
-                                type="number"
-                                inputMode="numeric"
-                                placeholder="—"
-                                value={item.overrideCost ?? ""}
-                                onChange={(e) => handleOverrideChange(item.key, e.target.value)}
-                                className="w-24 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-400"
-                              />
-                              <span className="text-xs text-gray-400">€</span>
+                              <span className="text-[10px] text-emerald-600">
+                                ROI revente : {Math.round(item.valorisationCoefficient * 100)}%
+                              </span>
+                              {item.valorisationCost > 0 && (
+                                <span className="text-[10px] text-emerald-500">
+                                  → +{formatCurrency(Math.round(item.valorisationCost * item.valorisationCoefficient))} de plus-value
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {isOwner && (
+                            <div className="space-y-1.5 mt-1">
+                              <div className="flex items-center gap-2">
+                                <label className="text-xs text-gray-500">Montant personnalisé :</label>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  placeholder="—"
+                                  value={item.overrideCost ?? ""}
+                                  onChange={(e) => handleOverrideChange(item.key, e.target.value)}
+                                  className="w-24 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                />
+                                <span className="text-xs text-gray-400">€</span>
+                              </div>
+                              {!item.isRecurrent && (
+                                <div className="flex items-center gap-2">
+                                  <label className="text-xs text-gray-500">ROI revente :</label>
+                                  <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    step="5"
+                                    min="0"
+                                    max="100"
+                                    placeholder={String(Math.round((poste.valorisationCoefficient ?? 0) * 100))}
+                                    value={localOverrides[`valo_coeff_${item.key}`] != null ? Math.round(localOverrides[`valo_coeff_${item.key}`] * 100) : ""}
+                                    onChange={(e) => {
+                                      const pct = parseInt(e.target.value, 10);
+                                      handleOverrideChange(`valo_coeff_${item.key}`, isNaN(pct) ? "" : String(pct / 100));
+                                    }}
+                                    className="w-16 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                                  />
+                                  <span className="text-xs text-gray-400">%</span>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

@@ -17,6 +17,7 @@ export default function ExitSimulationPanel({ exitSim }: Props) {
     netProfit,
     roi,
     totalInvested,
+    renovationValueAdded,
   } = exitSim;
 
   const isExonereIR = capitalGainsTax.abattementIR >= 100;
@@ -65,6 +66,18 @@ export default function ExitSimulationPanel({ exitSim }: Props) {
             Loyers nets cumulés
           </p>
         </div>
+
+        {/* Plus-value travaux */}
+        {renovationValueAdded > 0 && (
+          <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+            <p className="text-lg font-extrabold text-emerald-700 font-[family-name:var(--font-mono)]">
+              +{formatCurrency(renovationValueAdded)}
+            </p>
+            <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wider">
+              Plus-value travaux
+            </p>
+          </div>
+        )}
 
         {/* Taxe plus-value */}
         <div className="p-3 bg-tiili-surface rounded-xl">

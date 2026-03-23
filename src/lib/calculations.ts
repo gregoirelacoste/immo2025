@@ -474,7 +474,9 @@ export function calculateCapitalGainsTax(
 export function calculateExitSimulation(
   property: Property,
   simulation: Simulation,
-  calcs: PropertyCalculations
+  calcs: PropertyCalculations,
+  /** Plus-value estimée des travaux de valorisation sur le prix de revente */
+  valorisationResaleValue: number = 0,
 ): ExitSimulation {
   const holdingDuration = simulation.holding_duration > 0
     ? simulation.holding_duration
@@ -483,8 +485,8 @@ export function calculateExitSimulation(
   const negotiated = safeNum(simulation.negotiated_price);
   const effectivePrice = negotiated > 0 ? negotiated : safeNum(property.purchase_price);
 
-  // Prix de revente estimé
-  const salePrice = Math.round(effectivePrice * Math.pow(1 + appreciation, holdingDuration));
+  // Prix de revente estimé (appréciation naturelle + plus-value travaux de valorisation)
+  const salePrice = Math.round(effectivePrice * Math.pow(1 + appreciation, holdingDuration) + valorisationResaleValue);
 
   // Capital restant dû — recalcule le loan pour cohérence (comme calculateSimulation)
   const notary = simulation.notary_fees > 0
@@ -548,6 +550,7 @@ export function calculateExitSimulation(
     netProfit: Math.round(netProfit),
     roi: Math.round(roi * 100) / 100,
     totalInvested: Math.round(totalInvested),
+    renovationValueAdded: Math.round(valorisationResaleValue),
   };
 }
 

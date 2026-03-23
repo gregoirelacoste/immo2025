@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Property } from "@/domains/property/types";
 import { Simulation, SimulationFormData } from "@/domains/simulation/types";
 import { calculateSimulation, calculateExitSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent, computeLoanAmount } from "@/lib/calculations";
+import { calculateTravaux } from "@/domains/property/travaux-calculator";
 import { updateSimulationAction } from "@/domains/simulation/actions";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import StepperField, { formatStepperValue, type StepperFieldConfig } from "@/components/ui/StepperField";
@@ -95,7 +96,11 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
   const currentLoan = useMemo(() => computeLoanFromForm(property,form), [property, form]);
   const mergedSim = useMemo(() => ({ ...simulation, ...form, loan_amount: currentLoan }) as Simulation, [simulation, form, currentLoan]);
   const calcs = useMemo(() => calculateSimulation(property, mergedSim), [property, mergedSim]);
-  const exitSim = useMemo(() => calculateExitSimulation(property, mergedSim, calcs), [property, mergedSim, calcs]);
+  const travauxSummary = useMemo(
+    () => calculateTravaux(property.surface, property.travaux_ratings ?? "{}", property.travaux_overrides ?? "{}", property.travaux_targets ?? "{}"),
+    [property.surface, property.travaux_ratings, property.travaux_overrides, property.travaux_targets]
+  );
+  const exitSim = useMemo(() => calculateExitSimulation(property, mergedSim, calcs, travauxSummary.valorisationResaleValue), [property, mergedSim, calcs, travauxSummary.valorisationResaleValue]);
   const effectiveRent = useMemo(() => getEffectiveRent(property, mergedSim), [property, mergedSim]);
 
   // Save helper — always includes computed loan_amount

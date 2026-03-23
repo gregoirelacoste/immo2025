@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Property, PropertyCalculations, type PropertyStatus } from "@/domains/property/types";
+import { Property, PropertyCalculations, ExitSimulation, type PropertyStatus } from "@/domains/property/types";
 import { formatCurrency, formatPercent } from "@/lib/calculations";
 import InvestmentScoreBadge from "@/components/ui/InvestmentScoreBadge";
 import StatusBadge from "@/components/property/StatusBadge";
@@ -13,7 +13,7 @@ import { SortKey } from "./SortBar";
 const PAGE_SIZE = 50;
 
 interface Props {
-  sorted: Array<{ property: Property; calcs: PropertyCalculations }>;
+  sorted: Array<{ property: Property; calcs: PropertyCalculations; exitSim: ExitSimulation }>;
   sortKey: SortKey;
   sortAsc: boolean;
   onSort: (key: SortKey) => void;
@@ -53,6 +53,9 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
             <th className={thClass} onClick={() => onSort("monthly_cashflow")}>
               Cash-flow{sortIcon("monthly_cashflow")}
             </th>
+            <th className={thClass} onClick={() => onSort("roi")}>
+              ROI{sortIcon("roi")}
+            </th>
             <th className={thClass} onClick={() => onSort("airbnb_net_yield")}>
               Renta Airbnb{sortIcon("airbnb_net_yield")}
             </th>
@@ -64,7 +67,7 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
           </tr>
         </thead>
         <tbody className="divide-y divide-tiili-border">
-          {visibleRows.map(({ property: p, calcs: c }) => {
+          {visibleRows.map(({ property: p, calcs: c, exitSim }) => {
             const grade = getGrade(p.investment_score);
             return (
               <tr key={p.id} className="hover:bg-tiili-surface/50">
@@ -119,6 +122,10 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
                 </td>
                 <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${cashflowColor(c.monthly_cashflow)}`}>
                   {formatCurrency(c.monthly_cashflow)}
+                </td>
+                <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${exitSim.roi >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {exitSim.roi > 0 ? "+" : ""}{exitSim.roi.toFixed(1)}%
+                  <span className="block text-[10px] font-medium text-gray-400">{exitSim.holdingDuration}a</span>
                 </td>
                 <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${rentaColor(c.airbnb_net_yield)}`}>
                   {formatPercent(c.airbnb_net_yield)}
