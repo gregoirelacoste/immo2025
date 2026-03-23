@@ -112,8 +112,14 @@ function safeNum(v: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/** Prix effectif : prix négocié si renseigné, sinon prix d'achat affiché */
+export function getEffectivePrice(property: Property): number {
+  const negotiated = safeNum(property.negotiated_price);
+  return negotiated > 0 ? negotiated : safeNum(property.purchase_price);
+}
+
 export function calculateAll(property: Property, charges: SimulationCharges = DEFAULT_CHARGES): PropertyCalculations {
-  const purchase_price = safeNum(property.purchase_price);
+  const purchase_price = getEffectivePrice(property);
   const property_type = property.property_type;
   const loan_amount = safeNum(property.loan_amount);
   const interest_rate = safeNum(property.interest_rate, 3.5);
@@ -330,14 +336,16 @@ export function computeLoanAmount(
  *  - monthly_rent uses simulation override if > 0, otherwise falls back to property value.
  */
 export function calculateSimulation(property: Property, simulation: Simulation): PropertyCalculations {
+  const effectivePrice = getEffectivePrice(property);
   const notary = simulation.notary_fees > 0
     ? simulation.notary_fees
-    : calculateNotaryFees(property.purchase_price, property.property_type);
+    : calculateNotaryFees(effectivePrice, property.property_type);
   const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
-  const computedLoan = computeLoanAmount(property.purchase_price, notary, simulation.renovation_cost, furnitureCost, simulation.personal_contribution);
+  const computedLoan = computeLoanAmount(effectivePrice, notary, simulation.renovation_cost, furnitureCost, simulation.personal_contribution);
 
   const merged: Property = {
     ...property,
+    purchase_price: effectivePrice,
     // Loan params — always from simulation, loan_amount recomputed
     loan_amount: computedLoan,
     interest_rate: simulation.interest_rate,
@@ -477,16 +485,17 @@ export function calculateExitSimulation(
     ? simulation.holding_duration
     : simulation.loan_duration;
   const appreciation = simulation.annual_appreciation / 100;
+  const effectivePrice = getEffectivePrice(property);
 
   // Prix de revente estimé
-  const salePrice = Math.round(property.purchase_price * Math.pow(1 + appreciation, holdingDuration));
+  const salePrice = Math.round(effectivePrice * Math.pow(1 + appreciation, holdingDuration));
 
   // Capital restant dû — recalcule le loan pour cohérence (comme calculateSimulation)
   const notary = simulation.notary_fees > 0
     ? simulation.notary_fees
-    : calculateNotaryFees(property.purchase_price, property.property_type);
+    : calculateNotaryFees(effectivePrice, property.property_type);
   const furnitureCostExit = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
-  const effectiveLoan = computeLoanAmount(property.purchase_price, notary, simulation.renovation_cost, furnitureCostExit, simulation.personal_contribution);
+  const effectiveLoan = computeLoanAmount(effectivePrice, notary, simulation.renovation_cost, furnitureCostExit, simulation.personal_contribution);
   const remainingCapital = Math.round(calculateRemainingCapital(
     effectiveLoan,
     simulation.interest_rate,
@@ -507,7 +516,7 @@ export function calculateExitSimulation(
 
   // Fiscalité plus-value
   const capitalGainsTax = calculateCapitalGainsTax(
-    property.purchase_price,
+    effectivePrice,
     salePrice,
     holdingDuration
   );

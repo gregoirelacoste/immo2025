@@ -9,6 +9,7 @@ import StepperField, { type StepperFieldConfig } from "@/components/ui/StepperFi
 import {
   calculateNotaryFees,
   calculateMonthlyPayment,
+  getEffectivePrice,
   formatCurrency,
 } from "@/lib/calculations";
 
@@ -47,6 +48,8 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  const effectivePrice = getEffectivePrice(property);
+
   // Local optimistic state
   const [localValues, setLocalValues] = useState<Partial<Record<keyof Property, number>>>({});
 
@@ -57,14 +60,14 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
   // Computed values
   const effectiveNotary = useMemo(() => {
     const nf = get("notary_fees");
-    return nf > 0 ? nf : calculateNotaryFees(property.purchase_price, property.property_type);
-  }, [get, property.purchase_price, property.property_type]);
+    return nf > 0 ? nf : calculateNotaryFees(effectivePrice, property.property_type);
+  }, [get, effectivePrice, property.property_type]);
 
   const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
 
   const loanAmount = useMemo(() => {
-    return Math.max(0, property.purchase_price + effectiveNotary + property.renovation_cost + furnitureCost - get("personal_contribution"));
-  }, [property.purchase_price, effectiveNotary, property.renovation_cost, furnitureCost, get]);
+    return Math.max(0, effectivePrice + effectiveNotary + property.renovation_cost + furnitureCost - get("personal_contribution"));
+  }, [effectivePrice, effectiveNotary, property.renovation_cost, furnitureCost, get]);
 
   const monthlyPayment = useMemo(
     () => calculateMonthlyPayment(loanAmount, get("interest_rate"), get("loan_duration")),
@@ -81,8 +84,8 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
   }, [monthlyPayment, monthlyInsurance, loanAmount, get]);
 
   const totalProjectCost = useMemo(() => {
-    return property.purchase_price + effectiveNotary + get("loan_fees") + property.renovation_cost + furnitureCost;
-  }, [property.purchase_price, effectiveNotary, get, property.renovation_cost, furnitureCost]);
+    return effectivePrice + effectiveNotary + get("loan_fees") + property.renovation_cost + furnitureCost;
+  }, [effectivePrice, effectiveNotary, get, property.renovation_cost, furnitureCost]);
 
   // GLI annual cost
   const gliAnnualCost = useMemo(() => {
@@ -111,13 +114,16 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
 
     startTransition(async () => {
       await updatePropertyField(property.id, field, value, "Onglet Financement", "declared");
-      // Also recalculate loan_amount when contribution/notary changes
-      if (field === "personal_contribution" || field === "notary_fees") {
+      // Recalculate loan_amount when price/contribution/notary changes
+      if (field === "negotiated_price" || field === "personal_contribution" || field === "notary_fees") {
+        const price = field === "negotiated_price"
+          ? (value > 0 ? value : property.purchase_price)
+          : effectivePrice;
         const nf = field === "notary_fees"
-          ? (value > 0 ? value : calculateNotaryFees(property.purchase_price, property.property_type))
-          : effectiveNotary;
+          ? (value > 0 ? value : calculateNotaryFees(price, property.property_type))
+          : (get("notary_fees") > 0 ? get("notary_fees") : calculateNotaryFees(price, property.property_type));
         const contrib = field === "personal_contribution" ? value : get("personal_contribution");
-        const newLoan = Math.max(0, property.purchase_price + nf + property.renovation_cost + furnitureCost - contrib);
+        const newLoan = Math.max(0, price + nf + property.renovation_cost + furnitureCost - contrib);
         await updatePropertyField(property.id, "loan_amount", newLoan, "Calcul auto", "estimated");
         await syncFieldToSimulations(property.id, "loan_amount", newLoan);
       }
@@ -126,10 +132,68 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
       }
       router.refresh();
     });
-  }, [property.id, property.purchase_price, property.property_type, property.renovation_cost, effectiveNotary, get, router, furnitureCost]);
+  }, [property.id, effectivePrice, property.purchase_price, property.property_type, property.renovation_cost, effectiveNotary, get, router, furnitureCost]);
+
+  // Negotiation
+  const negotiatedPrice = get("negotiated_price") as number;
+  const hasNegotiation = negotiatedPrice > 0 && negotiatedPrice !== property.purchase_price;
+  const negotiationDiscount = hasNegotiation
+    ? Math.round((1 - negotiatedPrice / property.purchase_price) * 100)
+    : 0;
+
+  const handleNegotiatedChange = useCallback((field: string, value: number) => {
+    // If value equals purchase price, reset to 0 (no negotiation)
+    const effectiveValue = value === property.purchase_price ? 0 : value;
+    handleChange(field, effectiveValue);
+  }, [property.purchase_price, handleChange]);
+
+  const handleNegotiatedCommit = useCallback((field: string, value: number) => {
+    const effectiveValue = value === property.purchase_price ? 0 : value;
+    handleCommit(field, effectiveValue);
+  }, [property.purchase_price, handleCommit]);
 
   return (
     <div className="space-y-4 mt-4">
+      {/* Section 0: Négociation du prix */}
+      <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
+        <h3 className="text-base font-semibold text-gray-900 mb-1">Négociation du prix</h3>
+        <p className="text-[11px] text-gray-400 mb-2">
+          Ajustez le prix d&apos;achat après négociation pour voir l&apos;impact sur votre investissement.
+        </p>
+
+        {/* Original price (read-only) */}
+        <div className="flex items-center justify-between py-3 border-b border-gray-50">
+          <span className="text-sm text-gray-600 font-medium">Prix affiché</span>
+          <span className="text-sm font-semibold text-gray-400 font-[family-name:var(--font-mono)] py-1 px-2">
+            {formatCurrency(property.purchase_price)}
+          </span>
+        </div>
+
+        <StepperField
+          config={{ field: "negotiated_price", label: "Prix négocié", step: 1000, unit: "€" }}
+          value={hasNegotiation ? negotiatedPrice : property.purchase_price}
+          onChange={handleNegotiatedChange}
+          onCommit={handleNegotiatedCommit}
+          readOnly={!isOwner}
+        />
+        {hasNegotiation && (
+          <div className="flex items-center justify-between -mt-1 mb-1 px-2">
+            <span className="text-[10px] font-semibold text-green-600">
+              Économie : {formatCurrency(property.purchase_price - negotiatedPrice)} (-{negotiationDiscount}%)
+            </span>
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => handleCommit("negotiated_price", 0)}
+                className="text-[10px] text-gray-400 hover:text-red-500 underline transition-colors"
+              >
+                Réinitialiser
+              </button>
+            )}
+          </div>
+        )}
+      </section>
+
       {/* Section 1: Crédit immobilier */}
       <section className="bg-white rounded-xl border border-tiili-border p-4 md:p-6">
         <h3 className="text-base font-semibold text-gray-900 mb-1">Crédit immobilier</h3>

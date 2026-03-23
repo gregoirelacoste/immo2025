@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 
 import { Property, PROPERTY_STATUSES, PROPERTY_STATUS_CONFIG, type PropertyStatus } from "@/domains/property/types";
-import { calculateAll, calculateSimulation } from "@/lib/calculations";
+import { calculateAll, calculateSimulation, getEffectivePrice } from "@/lib/calculations";
 import type { Simulation } from "@/domains/simulation/types";
 import { removeProperty, toggleFavorite } from "@/domains/property/actions";
 import SortBar, { SortKey } from "./SortBar";
@@ -108,8 +108,8 @@ export default function DashboardClient({ properties: initialProperties, current
           bVal = b.property.city;
           break;
         case "purchase_price":
-          aVal = a.property.purchase_price;
-          bVal = b.property.purchase_price;
+          aVal = getEffectivePrice(a.property);
+          bVal = getEffectivePrice(b.property);
           break;
         case "net_yield":
           aVal = a.calcs.net_yield;

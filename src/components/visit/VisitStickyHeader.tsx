@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Property, PropertyCalculations } from "@/domains/property/types";
-import { formatCurrency, formatPercent } from "@/lib/calculations";
+import { formatCurrency, formatPercent, getEffectivePrice } from "@/lib/calculations";
 
 interface Props {
   property: Property;
@@ -32,7 +32,7 @@ export default function VisitStickyHeader({ property, calculations }: Props) {
           </span>
           <div className="flex items-center gap-3 text-xs shrink-0">
             <span className="font-medium">
-              {formatCurrency(property.purchase_price)}
+              {formatCurrency(getEffectivePrice(property))}
             </span>
             <span className="text-amber-600 font-semibold">
               {formatPercent(calculations.net_yield)}

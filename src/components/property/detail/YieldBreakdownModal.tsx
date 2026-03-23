@@ -1,7 +1,7 @@
 "use client";
 
 import { Property, PropertyCalculations } from "@/domains/property/types";
-import { formatCurrency } from "@/lib/calculations";
+import { formatCurrency, getEffectivePrice } from "@/lib/calculations";
 import type { Simulation } from "@/domains/simulation/types";
 
 interface Props {
@@ -20,7 +20,7 @@ export default function YieldBreakdownModal({ open, onClose, property, simulatio
   const annualRentNet = calcs.annual_rent_income;
   const vacancyRate = simulation.vacancy_rate ?? property.vacancy_rate ?? 5;
 
-  const purchasePrice = property.purchase_price;
+  const purchasePrice = getEffectivePrice(property);
   const notaryFees = calcs.total_notary_fees;
   const loanFees = simulation.loan_fees ?? property.loan_fees ?? 0;
   const renovationCost = simulation.renovation_cost ?? property.renovation_cost ?? 0;

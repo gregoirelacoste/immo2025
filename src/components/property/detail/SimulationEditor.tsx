@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Property } from "@/domains/property/types";
 import { Simulation, SimulationFormData } from "@/domains/simulation/types";
-import { calculateSimulation, calculateExitSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent, computeLoanAmount } from "@/lib/calculations";
+import { calculateSimulation, calculateExitSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent, getEffectivePrice, computeLoanAmount } from "@/lib/calculations";
 import { updateSimulationAction } from "@/domains/simulation/actions";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import StepperField, { formatStepperValue, type StepperFieldConfig } from "@/components/ui/StepperField";
@@ -41,11 +41,12 @@ const PROPERTY_CHARGE_FIELDS: (keyof SimulationFormData)[] = ["pno_insurance", "
 
 /** Compute loan_amount from property + form data (delegates to centralized function) */
 function computeLoanFromForm(property: Property, form: SimulationFormData): number {
+  const effectivePrice = getEffectivePrice(property);
   const notary = form.notary_fees > 0
     ? form.notary_fees
-    : calculateNotaryFees(property.purchase_price, property.property_type);
+    : calculateNotaryFees(effectivePrice, property.property_type);
   const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
-  return computeLoanAmount(property.purchase_price, notary, form.renovation_cost, furnitureCost, form.personal_contribution);
+  return computeLoanAmount(effectivePrice, notary, form.renovation_cost, furnitureCost, form.personal_contribution);
 }
 
 function simFormFromSimulation(sim: Simulation): SimulationFormData {

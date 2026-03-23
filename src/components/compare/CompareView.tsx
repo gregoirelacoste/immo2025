@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Image from "next/image";
 import { Property } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
-import { calculateAll, calculateSimulation, formatCurrency, formatPercent } from "@/lib/calculations";
+import { calculateAll, calculateSimulation, formatCurrency, formatPercent, getEffectivePrice } from "@/lib/calculations";
 import CompareSelector from "./CompareSelector";
 
 const MAX_SELECTED = 4;
@@ -47,9 +47,9 @@ function buildSections(properties: Property[], simulationsMap: Record<string, Si
       rows: [
         row("Ville", (p) => ({ display: p.city || "-", raw: 0 })),
         row("Surface", (p) => ({ display: p.surface > 0 ? `${p.surface} m²` : "-", raw: p.surface }), "max"),
-        row("Prix d'achat", (p) => ({ display: formatCurrency(p.purchase_price), raw: p.purchase_price }), "min"),
+        row("Prix d'achat", (p) => ({ display: formatCurrency(getEffectivePrice(p)), raw: getEffectivePrice(p) }), "min"),
         row("Prix/m²", (p) => {
-          const v = p.surface > 0 ? Math.round(p.purchase_price / p.surface) : 0;
+          const v = p.surface > 0 ? Math.round(getEffectivePrice(p) / p.surface) : 0;
           return { display: v > 0 ? formatCurrency(v) : "-", raw: v };
         }, "min"),
         row("DPE", (p) => ({ display: p.dpe_rating || "-", raw: p.dpe_rating ? (72 - p.dpe_rating.charCodeAt(0)) : -999 }), "max"),

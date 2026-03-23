@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
-import { calculateSimulation, calculateAll, formatCurrency } from "@/lib/calculations";
+import { calculateSimulation, calculateAll, formatCurrency, getEffectivePrice } from "@/lib/calculations";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
@@ -176,7 +176,12 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
   const scoreBreakdown = useMemo(() => parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null), [property.score_breakdown]);
   const images: string[] = parseJson(property.image_urls, []);
 
-  const pricePerM2 = property.surface > 0 ? property.purchase_price / property.surface : 0;
+  const effectivePrice = getEffectivePrice(property);
+  const hasNegotiatedPrice = property.negotiated_price > 0 && property.negotiated_price !== property.purchase_price;
+  const pricePerM2 = property.surface > 0 ? effectivePrice / property.surface : 0;
+  const discount = hasNegotiatedPrice
+    ? Math.round((1 - property.negotiated_price / property.purchase_price) * 100)
+    : 0;
 
   async function handleDelete() {
     if (!confirm("Supprimer ce bien ?")) return;
@@ -211,9 +216,25 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
                     </div>
                   )}
                   {property.purchase_price > 0 && (
-                    <p className="text-xl font-bold text-[#1a1a2e] font-[family-name:var(--font-mono)]">
-                      {formatCurrency(property.purchase_price)}
-                    </p>
+                    <div>
+                      {hasNegotiatedPrice ? (
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-xl font-bold text-[#1a1a2e] font-[family-name:var(--font-mono)]">
+                            {formatCurrency(property.negotiated_price)}
+                          </p>
+                          <p className="text-sm text-gray-400 line-through font-[family-name:var(--font-mono)]">
+                            {formatCurrency(property.purchase_price)}
+                          </p>
+                          <span className="text-xs font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
+                            -{discount}%
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="text-xl font-bold text-[#1a1a2e] font-[family-name:var(--font-mono)]">
+                          {formatCurrency(property.purchase_price)}
+                        </p>
+                      )}
+                    </div>
                   )}
                   <p className="text-[13px] text-[#9ca3af] font-medium">
                     {property.property_type === "neuf" ? "Neuf" : "Ancien"} · {property.surface} m²
