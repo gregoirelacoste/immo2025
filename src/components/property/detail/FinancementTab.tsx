@@ -185,7 +185,7 @@ export default function FinancementTab({ property, isOwner = false }: Props) {
               <button
                 type="button"
                 onClick={() => handleCommit("negotiated_price", 0)}
-                className="text-[10px] text-gray-400 hover:text-red-500 underline transition-colors"
+                className="text-[10px] text-gray-400 hover:text-red-500 underline transition-colors min-h-[44px] px-2 flex items-center"
               >
                 Réinitialiser
               </button>

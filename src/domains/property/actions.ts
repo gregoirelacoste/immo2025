@@ -38,13 +38,15 @@ export async function saveProperty(
 
     const { user_id: _uid, ...formWithoutUserId } = formData;
 
+    const effectivePurchasePrice = (formData.negotiated_price ?? 0) > 0 ? formData.negotiated_price : formData.purchase_price;
+
     const payload = {
       ...formWithoutUserId,
       property_type: propertyType,
       notary_fees:
         formData.notary_fees > 0
           ? formData.notary_fees
-          : calculateNotaryFees(formData.purchase_price, propertyType),
+          : calculateNotaryFees(effectivePurchasePrice, propertyType),
     };
 
     if (existingId) {

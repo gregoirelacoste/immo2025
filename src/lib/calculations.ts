@@ -346,6 +346,7 @@ export function calculateSimulation(property: Property, simulation: Simulation):
   const merged: Property = {
     ...property,
     purchase_price: effectivePrice,
+    negotiated_price: 0, // already resolved into purchase_price
     // Loan params — always from simulation, loan_amount recomputed
     loan_amount: computedLoan,
     interest_rate: simulation.interest_rate,
