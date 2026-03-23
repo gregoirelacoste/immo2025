@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth-actions";
+import { getDb } from "@/infrastructure/database/client";
 import {
   getAllLocalities,
   createLocality,
@@ -175,4 +176,70 @@ export async function adminRemoveReferenceCondition(id: string): Promise<{ succe
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }
+}
+
+// ─── Statistics ─────────────────────────────────────────
+
+export interface AdminStats {
+  usersTotal: number;
+  usersThisWeek: number;
+  usersThisMonth: number;
+  recentUsers: { email: string; name: string; created_at: string }[];
+  propertiesTotal: number;
+  localitiesTotal: number;
+  guidesVille: number;
+  guidesQuartier: number;
+  articlesTotal: number;
+}
+
+export async function adminGetStatistics(): Promise<AdminStats> {
+  await requireAdmin();
+  const db = await getDb();
+
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [usersRes, recentUsersRes, propertiesRes, localitiesRes, guidesRes] = await Promise.all([
+    db.execute({
+      sql: `SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) as this_week,
+        SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) as this_month
+        FROM users`,
+      args: [weekAgo, monthAgo],
+    }),
+    db.execute({
+      sql: `SELECT email, name, created_at FROM users ORDER BY created_at DESC LIMIT 20`,
+      args: [],
+    }),
+    db.execute({ sql: `SELECT COUNT(*) as total FROM properties`, args: [] }),
+    db.execute({ sql: `SELECT COUNT(*) as total FROM localities`, args: [] }),
+    db.execute({
+      sql: `SELECT
+        SUM(CASE WHEN category = 'guide_ville' AND status = 'published' THEN 1 ELSE 0 END) as guides_ville,
+        SUM(CASE WHEN category = 'guide_quartier' AND status = 'published' THEN 1 ELSE 0 END) as guides_quartier,
+        COUNT(*) as total
+        FROM blog_articles`,
+      args: [],
+    }),
+  ]);
+
+  const uRow = usersRes.rows[0];
+  const gRow = guidesRes.rows[0];
+
+  return {
+    usersTotal: Number(uRow?.total ?? 0),
+    usersThisWeek: Number(uRow?.this_week ?? 0),
+    usersThisMonth: Number(uRow?.this_month ?? 0),
+    recentUsers: recentUsersRes.rows.map((r) => ({
+      email: String(r.email ?? ""),
+      name: String(r.name ?? ""),
+      created_at: String(r.created_at ?? ""),
+    })),
+    propertiesTotal: Number(propertiesRes.rows[0]?.total ?? 0),
+    localitiesTotal: Number(localitiesRes.rows[0]?.total ?? 0),
+    guidesVille: Number(gRow?.guides_ville ?? 0),
+    guidesQuartier: Number(gRow?.guides_quartier ?? 0),
+    articlesTotal: Number(gRow?.total ?? 0),
+  };
 }
