@@ -186,6 +186,7 @@ export async function processShareAndCreate(
       fiscal_regime: "micro_bic",
       amenities: extracted.amenities ? JSON.stringify(extracted.amenities) : "[]",
       travaux_ratings: "{}",
+      travaux_targets: "{}",
       travaux_overrides: "{}",
       equipment_costs: "{}",
       meuble_status: "non_meuble",

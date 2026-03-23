@@ -65,6 +65,7 @@ function buildDefaultFormData(defaults?: DefaultInputs): PropertyFormData {
     fiscal_regime: "micro_bic",
     amenities: "[]",
     travaux_ratings: "{}",
+    travaux_targets: "{}",
     travaux_overrides: "{}",
     equipment_costs: "{}",
     meuble_status: "non_meuble",

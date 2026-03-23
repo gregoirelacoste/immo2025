@@ -58,6 +58,7 @@ export interface Property {
   amenities: string; // JSON: string[] — clés d'équipements (garage, parking, cave, balcon, etc.)
   // Travaux — ratings et overrides
   travaux_ratings: string;   // JSON: { "reno_floors": 3, "reno_walls": 2, ... }
+  travaux_targets: string;   // JSON: { "reno_floors": 5, "reno_walls": 3, ... } — objectif cible par poste
   travaux_overrides: string; // JSON: { "reno_floors": 2500, ... }
   equipment_costs: string;   // JSON: { "eq_cuisine_equipee": 5000, ... }
   // Ameublement LMNP
@@ -171,6 +172,8 @@ export interface ExitSimulation {
   netProfit: number;
   roi: number; // en %
   totalInvested: number;
+  /** Plus-value estimée liée aux travaux de valorisation */
+  renovationValueAdded: number;
 }
 
 export interface PropertyCalculations {
