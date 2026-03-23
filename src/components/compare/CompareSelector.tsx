@@ -1,7 +1,7 @@
 "use client";
 
 import { Property } from "@/domains/property/types";
-import { formatCurrency, getEffectivePrice } from "@/lib/calculations";
+import { formatCurrency } from "@/lib/calculations";
 
 interface CompareSelectorProps {
   properties: Property[];
@@ -72,7 +72,7 @@ export default function CompareSelector({
                 <p className="text-xs text-gray-500 truncate">{p.address}</p>
               )}
               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-600">
-                <span className="font-medium">{formatCurrency(getEffectivePrice(p))}</span>
+                <span className="font-medium">{formatCurrency(p.purchase_price)}</span>
                 {p.surface > 0 && <span>{p.surface} m²</span>}
               </div>
             </div>

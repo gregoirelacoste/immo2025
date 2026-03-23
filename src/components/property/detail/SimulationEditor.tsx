@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Property } from "@/domains/property/types";
 import { Simulation, SimulationFormData } from "@/domains/simulation/types";
-import { calculateSimulation, calculateExitSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent, getEffectivePrice, computeLoanAmount } from "@/lib/calculations";
+import { calculateSimulation, calculateExitSimulation, formatCurrency, formatPercent, calculateNotaryFees, getEffectiveRent, computeLoanAmount } from "@/lib/calculations";
 import { updateSimulationAction } from "@/domains/simulation/actions";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import StepperField, { formatStepperValue, type StepperFieldConfig } from "@/components/ui/StepperField";
@@ -41,7 +41,8 @@ const PROPERTY_CHARGE_FIELDS: (keyof SimulationFormData)[] = ["pno_insurance", "
 
 /** Compute loan_amount from property + form data (delegates to centralized function) */
 function computeLoanFromForm(property: Property, form: SimulationFormData): number {
-  const effectivePrice = getEffectivePrice(property);
+  const negotiated = form.negotiated_price ?? 0;
+  const effectivePrice = negotiated > 0 ? negotiated : property.purchase_price;
   const notary = form.notary_fees > 0
     ? form.notary_fees
     : calculateNotaryFees(effectivePrice, property.property_type);
@@ -52,6 +53,7 @@ function computeLoanFromForm(property: Property, form: SimulationFormData): numb
 function simFormFromSimulation(sim: Simulation): SimulationFormData {
   return {
     name: sim.name,
+    negotiated_price: sim.negotiated_price ?? 0,
     loan_amount: sim.loan_amount,
     interest_rate: sim.interest_rate,
     loan_duration: sim.loan_duration,
@@ -229,6 +231,60 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
           <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Coût crédit</p>
         </button>
       </div>
+
+      {/* Negotiation section */}
+      {(() => {
+        const nego = (form.negotiated_price as number) ?? 0;
+        const hasNego = nego > 0 && nego !== property.purchase_price;
+        const discount = hasNego ? Math.round((1 - nego / property.purchase_price) * 100) : 0;
+        return (
+          <section className={`bg-white rounded-xl border border-tiili-border p-4 md:p-6 ${readOnly ? "opacity-80" : ""}`}>
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-2">Négociation du prix</h3>
+            {!readOnly && (
+              <p className="text-xs text-gray-400 mb-2">
+                Ajustez le prix d&apos;achat après négociation pour voir l&apos;impact.
+              </p>
+            )}
+            <div className="flex items-center justify-between py-3 border-b border-gray-50">
+              <span className="text-sm text-gray-600 font-medium">Prix affiché</span>
+              <span className="text-sm font-semibold text-gray-400 font-[family-name:var(--font-mono)] py-1 px-2">
+                {formatCurrency(property.purchase_price)}
+              </span>
+            </div>
+            {readOnly ? (
+              <div className="flex items-center justify-between py-3">
+                <span className="text-sm text-gray-600 font-medium">Prix négocié</span>
+                <span className="text-sm font-semibold text-[#1a1a2e] font-[family-name:var(--font-mono)] py-1 px-2">
+                  {hasNego ? formatCurrency(nego) : "—"}
+                </span>
+              </div>
+            ) : (
+              <StepperField
+                config={{ field: "negotiated_price", label: "Prix négocié", step: 1000, unit: "€" }}
+                value={hasNego ? nego : property.purchase_price}
+                onChange={(_, v) => handleChange("negotiated_price", v === property.purchase_price ? 0 : v)}
+                onCommit={(_, v) => handleCommit("negotiated_price", v === property.purchase_price ? 0 : v)}
+              />
+            )}
+            {hasNego && (
+              <div className="flex items-center justify-between -mt-1 mb-1 px-2">
+                <span className="text-[10px] font-semibold text-green-600">
+                  Économie : {formatCurrency(property.purchase_price - nego)} (-{discount}%)
+                </span>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => handleCommit("negotiated_price", 0)}
+                    className="text-[10px] text-gray-400 hover:text-red-500 underline transition-colors min-h-[44px] px-2 flex items-center"
+                  >
+                    Réinitialiser
+                  </button>
+                )}
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       {/* Parameters */}
       <section className={`bg-white rounded-xl border border-tiili-border p-4 md:p-6 ${readOnly ? "opacity-80" : ""}`}>

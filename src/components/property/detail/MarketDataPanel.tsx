@@ -1,6 +1,6 @@
 import { Property } from "@/domains/property/types";
 import type { MarketData } from "@/domains/market/types";
-import { formatCurrency, getEffectivePrice } from "@/lib/calculations";
+import { formatCurrency } from "@/lib/calculations";
 import Spinner from "@/components/ui/Spinner";
 
 interface Props {
@@ -34,7 +34,7 @@ export default function MarketDataPanel({ property, marketData, loading, monthly
 
   if (!marketData) return null;
 
-  const propertyPricePerM2 = property.surface > 0 ? getEffectivePrice(property) / property.surface : 0;
+  const propertyPricePerM2 = property.surface > 0 ? property.purchase_price / property.surface : 0;
 
   // Room-based price comparison (preferred when room_count is set)
   const roomPrice = property.room_count > 0 ? getMarketPriceForRooms(marketData, property.room_count) : { price: null, label: "" };

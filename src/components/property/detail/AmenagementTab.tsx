@@ -3,7 +3,7 @@
 import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Property } from "@/domains/property/types";
-import { formatCurrency, calculateFiscalImpact, getEffectivePrice } from "@/lib/calculations";
+import { formatCurrency, calculateFiscalImpact } from "@/lib/calculations";
 import {
   suggestTypology,
   getPacksForTypology,
@@ -55,7 +55,7 @@ export default function AmenagementTab({ property, isOwner }: Props) {
     const interestYear1 = property.loan_amount * (property.interest_rate / 100);
     return calculateFiscalImpact({
       annualRent: property.monthly_rent * 12,
-      purchasePrice: getEffectivePrice(property),
+      purchasePrice: property.purchase_price,
       renovationCost: property.renovation_cost,
       deductibleCharges: {
         condoCharges: property.condo_charges,

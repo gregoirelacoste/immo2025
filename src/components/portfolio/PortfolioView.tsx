@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Property, PropertyCalculations } from "@/domains/property/types";
 import { RentalSummary } from "@/domains/rental/types";
-import { formatCurrency, getEffectivePrice } from "@/lib/calculations";
+import { formatCurrency } from "@/lib/calculations";
 
 interface Props {
   properties: Property[];
@@ -92,7 +92,7 @@ export default function PortfolioView({ properties, calculations, rentalData }: 
                     </p>
                     <p className="text-sm text-gray-500">
                       {property.city} {property.postal_code ? `(${property.postal_code})` : ""}
-                      {" "} | {formatCurrency(getEffectivePrice(property))}
+                      {" "} | {formatCurrency(property.purchase_price)}
                     </p>
                   </div>
 

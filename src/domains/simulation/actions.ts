@@ -122,6 +122,7 @@ export async function duplicateSimulation(
 
     const data: SimulationFormData = {
       name: newName,
+      negotiated_price: existing.negotiated_price ?? 0,
       loan_amount: existing.loan_amount,
       interest_rate: existing.interest_rate,
       loan_duration: existing.loan_duration,
@@ -161,6 +162,7 @@ export async function createDefaultSimulation(property: Property): Promise<strin
   const userId = property.user_id || "";
   const data: SimulationFormData = {
     name: "Simulation 1",
+    negotiated_price: 0,
     loan_amount: property.loan_amount,
     interest_rate: property.interest_rate,
     loan_duration: property.loan_duration,

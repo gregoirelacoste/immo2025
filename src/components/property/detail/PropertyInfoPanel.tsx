@@ -1,5 +1,5 @@
 import { Property } from "@/domains/property/types";
-import { formatCurrency, getEffectivePrice } from "@/lib/calculations";
+import { formatCurrency } from "@/lib/calculations";
 
 interface Props {
   property: Property;
@@ -12,7 +12,7 @@ export default function PropertyInfoPanel({ property }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
         <div>
           <span className="text-gray-500">Prix d&apos;achat</span>
-          <p className="font-semibold">{formatCurrency(getEffectivePrice(property))}</p>
+          <p className="font-semibold">{formatCurrency(property.purchase_price)}</p>
         </div>
         <div>
           <span className="text-gray-500">Surface</span>
@@ -22,7 +22,7 @@ export default function PropertyInfoPanel({ property }: Props) {
           <span className="text-gray-500">Prix au m²</span>
           <p className="font-semibold">
             {property.surface > 0
-              ? formatCurrency(getEffectivePrice(property) / property.surface)
+              ? formatCurrency(property.purchase_price / property.surface)
               : "—"}
           </p>
         </div>

@@ -3,6 +3,8 @@ export interface Simulation {
   property_id: string;
   user_id: string;
   name: string;
+  // Négociation
+  negotiated_price: number; // 0 = prix affiché, > 0 = prix après négociation
   // Paramètres financiers
   loan_amount: number;
   interest_rate: number;
@@ -38,6 +40,7 @@ export type SimulationFormData = Omit<Simulation, "id" | "property_id" | "user_i
  *  monthly_rent is adjustable (0 = fallback to property value).
  */
 export const SIMULATION_FIELDS = [
+  "negotiated_price",
   "loan_amount",
   "interest_rate",
   "loan_duration",

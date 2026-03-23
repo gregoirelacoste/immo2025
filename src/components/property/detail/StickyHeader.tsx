@@ -1,5 +1,5 @@
 import { Property, PropertyCalculations } from "@/domains/property/types";
-import { formatCurrency, formatPercent, getEffectivePrice } from "@/lib/calculations";
+import { formatCurrency, formatPercent } from "@/lib/calculations";
 import { getGrade, rentaColor, cashflowColor } from "@/lib/grade";
 
 interface Props {
@@ -25,7 +25,7 @@ export default function StickyHeader({ property, calcs, visible, onCashflowClick
             {grade.letter}{property.investment_score ?? ""}
           </span>
           <span className="font-bold text-[#1a1a2e] truncate font-[family-name:var(--font-mono)]">
-            {formatCurrency(getEffectivePrice(property))}
+            {formatCurrency(property.purchase_price)}
           </span>
           {dpe && (
             <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${

@@ -32,16 +32,16 @@ export async function createSimulation(
   const id = generateId();
   await db.execute({
     sql: `INSERT INTO simulations (
-      id, property_id, user_id, name,
+      id, property_id, user_id, name, negotiated_price,
       loan_amount, interest_rate, loan_duration, personal_contribution,
       insurance_rate, loan_fees, notary_fees,
       monthly_rent, condo_charges, property_tax, vacancy_rate,
       airbnb_price_per_night, airbnb_occupancy_rate, airbnb_charges,
       renovation_cost, fiscal_regime, maintenance_per_m2, pno_insurance, gli_rate,
       holding_duration, annual_appreciation
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
-      id, propertyId, userId, data.name,
+      id, propertyId, userId, data.name, data.negotiated_price ?? 0,
       data.loan_amount, data.interest_rate, data.loan_duration, data.personal_contribution,
       data.insurance_rate, data.loan_fees, data.notary_fees,
       data.monthly_rent, data.condo_charges, data.property_tax, data.vacancy_rate,
@@ -237,6 +237,7 @@ function rowToSimulation(row: any): Simulation {
     property_id: String(row.property_id),
     user_id: String(row.user_id),
     name: String(row.name),
+    negotiated_price: safeNum(row.negotiated_price),
     loan_amount: safeNum(row.loan_amount),
     interest_rate: safeNum(row.interest_rate, 3.5),
     loan_duration: safeNum(row.loan_duration, 20),

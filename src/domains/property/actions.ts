@@ -21,7 +21,7 @@ import {
   updateMeubleFields,
 } from "@/domains/property/repository";
 import { requireUserId, getOptionalUserId, isAdmin } from "@/lib/auth-actions";
-import { calculateNotaryFees, getEffectivePrice } from "@/lib/calculations";
+import { calculateNotaryFees } from "@/lib/calculations";
 import { scrapeUrl } from "@/domains/scraping/pipeline/orchestrator";
 import { Property, PropertyFormData, PROPERTY_STATUSES, type PropertyStatus } from "@/domains/property/types";
 import { mergeRescrapeIntoPrefill, parsePrefill, type Confidence } from "@/domains/property/prefill";
@@ -38,15 +38,13 @@ export async function saveProperty(
 
     const { user_id: _uid, ...formWithoutUserId } = formData;
 
-    const effectivePurchasePrice = (formData.negotiated_price ?? 0) > 0 ? formData.negotiated_price : formData.purchase_price;
-
     const payload = {
       ...formWithoutUserId,
       property_type: propertyType,
       notary_fees:
         formData.notary_fees > 0
           ? formData.notary_fees
-          : calculateNotaryFees(effectivePurchasePrice, propertyType),
+          : calculateNotaryFees(formData.purchase_price, propertyType),
     };
 
     if (existingId) {
@@ -66,21 +64,19 @@ export async function saveProperty(
         }
       }
 
-      // Sync simulation loan_amounts when purchase_price, negotiated_price, or property_type changes
+      // Sync simulation loan_amounts when purchase_price or property_type changes
       if (oldProperty && (
         oldProperty.purchase_price !== payload.purchase_price ||
-        oldProperty.property_type !== payload.property_type ||
-        (oldProperty.negotiated_price ?? 0) !== (payload.negotiated_price ?? 0)
+        oldProperty.property_type !== payload.property_type
       )) {
         try {
-          const effectivePrice = (payload.negotiated_price ?? 0) > 0 ? payload.negotiated_price! : payload.purchase_price;
           const sims = await getSimulationsForProperty(existingId);
           for (const sim of sims) {
             const newNotary = sim.notary_fees > 0
               ? sim.notary_fees
-              : calculateNotaryFees(effectivePrice, propertyType);
+              : calculateNotaryFees(payload.purchase_price, propertyType);
             const fc = payload.meuble_status === "meuble" ? (payload.furniture_cost || 0) : 0;
-            const newLoan = Math.max(0, effectivePrice + newNotary + sim.renovation_cost + fc - sim.personal_contribution);
+            const newLoan = Math.max(0, payload.purchase_price + newNotary + sim.renovation_cost + fc - sim.personal_contribution);
             await updateSimulation(sim.id, sim.user_id, { loan_amount: newLoan });
           }
         } catch (e) { console.error("Simulation sync failed (non-fatal):", e); }
@@ -104,6 +100,7 @@ export async function saveProperty(
       try {
         await createSimulation(newId, userId, {
           name: "Simulation 1",
+          negotiated_price: 0,
           loan_amount: payload.loan_amount,
           interest_rate: payload.interest_rate,
           loan_duration: payload.loan_duration,
@@ -183,12 +180,11 @@ export async function saveMeubleChoice(
       if (sim.fiscal_regime !== targetRegime) updates.fiscal_regime = targetRegime;
       // Recalculate loan_amount with new furniture cost
       if (property) {
-        const ep = getEffectivePrice(property);
         const fc = meubleStatus === "meuble" ? furnitureCost : 0;
         const simNotary = sim.notary_fees > 0
           ? sim.notary_fees
-          : calculateNotaryFees(ep, property.property_type);
-        const newLoan = Math.max(0, ep + simNotary + sim.renovation_cost + fc - sim.personal_contribution);
+          : calculateNotaryFees(property.purchase_price, property.property_type);
+        const newLoan = Math.max(0, property.purchase_price + simNotary + sim.renovation_cost + fc - sim.personal_contribution);
         if (sim.loan_amount !== newLoan) updates.loan_amount = newLoan;
       }
       if (Object.keys(updates).length > 0) {
