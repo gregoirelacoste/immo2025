@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Property, PropertyCalculations, PROPERTY_STATUS_CONFIG, type PropertyStatus } from "@/domains/property/types";
-import { getEffectivePrice } from "@/lib/calculations";
 import { getGrade, cashflowColor } from "@/lib/grade";
 
 interface Props {
@@ -136,7 +135,7 @@ export default function PropertyCard({ property: p, calcs: c, index = 0 }: Props
         {/* Line 3: Prix + Renta bar + Cashflow */}
         <div className="flex items-center gap-2.5">
           <span className="text-[14px] font-bold text-[#44403c] tabular-nums min-w-[72px]">
-            {fmt(getEffectivePrice(p))}{"\u202f"}€
+            {fmt(p.purchase_price)}{"\u202f"}€
           </span>
 
           {/* Renta bar */}

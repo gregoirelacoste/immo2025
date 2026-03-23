@@ -6,7 +6,7 @@ import type { Property } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
 import { parseAmenities } from "@/domains/property/amenities";
 import type { Equipment } from "@/domains/property/equipment-service";
-import { calculateAll, calculateSimulation, formatCurrency, formatPercent, getEffectivePrice } from "@/lib/calculations";
+import { calculateAll, calculateSimulation, formatCurrency, formatPercent } from "@/lib/calculations";
 import type { ResolvedVisitConfig } from "@/domains/visit/constants";
 import { resolveVisitConfig } from "@/domains/visit/constants";
 import { changePropertyStatus } from "@/domains/property/actions";
@@ -174,7 +174,7 @@ export default function VisitMode({ property, simulation, equipments = [], visit
             </h1>
             <div className="flex items-center gap-2 text-xs text-gray-600 mt-0.5">
               <span className="font-semibold">
-                {formatCurrency(getEffectivePrice(property))}
+                {formatCurrency(property.purchase_price)}
               </span>
               {property.surface > 0 && <span>{property.surface} m²</span>}
               <span className="capitalize">{property.property_type}</span>

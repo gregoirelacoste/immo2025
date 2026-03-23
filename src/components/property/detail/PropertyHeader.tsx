@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Property } from "@/domains/property/types";
-import { formatCurrency, getEffectivePrice } from "@/lib/calculations";
+import { formatCurrency } from "@/lib/calculations";
 import DownloadReportButton from "@/components/property/DownloadReportButton";
 import { useAuthGate } from "@/components/ui/AuthGate";
 
@@ -35,7 +35,7 @@ export default function PropertyHeader({ property, isOwner, isLoggedIn = false, 
     const text = [
       property.city,
       property.address,
-      property.purchase_price > 0 ? formatCurrency(getEffectivePrice(property)) : null,
+      property.purchase_price > 0 ? formatCurrency(property.purchase_price) : null,
       property.surface > 0 ? `${property.surface} m²` : null,
     ].filter(Boolean).join(" — ");
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://tiili.io";

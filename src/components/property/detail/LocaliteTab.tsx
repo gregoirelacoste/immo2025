@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Property } from "@/domains/property/types";
-import { getEffectivePrice } from "@/lib/calculations";
 import type { LocalityDataFields } from "@/domains/locality/types";
 import { fetchLocalityFields, searchQuartier } from "@/domains/locality/actions";
 import LocalityDataView from "@/components/locality/LocalityDataView";
@@ -43,7 +42,7 @@ export default function LocaliteTab({ property, isPremium = false }: Props) {
     return () => { cancelled = true; };
   }, [property.city, property.postal_code, property.neighborhood]);
 
-  const pricePerM2 = property.surface > 0 ? getEffectivePrice(property) / property.surface : null;
+  const pricePerM2 = property.surface > 0 ? property.purchase_price / property.surface : null;
   const rentPerM2 = property.monthly_rent > 0 && property.surface > 0
     ? property.monthly_rent / property.surface
     : null;

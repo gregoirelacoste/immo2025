@@ -160,7 +160,6 @@ export async function processShareAndCreate(
       city,
       postal_code: extracted.postal_code || "",
       purchase_price: price,
-      negotiated_price: 0,
       surface,
       room_count: extracted.room_count || 0,
       property_type: propertyType,
@@ -213,6 +212,7 @@ export async function processShareAndCreate(
     try {
       await createSimulation(id, userId, {
         name: "Simulation 1",
+        negotiated_price: 0,
         loan_amount: loanAmount,
         interest_rate: 3.5,
         loan_duration: 20,

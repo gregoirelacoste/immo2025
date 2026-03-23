@@ -180,7 +180,6 @@ export async function scrapeAndSaveProperty(
     city,
     postal_code: d.postal_code || "",
     purchase_price: price,
-    negotiated_price: 0,
     surface,
     room_count: d.room_count || 0,
     property_type: propertyType,
@@ -228,6 +227,7 @@ export async function scrapeAndSaveProperty(
   try {
     await createSimulation(id, userId, {
       name: "Simulation 1",
+      negotiated_price: 0,
       loan_amount: loanAmount,
       interest_rate: 3.5,
       loan_duration: 20,
@@ -362,7 +362,6 @@ export async function createPropertyFromText(
       city,
       postal_code: d.postal_code || "",
       purchase_price: price,
-      negotiated_price: 0,
       surface,
       room_count: d.room_count || 0,
       property_type: propertyType,
@@ -409,6 +408,7 @@ export async function createPropertyFromText(
     try {
       await createSimulation(id, userId, {
         name: "Simulation 1",
+        negotiated_price: 0,
         loan_amount: loanAmount,
         interest_rate: 3.5,
         loan_duration: 20,

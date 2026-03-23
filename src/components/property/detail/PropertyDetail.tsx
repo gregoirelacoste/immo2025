@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
-import { calculateSimulation, calculateAll, formatCurrency, getEffectivePrice } from "@/lib/calculations";
+import { calculateSimulation, calculateAll, formatCurrency } from "@/lib/calculations";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
 import type { MarketData } from "@/domains/market/types";
@@ -176,11 +176,12 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
   const scoreBreakdown = useMemo(() => parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null), [property.score_breakdown]);
   const images: string[] = parseJson(property.image_urls, []);
 
-  const effectivePrice = getEffectivePrice(property);
-  const hasNegotiatedPrice = property.negotiated_price > 0 && property.negotiated_price !== property.purchase_price;
+  const negoPrice = effectiveSim.negotiated_price ?? 0;
+  const hasNegotiatedPrice = negoPrice > 0 && negoPrice !== property.purchase_price;
+  const effectivePrice = hasNegotiatedPrice ? negoPrice : property.purchase_price;
   const pricePerM2 = property.surface > 0 ? effectivePrice / property.surface : 0;
   const discount = hasNegotiatedPrice
-    ? Math.round((1 - property.negotiated_price / property.purchase_price) * 100)
+    ? Math.round((1 - negoPrice / property.purchase_price) * 100)
     : 0;
 
   async function handleDelete() {
@@ -220,7 +221,7 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
                       {hasNegotiatedPrice ? (
                         <div className="flex items-baseline gap-2">
                           <p className="text-xl font-bold text-[#1a1a2e] font-[family-name:var(--font-mono)]">
-                            {formatCurrency(property.negotiated_price)}
+                            {formatCurrency(negoPrice)}
                           </p>
                           <p className="text-sm text-gray-400 line-through font-[family-name:var(--font-mono)]">
                             {formatCurrency(property.purchase_price)}

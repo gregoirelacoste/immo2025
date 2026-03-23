@@ -112,14 +112,8 @@ function safeNum(v: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-/** Prix effectif : prix négocié si renseigné, sinon prix d'achat affiché */
-export function getEffectivePrice(property: Property): number {
-  const negotiated = safeNum(property.negotiated_price);
-  return negotiated > 0 ? negotiated : safeNum(property.purchase_price);
-}
-
 export function calculateAll(property: Property, charges: SimulationCharges = DEFAULT_CHARGES): PropertyCalculations {
-  const purchase_price = getEffectivePrice(property);
+  const purchase_price = safeNum(property.purchase_price);
   const property_type = property.property_type;
   const loan_amount = safeNum(property.loan_amount);
   const interest_rate = safeNum(property.interest_rate, 3.5);
@@ -336,7 +330,8 @@ export function computeLoanAmount(
  *  - monthly_rent uses simulation override if > 0, otherwise falls back to property value.
  */
 export function calculateSimulation(property: Property, simulation: Simulation): PropertyCalculations {
-  const effectivePrice = getEffectivePrice(property);
+  const negotiated = safeNum(simulation.negotiated_price);
+  const effectivePrice = negotiated > 0 ? negotiated : safeNum(property.purchase_price);
   const notary = simulation.notary_fees > 0
     ? simulation.notary_fees
     : calculateNotaryFees(effectivePrice, property.property_type);
@@ -346,7 +341,6 @@ export function calculateSimulation(property: Property, simulation: Simulation):
   const merged: Property = {
     ...property,
     purchase_price: effectivePrice,
-    negotiated_price: 0, // already resolved into purchase_price
     // Loan params — always from simulation, loan_amount recomputed
     loan_amount: computedLoan,
     interest_rate: simulation.interest_rate,
@@ -486,7 +480,8 @@ export function calculateExitSimulation(
     ? simulation.holding_duration
     : simulation.loan_duration;
   const appreciation = simulation.annual_appreciation / 100;
-  const effectivePrice = getEffectivePrice(property);
+  const negotiated = safeNum(simulation.negotiated_price);
+  const effectivePrice = negotiated > 0 ? negotiated : safeNum(property.purchase_price);
 
   // Prix de revente estimé
   const salePrice = Math.round(effectivePrice * Math.pow(1 + appreciation, holdingDuration));

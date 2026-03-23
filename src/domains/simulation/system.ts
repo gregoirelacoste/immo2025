@@ -28,6 +28,7 @@ export function buildSystemSimulation(
     property_id: property.id,
     user_id: "",
     name: "Défaut",
+    negotiated_price: 0,
     // Loan — direct from property
     loan_amount: loanAmount,
     interest_rate: property.interest_rate,
