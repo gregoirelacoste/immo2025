@@ -147,9 +147,10 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
   }
 
   function handleOverrideChange(key: string, value: string) {
-    const num = parseInt(value, 10);
+    const isCoefficient = key.startsWith("valo_coeff_");
+    const num = isCoefficient ? parseFloat(value) : parseInt(value, 10);
     const next = { ...localOverrides };
-    if (isNaN(num) || num <= 0) {
+    if (isNaN(num) || (!isCoefficient && num <= 0) || (isCoefficient && num < 0)) {
       delete next[key];
     } else {
       next[key] = num;
@@ -438,18 +439,53 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                           {poste.hint && (
                             <p className="text-xs text-gray-400 italic">{poste.hint}</p>
                           )}
-                          {isOwner && (
+                          {/* Coefficient de valorisation */}
+                          {!item.isRecurrent && item.valorisationCoefficient > 0 && (
                             <div className="flex items-center gap-2 mt-1">
-                              <label className="text-xs text-gray-500">Montant personnalisé :</label>
-                              <input
-                                type="number"
-                                inputMode="numeric"
-                                placeholder="—"
-                                value={item.overrideCost ?? ""}
-                                onChange={(e) => handleOverrideChange(item.key, e.target.value)}
-                                className="w-24 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-400"
-                              />
-                              <span className="text-xs text-gray-400">€</span>
+                              <span className="text-[10px] text-emerald-600">
+                                ROI revente : {Math.round(item.valorisationCoefficient * 100)}%
+                              </span>
+                              {item.valorisationCost > 0 && (
+                                <span className="text-[10px] text-emerald-500">
+                                  → +{formatCurrency(Math.round(item.valorisationCost * item.valorisationCoefficient))} de plus-value
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {isOwner && (
+                            <div className="space-y-1.5 mt-1">
+                              <div className="flex items-center gap-2">
+                                <label className="text-xs text-gray-500">Montant personnalisé :</label>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  placeholder="—"
+                                  value={item.overrideCost ?? ""}
+                                  onChange={(e) => handleOverrideChange(item.key, e.target.value)}
+                                  className="w-24 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                />
+                                <span className="text-xs text-gray-400">€</span>
+                              </div>
+                              {!item.isRecurrent && (
+                                <div className="flex items-center gap-2">
+                                  <label className="text-xs text-gray-500">ROI revente :</label>
+                                  <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    step="5"
+                                    min="0"
+                                    max="100"
+                                    placeholder={String(Math.round((poste.valorisationCoefficient ?? 0) * 100))}
+                                    value={localOverrides[`valo_coeff_${item.key}`] != null ? Math.round(localOverrides[`valo_coeff_${item.key}`] * 100) : ""}
+                                    onChange={(e) => {
+                                      const pct = parseInt(e.target.value, 10);
+                                      handleOverrideChange(`valo_coeff_${item.key}`, isNaN(pct) ? "" : String(pct / 100));
+                                    }}
+                                    className="w-16 px-2 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                                  />
+                                  <span className="text-xs text-gray-400">%</span>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

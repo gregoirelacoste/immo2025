@@ -28,6 +28,8 @@ export interface TravauxItemResult {
   remiseANiveauCost: number;
   /** Part "valorisation" (3★ → cible) */
   valorisationCost: number;
+  /** Coefficient de valorisation effectif (override ou défaut, 0-1) */
+  valorisationCoefficient: number;
   /** Pour entretien : provision mensuelle */
   monthlyProvision: number;
   isRecurrent: boolean;
@@ -226,6 +228,9 @@ export function calculateTravaux(
       monthlyProvision = Math.round(provisionBase / (poste.lifespanYears * 12));
     }
 
+    // Coefficient effectif (override via valo_coeff_<key> ou défaut du registre)
+    const effectiveCoeff = overrides[`valo_coeff_${poste.key}`] ?? poste.valorisationCoefficient ?? 0;
+
     items.push({
       key: poste.key,
       label: poste.label,
@@ -238,6 +243,7 @@ export function calculateTravaux(
       finalCost,
       remiseANiveauCost: finalRemise,
       valorisationCost: finalValo,
+      valorisationCoefficient: effectiveCoeff,
       monthlyProvision,
       isRecurrent: !!poste.isRecurrent,
     });
@@ -250,8 +256,8 @@ export function calculateTravaux(
       totalValorisationCost += finalValo;
 
       // Valorisation resale = coût valo × coefficient de retour
-      if (finalValo > 0 && poste.valorisationCoefficient) {
-        valorisationResaleValue += Math.round(finalValo * poste.valorisationCoefficient);
+      if (finalValo > 0 && effectiveCoeff > 0) {
+        valorisationResaleValue += Math.round(finalValo * effectiveCoeff);
       }
     }
   }

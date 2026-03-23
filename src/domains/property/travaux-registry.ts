@@ -87,29 +87,31 @@ export const RATING_STAR_COLORS: Record<number, string> = {
  */
 export const TRAVAUX_POSTES: TravauxPoste[] = [
   // ── Structure ──
-  { key: "reno_floors", label: "Sols", category: "structure", referenceCostPerUnit: 45, costMode: "per_m2", hint: "Parquet, carrelage, vinyle — vérifier l'état et l'usure", valorisationCoefficient: 0.35 },
-  { key: "reno_walls", label: "Murs", category: "structure", referenceCostPerUnit: 30, costMode: "per_m2", hint: "Peinture, enduit, papier peint — traces d'humidité ?", valorisationCoefficient: 0.35 },
+  // Sources coefficients : Notaires de France (Valeur Verte 2024), Sonergia, CES de France
+  // ROI cuisine/SDB : 70-100% | isolation/fenêtres : 60-90% | électricité/plomberie : ~30%
+  { key: "reno_floors", label: "Sols", category: "structure", referenceCostPerUnit: 45, costMode: "per_m2", hint: "Parquet, carrelage, vinyle — vérifier l'état et l'usure", valorisationCoefficient: 0.40 },
+  { key: "reno_walls", label: "Murs", category: "structure", referenceCostPerUnit: 30, costMode: "per_m2", hint: "Peinture, enduit, papier peint — traces d'humidité ?", valorisationCoefficient: 0.40 },
   { key: "reno_ceilings", label: "Plafonds", category: "structure", referenceCostPerUnit: 25, costMode: "per_m2", hint: "Fissures, traces d'infiltration, peinture", valorisationCoefficient: 0.30 },
   { key: "reno_doors", label: "Portes intérieures", category: "structure", referenceCostPerUnit: 350, costMode: "per_unit", defaultUnitCount: 5, hint: "État des portes, poignées, fermetures", valorisationCoefficient: 0.30 },
-  { key: "reno_windows", label: "Fenêtres", category: "structure", referenceCostPerUnit: 700, costMode: "per_unit", defaultUnitCount: 4, hint: "Joints, condensation entre vitres, fermetures", valorisationCoefficient: 0.65 },
+  { key: "reno_windows", label: "Fenêtres", category: "structure", referenceCostPerUnit: 700, costMode: "per_unit", defaultUnitCount: 4, hint: "Joints, condensation entre vitres, fermetures — impact DPE", valorisationCoefficient: 0.75 },
   { key: "reno_shutters", label: "Volets / stores", category: "structure", referenceCostPerUnit: 400, costMode: "per_unit", defaultUnitCount: 4, hint: "Mécanisme, état des lames, motorisation", valorisationCoefficient: 0.40 },
-  { key: "reno_insulation", label: "Isolation", category: "structure", referenceCostPerUnit: 80, costMode: "per_m2", hint: "Murs + combles — vérifier DPE", valorisationCoefficient: 0.70 },
+  { key: "reno_insulation", label: "Isolation", category: "structure", referenceCostPerUnit: 80, costMode: "per_m2", hint: "Murs + combles — vérifier DPE. Jusqu'à 15% de valorisation", valorisationCoefficient: 0.75 },
 
   // ── Installations ──
-  { key: "reno_electrical", label: "Électricité", category: "installations", referenceCostPerUnit: 80, costMode: "per_m2", hint: "Mise aux normes, tableau, prises", valorisationCoefficient: 0.45 },
-  { key: "reno_plumbing", label: "Plomberie", category: "installations", referenceCostPerUnit: 60, costMode: "per_m2", hint: "Canalisations, robinetterie, pression", valorisationCoefficient: 0.40 },
-  { key: "reno_heating", label: "Chauffage", category: "installations", referenceCostPerUnit: 5000, costMode: "forfait", hint: "Type de chauffage, âge du système", valorisationCoefficient: 0.60 },
-  { key: "reno_vmc", label: "VMC", category: "installations", referenceCostPerUnit: 2500, costMode: "forfait", hint: "Ventilation, aération, buées", valorisationCoefficient: 0.45 },
-  { key: "reno_aircon", label: "Climatisation", category: "installations", referenceCostPerUnit: 3500, costMode: "forfait", hint: "Système de clim réversible", valorisationCoefficient: 0.50 },
+  { key: "reno_electrical", label: "Électricité", category: "installations", referenceCostPerUnit: 80, costMode: "per_m2", hint: "Mise aux normes, tableau, prises — invisible mais nécessaire", valorisationCoefficient: 0.30 },
+  { key: "reno_plumbing", label: "Plomberie", category: "installations", referenceCostPerUnit: 60, costMode: "per_m2", hint: "Canalisations, robinetterie, pression — invisible mais nécessaire", valorisationCoefficient: 0.30 },
+  { key: "reno_heating", label: "Chauffage", category: "installations", referenceCostPerUnit: 5000, costMode: "forfait", hint: "PAC, chaudière — fort impact DPE et confort", valorisationCoefficient: 0.65 },
+  { key: "reno_vmc", label: "VMC", category: "installations", referenceCostPerUnit: 2500, costMode: "forfait", hint: "Ventilation, aération, buées", valorisationCoefficient: 0.40 },
+  { key: "reno_aircon", label: "Climatisation", category: "installations", referenceCostPerUnit: 3500, costMode: "forfait", hint: "Système de clim réversible — confort d'été", valorisationCoefficient: 0.50 },
 
   // ── Pièces ──
-  { key: "reno_kitchen", label: "Cuisine", category: "pieces", referenceCostPerUnit: 6000, costMode: "forfait", hint: "Meubles, plan de travail, électroménager", valorisationCoefficient: 0.55 },
-  { key: "reno_bathroom", label: "Salle de bain", category: "pieces", referenceCostPerUnit: 5000, costMode: "forfait", hint: "Sanitaires, carrelage, robinetterie", valorisationCoefficient: 0.50 },
-  { key: "reno_wc", label: "WC", category: "pieces", referenceCostPerUnit: 1500, costMode: "forfait", hint: "Cuvette, mécanisme, carrelage", valorisationCoefficient: 0.35 },
+  { key: "reno_kitchen", label: "Cuisine", category: "pieces", referenceCostPerUnit: 6000, costMode: "forfait", hint: "Meubles, plan de travail, électroménager — ROI 70-100%", valorisationCoefficient: 0.80 },
+  { key: "reno_bathroom", label: "Salle de bain", category: "pieces", referenceCostPerUnit: 5000, costMode: "forfait", hint: "Sanitaires, carrelage, robinetterie — ROI 75-100%", valorisationCoefficient: 0.80 },
+  { key: "reno_wc", label: "WC", category: "pieces", referenceCostPerUnit: 1500, costMode: "forfait", hint: "Cuvette, mécanisme, carrelage", valorisationCoefficient: 0.40 },
 
   // ── Extérieur (maison) ──
-  { key: "reno_roof", label: "Toiture", category: "exterieur", referenceCostPerUnit: 120, costMode: "per_m2_half", hint: "Tuiles, étanchéité, charpente", valorisationCoefficient: 0.55 },
-  { key: "reno_facade", label: "Façade", category: "exterieur", referenceCostPerUnit: 50, costMode: "per_m2_x1_5", hint: "Ravalement, fissures, isolation extérieure", valorisationCoefficient: 0.50 },
+  { key: "reno_roof", label: "Toiture", category: "exterieur", referenceCostPerUnit: 120, costMode: "per_m2_half", hint: "Tuiles, étanchéité, charpente — jusqu'à 75% de ROI", valorisationCoefficient: 0.70 },
+  { key: "reno_facade", label: "Façade", category: "exterieur", referenceCostPerUnit: 50, costMode: "per_m2_x1_5", hint: "Ravalement, fissures, isolation extérieure", valorisationCoefficient: 0.55 },
 
   // ── Entretien récurrent (pas de valorisation — c'est du consommable) ──
   { key: "wear_appliances", label: "Électroménager", category: "entretien", referenceCostPerUnit: 2000, costMode: "forfait", isRecurrent: true, lifespanYears: 10, hint: "Lave-linge, frigo, four, lave-vaisselle" },
