@@ -46,6 +46,8 @@ ${fieldLines}
 - "amenities" : tableau de clés d'équipements détectés parmi : ${keysList}. Synonymes : stationnement=parking, cellier=cave, véranda=terrasse, clim=climatisation, DV=double_vitrage, FTTH=fibre.
 - "amenities_new" : tableau d'équipements NON présents dans la liste connue. Format : [{ "key": "snake_case", "label": "Label FR", "icon": "emoji" }].
 
+- "missing_insights" : tableau d'informations PRÉSENTES dans le texte de l'annonce mais NON couvertes par les champs ci-dessus, et qui seraient pertinentes pour un simulateur d'investissement locatif. Exemples : étage, année de construction, orientation, nombre de lots copropriété, montant des travaux votés, rentabilité annoncée, régime fiscal suggéré, bail en cours, durée du bail, montant du dépôt de garantie, frais d'agence, etc. Format : [{ "field": "nom_du_champ_snake_case", "value": "valeur brute extraite", "reason": "pourquoi c'est utile pour un investisseur" }]. Ne remonte que les infos réellement présentes dans le texte.
+
 RÈGLES :
 - Retourne UNIQUEMENT un objet JSON valide avec ces clés exactes.
 - Omets les champs non trouvés dans le texte (ne mets pas null ni "").
@@ -143,5 +145,29 @@ export async function extractFromText(
 
   if (allAmenities.length > 0) data.amenities = allAmenities;
 
+  // ── Missing insights → auto-feed roadmap (fire & forget) ──
+  if (Array.isArray(parsed.missing_insights) && parsed.missing_insights.length > 0) {
+    processInsights(parsed.missing_insights as MissingInsight[]).catch((e) =>
+      console.warn("[text-extractor] processInsights failed:", e)
+    );
+  }
+
   return data;
+}
+
+interface MissingInsight {
+  field: string;
+  value: string;
+  reason: string;
+}
+
+async function processInsights(insights: MissingInsight[]): Promise<void> {
+  const { createAIInsight } = await import("@/domains/roadmap/actions");
+  for (const insight of insights.slice(0, 5)) {
+    if (!insight.field || !insight.reason) continue;
+    const title = `Ajouter le champ "${insight.field}" au simulateur`;
+    const value = insight.value ?? "";
+    const description = `Détecté dans une annonce.${value ? ` Valeur exemple : "${value}".` : ""} Pertinence : ${insight.reason}`;
+    await createAIInsight(title, description);
+  }
 }

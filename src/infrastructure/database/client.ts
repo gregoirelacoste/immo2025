@@ -14,7 +14,7 @@ export function getClient(): Client {
 }
 
 // Bump this when adding new migrations so cold starts re-run them
-const SCHEMA_VERSION = 18;
+const SCHEMA_VERSION = 19;
 
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints
@@ -626,6 +626,40 @@ async function initializeDatabase(client: Client): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches(user_id);
     CREATE INDEX IF NOT EXISTS idx_saved_searches_url ON saved_searches(url);
+  `);
+
+  // v19: Roadmap & Feedback tables
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS roadmap_items (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      category TEXT NOT NULL DEFAULT 'idea' CHECK (category IN ('feature','fix','improvement','idea')),
+      status TEXT NOT NULL DEFAULT 'backlog' CHECK (status IN ('backlog','planned','in_progress','done','rejected')),
+      source TEXT NOT NULL DEFAULT 'admin' CHECK (source IN ('admin','user_feedback','ai_insight','scraping_gap')),
+      source_detail TEXT DEFAULT '',
+      priority INTEGER NOT NULL DEFAULT 0,
+      vote_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_roadmap_status ON roadmap_items(status);
+    CREATE INDEX IF NOT EXISTS idx_roadmap_source ON roadmap_items(source);
+    CREATE INDEX IF NOT EXISTS idx_roadmap_priority ON roadmap_items(priority);
+
+    CREATE TABLE IF NOT EXISTS feedback (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT '',
+      user_email TEXT NOT NULL DEFAULT '',
+      type TEXT NOT NULL DEFAULT 'feature' CHECK (type IN ('feature','bug','improvement','other')),
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      page_url TEXT DEFAULT '',
+      roadmap_item_id TEXT DEFAULT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedback(user_id);
+    CREATE INDEX IF NOT EXISTS idx_feedback_roadmap ON feedback(roadmap_item_id);
   `);
 
   // v11: UNIQUE index on localities(code, type) to prevent duplicate IRIS quartier entries
