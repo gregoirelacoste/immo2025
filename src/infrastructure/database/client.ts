@@ -14,7 +14,7 @@ export function getClient(): Client {
 }
 
 // Bump this when adding new migrations so cold starts re-run them
-const SCHEMA_VERSION = 18;
+const SCHEMA_VERSION = 19;
 
 async function initializeDatabase(client: Client): Promise<void> {
   // Enable foreign key constraints
@@ -254,6 +254,9 @@ async function initializeDatabase(client: Client): Promise<void> {
     "ALTER TABLE simulations ADD COLUMN negotiated_price REAL DEFAULT 0",
     // v18 — travaux targets (objectifs cibles par poste)
     "ALTER TABLE properties ADD COLUMN travaux_targets TEXT DEFAULT '{}'",
+    // v19 — agency management on properties
+    "ALTER TABLE properties ADD COLUMN agency_id TEXT DEFAULT ''",
+    "ALTER TABLE properties ADD COLUMN management_fee_rate REAL DEFAULT 0",
   ];
   const migrationErrors: Array<{ stmt: string; error: unknown }> = [];
   for (const stmt of alterMigrations) {
@@ -624,6 +627,32 @@ async function initializeDatabase(client: Client): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches(user_id);
     CREATE INDEX IF NOT EXISTS idx_saved_searches_url ON saved_searches(url);
+  `);
+
+  // Agencies table (v19)
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS agencies (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT '',
+      name TEXT NOT NULL,
+      city TEXT NOT NULL,
+      postal_code TEXT DEFAULT '',
+      address TEXT DEFAULT '',
+      phone TEXT DEFAULT '',
+      email TEXT DEFAULT '',
+      website TEXT DEFAULT '',
+      management_fee_rate REAL DEFAULT 7,
+      source TEXT DEFAULT 'manual',
+      google_rating REAL DEFAULT NULL,
+      google_reviews_count INTEGER DEFAULT NULL,
+      description TEXT DEFAULT '',
+      image_url TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_agencies_city ON agencies(city COLLATE NOCASE);
+    CREATE INDEX IF NOT EXISTS idx_agencies_postal_code ON agencies(postal_code);
+    CREATE INDEX IF NOT EXISTS idx_agencies_user ON agencies(user_id);
   `);
 
   // v11: UNIQUE index on localities(code, type) to prevent duplicate IRIS quartier entries

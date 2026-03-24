@@ -64,6 +64,7 @@ export default function AmenagementTab({ property, isOwner }: Props) {
         pnoInsurance: property.pno_insurance || 0,
         maintenance: (property.maintenance_per_m2 || 0) * (property.surface || 0),
         gliCost: 0,
+        managementCost: 0,
         loanInsurance: 0,
         interestYear1,
       },

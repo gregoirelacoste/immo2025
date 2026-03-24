@@ -35,6 +35,7 @@ export interface FiscalParams {
     pnoInsurance: number;      // assurance PNO annuelle
     maintenance: number;       // provision entretien annuelle
     gliCost: number;           // GLI annuelle
+    managementCost: number;    // frais gestion agence annuels
     loanInsurance: number;     // assurance emprunteur annuelle
     interestYear1: number;     // intérêts année 1 (approximation)
   };
@@ -80,6 +81,7 @@ export function calculateFiscalImpact(params: FiscalParams): FiscalImpact {
     deductibleCharges.pnoInsurance +
     deductibleCharges.maintenance +
     deductibleCharges.gliCost +
+    (deductibleCharges.managementCost || 0) +
     deductibleCharges.loanInsurance +
     deductibleCharges.interestYear1;
 
@@ -160,15 +162,18 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
   // --- Location classique ---
   const annual_rent_income = monthly_rent * 12 * (1 - vacancy_rate / 100);
   const gli_cost = annual_rent_income * (charges.gliRate / 100);
+  const management_fee_rate = safeNum(property.management_fee_rate);
+  const management_cost = annual_rent_income * (management_fee_rate / 100);
 
   // Charges d'exploitation (hors financement)
-  // copro + taxe foncière + PNO + entretien + GLI
+  // copro + taxe foncière + PNO + entretien + GLI + gestion agence
   const annual_charges =
     condo_charges +
     property_tax +
     charges.pnoInsurance +
     charges.annualMaintenanceCost +
-    gli_cost;
+    gli_cost +
+    management_cost;
 
   const gross_yield =
     purchase_price > 0 ? ((monthly_rent * 12) / total_project_cost) * 100 : 0;
@@ -187,7 +192,8 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
     property_tax / 12 -
     charges.pnoInsurance / 12 -
     charges.annualMaintenanceCost / 12 -
-    gli_cost / 12;
+    gli_cost / 12 -
+    management_cost / 12;
 
   // --- Airbnb (pas de GLI en Airbnb, mais copro + PNO + maintenance + TF) ---
   const airbnb_annual_income =
@@ -230,6 +236,7 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
       pnoInsurance: charges.pnoInsurance,
       maintenance: charges.annualMaintenanceCost,
       gliCost: gli_cost,
+      managementCost: management_cost,
       loanInsurance: monthly_insurance * 12,
       interestYear1: interests_year1,
     },
@@ -252,6 +259,7 @@ export function calculateAll(property: Property, charges: SimulationCharges = DE
     pnoInsurance: charges.pnoInsurance,
     maintenance: charges.annualMaintenanceCost,
     gliCost: gli_cost,
+    managementCost: management_cost,
   };
 
   // Loan breakdown : calcul intérêts/capital année 1

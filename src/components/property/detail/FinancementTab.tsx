@@ -39,6 +39,7 @@ const CHARGES_FIELDS: FieldConfig[] = [
   { field: "pno_insurance", label: "Assurance PNO", step: 10, unit: "€/an", syncToSim: true },
   { field: "gli_rate", label: "GLI (loyers impayés)", step: 0.5, unit: "%", decimals: 1, syncToSim: true },
   { field: "maintenance_per_m2", label: "Provision entretien", step: 1, unit: "€/m²/an", syncToSim: true },
+  { field: "management_fee_rate", label: "Gestion agence", step: 0.5, unit: "% du loyer", decimals: 1 },
 ];
 
 const ALL_FIELDS = [...LOAN_FIELDS, ...FEES_FIELDS, ...CHARGES_FIELDS];

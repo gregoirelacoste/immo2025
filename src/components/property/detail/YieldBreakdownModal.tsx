@@ -134,6 +134,7 @@ export default function YieldBreakdownModal({ open, onClose, property, simulatio
                 {ch.pnoInsurance > 0 && <Row label="Assurance PNO" value={ch.pnoInsurance} param={`${formatCurrency(ch.pnoInsurance)}/an`} />}
                 {ch.maintenance > 0 && <Row label="Provision entretien" value={ch.maintenance} param={`${simulation.maintenance_per_m2} €/m²/an × ${property.surface} m²`} />}
                 {ch.gliCost > 0 && <Row label="GLI" value={Math.round(ch.gliCost)} param={`${simulation.gli_rate}% du loyer net`} />}
+                {ch.managementCost > 0 && <Row label="Gestion agence" value={Math.round(ch.managementCost)} param={`${property.management_fee_rate}% du loyer`} />}
                 <div className="px-3 py-2.5 flex items-center justify-between bg-gray-100/60">
                   <span className="text-sm font-semibold text-gray-800">Total charges</span>
                   <span className="text-sm font-bold font-[family-name:var(--font-mono)] text-red-600">
