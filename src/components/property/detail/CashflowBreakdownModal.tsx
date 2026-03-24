@@ -102,6 +102,13 @@ export default function CashflowBreakdownModal({ open, onClose, property, simula
               param: `${simulation.gli_rate}% du loyer net`,
             }]
           : []),
+        ...(ch.managementCost > 0
+          ? [{
+              label: "Gestion agence",
+              value: -ch.managementCost / 12,
+              param: `${property.management_fee_rate}% du loyer`,
+            }]
+          : []),
       ],
     },
   ];

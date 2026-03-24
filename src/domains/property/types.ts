@@ -68,6 +68,9 @@ export interface Property {
   pno_insurance: number;       // Assurance PNO en €/an (default 200)
   gli_rate: number;            // GLI en % du loyer (default 0)
   maintenance_per_m2: number;  // Provision entretien en €/m²/an (default 12)
+  // Gestion agence
+  agency_id: string;           // "" = pas de gestion agence
+  management_fee_rate: number; // % du loyer mensuel (0 = autogestion)
   // Simulation active (référence vers la simulation favorite pour dashboard/résumé)
   active_simulation_id: string; // "" = utiliser la simulation système
   // Metadata
@@ -132,6 +135,7 @@ export interface ChargesBreakdown {
   pnoInsurance: number;    // assurance PNO (annuel)
   maintenance: number;     // provision entretien (annuel)
   gliCost: number;         // GLI (annuel)
+  managementCost: number;  // frais gestion agence (annuel)
 }
 
 /** Détail du coût du crédit */

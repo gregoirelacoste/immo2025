@@ -93,6 +93,7 @@ export default function Navbar() {
             <div className="border-t border-gray-100 my-1" />
             {drawerLink("/compare", "Comparer")}
             {drawerLink("/portfolio", "Patrimoine")}
+            {drawerLink("/agencies", "Agences")}
             <div className="border-t border-gray-100 my-1" />
             {drawerLink("/guide", "Guides villes")}
             {drawerLink("/blog", "Blog")}
@@ -173,6 +174,14 @@ export default function Navbar() {
                 }`}
               >
                 + Nouveau bien
+              </Link>
+              <Link
+                href="/agencies"
+                className={`text-sm font-medium ${
+                  isActive("/agencies") ? "text-amber-700" : "text-gray-600 hover:text-[#1a1a2e]"
+                }`}
+              >
+                Agences
               </Link>
               <Link
                 href="/guide"

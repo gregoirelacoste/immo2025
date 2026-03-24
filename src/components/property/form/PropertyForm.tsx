@@ -73,6 +73,8 @@ function buildDefaultFormData(defaults?: DefaultInputs): PropertyFormData {
     pno_insurance: 200,
     gli_rate: 0,
     maintenance_per_m2: 12,
+    agency_id: "",
+    management_fee_rate: 0,
     source_url: "",
     image_urls: "[]",
     prefill_sources: "{}",
