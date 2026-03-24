@@ -46,15 +46,17 @@ export default function ClassicRentalSection({ form, onChange, prefillHint }: Pr
         if (fields.avg_property_tax_per_m2) {
           onChange("property_tax", Math.round(fields.avg_property_tax_per_m2 * surface));
         } else {
-          onChange("property_tax", Math.round(monthlyRent * 1.5));
+          onChange("property_tax", Math.round(monthlyRent * 1));
         }
       } else {
         setRecalcError("Pas de données de loyer disponibles pour cette ville.");
         return;
       }
 
-      // condo_charges
-      if (fields.avg_condo_charges_per_m2) {
+      // condo_charges — pas de copro pour les maisons
+      if (form.building_type === "maison") {
+        onChange("condo_charges", 0);
+      } else if (fields.avg_condo_charges_per_m2) {
         onChange("condo_charges", Math.round(fields.avg_condo_charges_per_m2 * surface * 12));
       } else if (form.property_type === "ancien") {
         onChange("condo_charges", Math.round(surface * 30));
@@ -98,8 +100,14 @@ export default function ClassicRentalSection({ form, onChange, prefillHint }: Pr
         </div>
         <div>
           <label className={labelClass}>Charges copro / an<FieldTooltip text="Charges de copropriété annuelles (entretien, gardien, ascenseur...). Demandez le PV d'AG pour les connaître." /></label>
-          <input type="number" inputMode="numeric" value={form.condo_charges || ""} onChange={(e) => onChange("condo_charges", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="1200" />
-          {prefillHint("condo_charges")}
+          {form.building_type === "maison" ? (
+            <p className="text-sm text-gray-400 py-3">Pas de copropriété (maison)</p>
+          ) : (
+            <>
+              <input type="number" inputMode="numeric" value={form.condo_charges || ""} onChange={(e) => onChange("condo_charges", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="1200" />
+              {prefillHint("condo_charges")}
+            </>
+          )}
         </div>
         <div>
           <label className={labelClass}>Taxe foncière / an<FieldTooltip text="Taxe foncière annuelle. Consultez l'avis d'imposition du vendeur ou estimez ~1 mois de loyer." /></label>

@@ -157,6 +157,21 @@ export default function PropertyInfoSection({ form, onChange, prefillHint, marke
           </select>
         </div>
         <div>
+          <label className={labelClass}>Catégorie</label>
+          <select
+            value={form.building_type || "appartement"}
+            onChange={(e) => {
+              const val = e.target.value as "appartement" | "maison";
+              onChange("building_type", val);
+              if (val === "maison") onChange("condo_charges", 0);
+            }}
+            className={selectClass}
+          >
+            <option value="appartement">Appartement (copropriété)</option>
+            <option value="maison">Maison</option>
+          </select>
+        </div>
+        <div>
           <label className={labelClass}>
             Prix au m²
             {marketPricePerM2 && form.room_count > 0 && (

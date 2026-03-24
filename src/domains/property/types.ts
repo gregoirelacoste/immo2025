@@ -8,6 +8,7 @@ export interface Property {
   surface: number;
   room_count: number; // nombre de pièces principales (0 = non renseigné)
   property_type: "ancien" | "neuf";
+  building_type: "appartement" | "maison";
   description: string;
   neighborhood: string; // quartier
   // Prêt

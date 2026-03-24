@@ -163,6 +163,7 @@ export async function processShareAndCreate(
       surface,
       room_count: extracted.room_count || 0,
       property_type: propertyType,
+      building_type: "appartement",
       description: extracted.description || "",
       neighborhood: "",
       loan_amount: loanAmount,

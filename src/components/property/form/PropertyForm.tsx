@@ -42,6 +42,7 @@ function buildDefaultFormData(defaults?: DefaultInputs): PropertyFormData {
     surface: 0,
     room_count: 0,
     property_type: "ancien",
+    building_type: "appartement",
     description: "",
     neighborhood: "",
     loan_amount: 0,

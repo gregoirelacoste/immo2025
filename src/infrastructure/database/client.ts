@@ -162,7 +162,7 @@ async function initializeDatabase(client: Client): Promise<void> {
       pno_insurance REAL DEFAULT 200,
       gli_rate REAL DEFAULT 0,
       holding_duration INTEGER DEFAULT 0,
-      annual_appreciation REAL DEFAULT 1.5,
+      annual_appreciation REAL DEFAULT 0.5,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
@@ -210,7 +210,7 @@ async function initializeDatabase(client: Client): Promise<void> {
     "ALTER TABLE user_profile ADD COLUMN alert_thresholds TEXT DEFAULT '{}'",
     "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
     "ALTER TABLE simulations ADD COLUMN holding_duration INTEGER DEFAULT 0",
-    "ALTER TABLE simulations ADD COLUMN annual_appreciation REAL DEFAULT 1.5",
+    "ALTER TABLE simulations ADD COLUMN annual_appreciation REAL DEFAULT 0.5",
     "ALTER TABLE simulations ADD COLUMN maintenance_per_m2 REAL DEFAULT 12",
     "ALTER TABLE simulations ADD COLUMN pno_insurance REAL DEFAULT 200",
     "ALTER TABLE simulations ADD COLUMN gli_rate REAL DEFAULT 0",
@@ -254,6 +254,8 @@ async function initializeDatabase(client: Client): Promise<void> {
     "ALTER TABLE simulations ADD COLUMN negotiated_price REAL DEFAULT 0",
     // v18 — travaux targets (objectifs cibles par poste)
     "ALTER TABLE properties ADD COLUMN travaux_targets TEXT DEFAULT '{}'",
+    // v19 — building type (appartement/maison) + lower default appreciation
+    "ALTER TABLE properties ADD COLUMN building_type TEXT NOT NULL DEFAULT 'appartement'",
   ];
   const migrationErrors: Array<{ stmt: string; error: unknown }> = [];
   for (const stmt of alterMigrations) {
