@@ -12,7 +12,7 @@ import {
   TRAVAUX_PRESETS,
   type TravauxPreset,
 } from "@/domains/property/travaux-calculator";
-import { TRAVAUX_POSTES, TRAVAUX_CATEGORIES, type TravauxPoste } from "@/domains/property/travaux-registry";
+import { TRAVAUX_POSTES, TRAVAUX_CATEGORIES, RATING_LABELS, RATING_COLORS, type TravauxPoste } from "@/domains/property/travaux-registry";
 import { updatePropertyField } from "@/domains/property/actions";
 import { syncFieldToSimulations } from "@/domains/simulation/actions";
 import type { Confidence } from "@/domains/property/prefill";
@@ -48,7 +48,6 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
   );
 
   const hasAnyRating = Object.keys(localRatings).length > 0;
-  const hasAnyTarget = Object.keys(localTargets).length > 0;
   const hasDpe = !!property.dpe_rating;
 
   // Persist a set of fields to DB, check results, sync renovation_cost to simulations
@@ -115,12 +114,10 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
     // Recalculate targets based on active preset
     const presetConfig = TRAVAUX_PRESETS.find(p => p.key === activePreset);
     if (presetConfig && presetConfig.targetRating > 0) {
-      // Re-apply preset with updated ratings
       const newTargets = applyPresetToTargets(next, presetConfig.targetRating);
       setLocalTargets(newTargets);
       persistTargets(newTargets);
     } else {
-      // Manual mode: remove target if rating removed, bump if target < new rating
       const nextTargets = { ...localTargets };
       if (value === null) {
         delete nextTargets[key];
@@ -134,7 +131,32 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
     }
   }
 
-  // Manual target change — only available when preset is "aucun"
+  /** Clear rating + target + overrides for an item */
+  function handleClearItem(key: string) {
+    const nextRatings = { ...localRatings };
+    delete nextRatings[key];
+    setLocalRatings(nextRatings);
+
+    const nextTargets = { ...localTargets };
+    delete nextTargets[key];
+    setLocalTargets(nextTargets);
+
+    const nextOverrides = { ...localOverrides };
+    delete nextOverrides[key];
+    delete nextOverrides[`valo_coeff_${key}`];
+    setLocalOverrides(nextOverrides);
+
+    setExpandedKey(null);
+
+    // Persist all three
+    const newSummary = calculateTravaux(property.surface, JSON.stringify(nextRatings), JSON.stringify(nextOverrides), JSON.stringify(nextTargets));
+    persistFields([
+      { field: "travaux_ratings", value: JSON.stringify(nextRatings), source: "Estimation travaux", mode: "estimated" },
+      { field: "travaux_targets", value: JSON.stringify(nextTargets), source: "Objectif travaux", mode: "declared" },
+      { field: "travaux_overrides", value: JSON.stringify(nextOverrides), source: "Estimation travaux", mode: "declared" },
+    ], newSummary);
+  }
+
   function handleTargetChange(key: string, value: number | null) {
     const next = { ...localTargets };
     const currentRating = localRatings[key];
@@ -147,7 +169,6 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
     persistTargets(next);
   }
 
-  // Preset change — overwrites ALL per-item targets
   function handlePresetChange(preset: TravauxPreset) {
     setActivePreset(preset);
     const presetConfig = TRAVAUX_PRESETS.find(p => p.key === preset);
@@ -252,7 +273,6 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
               </div>
               <div className="text-xs text-orange-500 font-medium">Budget travaux estimé</div>
             </div>
-            {/* Inline split: remise à niveau / valorisation / négo */}
             {(summary.totalRemiseANiveauCost > 0 || summary.totalValorisationCost > 0) && (
               <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 pt-2 border-t border-orange-100">
                 {summary.totalRemiseANiveauCost > 0 && (
@@ -277,13 +297,16 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                 Argument de négo : <span className="font-semibold">-{formatCurrency(summary.totalRemiseANiveauCost)}</span> sur le prix d'achat
               </p>
             )}
+            {summary.monthlyMaintenanceCost > 0 && (
+              <p className="text-[11px] text-blue-500 mt-1">
+                Provision entretien : <span className="font-semibold">{summary.monthlyMaintenanceCost}{"\u202f"}€/mois</span>
+              </p>
+            )}
           </div>
         ) : hasAnyRating ? (
-          <div className="mb-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
-            <div className="text-2xl font-extrabold text-orange-700">
-              {formatCurrency(summary.totalRenovationCost)}
-            </div>
-            <div className="text-xs text-orange-500 font-medium">Budget travaux estimé</div>
+          <div className="mb-4 p-4 bg-green-50 rounded-xl border border-green-100">
+            <div className="text-lg font-bold text-green-700">Aucun travaux prévu</div>
+            <div className="text-xs text-green-500">Sélectionnez un objectif ou une cible par poste pour chiffrer</div>
           </div>
         ) : (
           <p className="text-sm text-gray-500 mb-4">
@@ -304,65 +327,98 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                 {items.map((item) => {
                   const poste = TRAVAUX_POSTES.find((p) => p.key === item.key)!;
                   const isExpanded = expandedKey === item.key;
-                  const showCost = item.finalCost > 0 && !item.isRecurrent;
                   const hasTarget = item.target !== null && item.rating !== null && item.target > item.rating;
+                  const hasRating = item.rating !== null;
 
                   return (
                     <div key={item.key} className={`rounded-lg border bg-white ${isExpanded ? "border-amber-200" : "border-gray-100"}`}>
-                      {/* Compact row */}
+                      {/* Compact row — only label + stars */}
                       <div
                         className="flex items-center gap-2 px-3 py-2 cursor-pointer min-h-[44px]"
                         onClick={() => setExpandedKey(isExpanded ? null : item.key)}
                       >
-                        <span className="text-sm font-medium text-gray-700 w-24 shrink-0 truncate">
+                        <span className="text-sm font-medium text-gray-700 flex-1 truncate">
                           {item.label}
                         </span>
-                        <div className="flex-1 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <StarRating
                             value={item.rating}
                             onChange={isOwner ? (v) => handleRatingChange(item.key, v) : undefined}
                             readonly={!isOwner}
                             size="sm"
                           />
-                          {hasTarget && (
-                            <span className="text-[10px] text-emerald-600 font-semibold whitespace-nowrap">
-                              →{item.target}★
-                            </span>
-                          )}
                         </div>
-                        {showCost && (
-                          <span className="text-sm font-bold text-orange-700 shrink-0 tabular-nums">
-                            {formatCurrency(item.finalCost)}
-                          </span>
-                        )}
-                        {item.isRecurrent && item.monthlyProvision > 0 && (
-                          <span className="text-sm font-bold text-blue-600 shrink-0 tabular-nums">
-                            {item.monthlyProvision}{"\u202f"}€/m
-                          </span>
-                        )}
+                        {/* Chevron indicator */}
+                        <svg
+                          className={`w-4 h-4 text-gray-300 shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
                       </div>
 
                       {/* Expanded detail */}
                       {isExpanded && (
-                        <div className="px-3 pb-3 pt-1 border-t border-gray-50 space-y-2">
-                          {/* Reference cost + cost breakdown inline */}
-                          <div className="text-xs text-gray-500">
-                            {formatReferenceCostLabel(poste, property.surface, item.referenceCost)}
-                          </div>
-
-                          {item.finalCost > 0 && !item.isRecurrent && (item.remiseANiveauCost > 0 || item.valorisationCost > 0) && (
-                            <div className="flex gap-3 text-xs">
-                              {item.remiseANiveauCost > 0 && (
-                                <span className="text-red-600">Remise à niveau : <span className="font-semibold">{formatCurrency(item.remiseANiveauCost)}</span></span>
-                              )}
-                              {item.valorisationCost > 0 && (
-                                <span className="text-emerald-600">Valo : <span className="font-semibold">{formatCurrency(item.valorisationCost)}</span></span>
+                        <div className="px-3 pb-3 pt-1 border-t border-gray-50 space-y-2.5">
+                          {/* État label + badge */}
+                          {hasRating && (
+                            <div className="flex items-center justify-between">
+                              <span className={`text-xs font-semibold ${RATING_COLORS[item.rating!]}`}>
+                                {RATING_LABELS[item.rating!]}
+                              </span>
+                              {isOwner && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleClearItem(item.key)}
+                                  className="text-[10px] text-gray-400 hover:text-red-500 transition-colors"
+                                >
+                                  Retirer ce poste
+                                </button>
                               )}
                             </div>
                           )}
 
+                          {/* Cost info — only shown when there's a target */}
+                          {hasTarget && item.finalCost > 0 && (
+                            <div className="p-2.5 bg-orange-50 rounded-lg">
+                              <div className="flex items-baseline justify-between">
+                                <span className="text-xs text-gray-500">Estimation</span>
+                                <span className="text-base font-bold text-orange-700">{formatCurrency(item.finalCost)}</span>
+                              </div>
+                              {/* Remise / Valo split */}
+                              {(item.remiseANiveauCost > 0 || item.valorisationCost > 0) && (
+                                <div className="flex gap-3 mt-1 text-[11px]">
+                                  {item.remiseANiveauCost > 0 && (
+                                    <span className="text-red-600">Remise à niveau : {formatCurrency(item.remiseANiveauCost)}</span>
+                                  )}
+                                  {item.valorisationCost > 0 && (
+                                    <span className="text-emerald-600">Valorisation : {formatCurrency(item.valorisationCost)}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Recurrent item provision */}
+                          {item.isRecurrent && item.monthlyProvision > 0 && (
+                            <div className="p-2.5 bg-blue-50 rounded-lg">
+                              <div className="flex items-baseline justify-between">
+                                <span className="text-xs text-gray-500">Provision mensuelle</span>
+                                <span className="text-base font-bold text-blue-600">{item.monthlyProvision}{"\u202f"}€/mois</span>
+                              </div>
+                              <p className="text-[10px] text-blue-400 mt-0.5">
+                                Durée de vie estimée : {poste.lifespanYears} ans
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Reference cost formula */}
+                          <div className="text-xs text-gray-400">
+                            {formatReferenceCostLabel(poste, property.surface, item.referenceCost)}
+                          </div>
+
                           {/* Target selector — only in manual mode (preset = "aucun") */}
-                          {isOwner && activePreset === "none" && item.rating !== null && !item.isRecurrent && (
+                          {isOwner && activePreset === "none" && item.rating !== null && (
                             <div className="flex items-center gap-2">
                               <label className="text-xs text-gray-500 font-medium shrink-0">Objectif :</label>
                               <div className="flex gap-1">
@@ -393,11 +449,18 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                             </div>
                           )}
 
+                          {/* Target display for preset mode */}
+                          {hasTarget && activePreset !== "none" && (
+                            <div className="text-xs text-emerald-600">
+                              Objectif : {item.target}★ ({RATING_LABELS[item.target!]})
+                            </div>
+                          )}
+
                           {poste.hint && (
                             <p className="text-xs text-gray-400 italic">{poste.hint}</p>
                           )}
 
-                          {isOwner && (
+                          {isOwner && hasTarget && (
                             <div className="flex items-center gap-3">
                               <div className="flex items-center gap-1.5">
                                 <label className="text-xs text-gray-500">Montant :</label>
@@ -462,16 +525,16 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
 function formatReferenceCostLabel(poste: TravauxPoste, surface: number, refCost: number): string {
   switch (poste.costMode) {
     case "per_m2":
-      return `${poste.referenceCostPerUnit} €/m² × ${surface} m² = ${formatCurrency(refCost)}`;
+      return `Réf. : ${poste.referenceCostPerUnit} €/m² × ${surface} m² = ${formatCurrency(refCost)}`;
     case "per_m2_half":
-      return `${poste.referenceCostPerUnit} €/m² × ${Math.round(surface / 2)} m² = ${formatCurrency(refCost)}`;
+      return `Réf. : ${poste.referenceCostPerUnit} €/m² × ${Math.round(surface / 2)} m² = ${formatCurrency(refCost)}`;
     case "per_m2_x1_5":
-      return `${poste.referenceCostPerUnit} €/m² × ${Math.round(surface * 1.5)} m² = ${formatCurrency(refCost)}`;
+      return `Réf. : ${poste.referenceCostPerUnit} €/m² × ${Math.round(surface * 1.5)} m² = ${formatCurrency(refCost)}`;
     case "per_unit":
-      return `${poste.referenceCostPerUnit} € × ${poste.defaultUnitCount ?? 1} unités = ${formatCurrency(refCost)}`;
+      return `Réf. : ${poste.referenceCostPerUnit} € × ${poste.defaultUnitCount ?? 1} unités = ${formatCurrency(refCost)}`;
     case "forfait":
-      return `${formatCurrency(refCost)} (forfait)`;
+      return `Réf. : ${formatCurrency(refCost)} (forfait)`;
     default:
-      return formatCurrency(refCost);
+      return `Réf. : ${formatCurrency(refCost)}`;
   }
 }
