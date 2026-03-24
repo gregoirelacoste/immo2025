@@ -46,6 +46,14 @@ export default async function AdminPage() {
             <span className="text-gray-400">→</span>
           </a>
           <a
+            href="/admin/roadmap"
+            className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 flex items-center gap-2"
+          >
+            <span>🗺️</span>
+            <span>Roadmap</span>
+            <span className="text-gray-400">→</span>
+          </a>
+          <a
             href="/admin/statistics"
             className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 flex items-center gap-2"
           >
