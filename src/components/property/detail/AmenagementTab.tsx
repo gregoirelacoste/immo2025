@@ -71,8 +71,15 @@ export default function AmenagementTab({ property, isOwner }: Props) {
     });
   }, [property, selectedCost]);
 
+  const isFurnished = status === "meuble" || status === "deja_meuble";
   const effectiveCost = selectedCost > 0 ? selectedCost : 5000;
   const annualAmort = Math.round(effectiveCost / FURNITURE_AMORTIZATION_YEARS);
+
+  // Provision entretien mobilier : coût / durée de vie
+  const FURNITURE_LIFESPAN_YEARS = 8;
+  const furnitureMaintenanceMonthly = isFurnished
+    ? Math.round(effectiveCost / (FURNITURE_LIFESPAN_YEARS * 12))
+    : 0;
 
   function persist(newStatus: MeubleStatus, cost: number) {
     setSaveError(null);
@@ -112,8 +119,6 @@ export default function AmenagementTab({ property, isOwner }: Props) {
     setSelectedCost(val);
     persist("meuble", val);
   }
-
-  const isFurnished = status === "meuble" || status === "deja_meuble";
 
   return (
     <div className="space-y-4 mt-4">
@@ -181,10 +186,13 @@ export default function AmenagementTab({ property, isOwner }: Props) {
             <div className="text-xs text-green-800 space-y-1">
               <p className="font-semibold">Bien déjà meublé</p>
               <p>
-                Le mobilier est inclus dans le prix d&apos;achat. Le régime LMNP Réel est activé
-                sur vos simulations. L&apos;amortissement mobilier utilise le forfait par défaut
-                (5 000 €) dans le calcul fiscal.
+                Le mobilier est inclus dans le prix d&apos;achat. Le régime LMNP Réel est activé.
+                Amortissement sur le forfait par défaut (5 000 €).
               </p>
+              <div className="flex items-center justify-between mt-1 pt-1 border-t border-green-200">
+                <span>Provision renouvellement mobilier</span>
+                <span className="font-bold text-blue-600">{furnitureMaintenanceMonthly}{"\u202f"}€/mois</span>
+              </div>
             </div>
           </div>
         </section>
@@ -426,13 +434,15 @@ export default function AmenagementTab({ property, isOwner }: Props) {
               <p className="font-semibold">Régime LMNP — Amortissement du mobilier</p>
               <p>
                 En LMNP au réel, le mobilier est amortissable sur 5 à 10 ans
-                (7 ans en standard). Cet amortissement vient en déduction de vos
-                revenus locatifs, réduisant votre base imposable.
+                (7 ans en standard). Le pack inclut les éléments obligatoires
+                du décret n°2015-981.
               </p>
-              <p>
-                Le pack inclut les éléments obligatoires du décret n°2015-981
-                pour qualifier un logement de &laquo;&nbsp;meublé&nbsp;&raquo;.
-              </p>
+              {furnitureMaintenanceMonthly > 0 && (
+                <div className="flex items-center justify-between mt-1 pt-1 border-t border-amber-200">
+                  <span>Provision renouvellement mobilier</span>
+                  <span className="font-bold text-blue-600">{furnitureMaintenanceMonthly}{"\u202f"}€/mois</span>
+                </div>
+              )}
             </div>
           </div>
         </section>

@@ -14,6 +14,10 @@ export interface EquipmentImpact {
   impactAbsent: number;
   /** Condition spéciale (ex: ascenseur seulement si étage >= 3) */
   condition?: string;
+  /** Coût de remplacement (€) — pour calculer la provision entretien */
+  replacementCost?: number;
+  /** Durée de vie en années — pour calculer la provision entretien */
+  lifespanYears?: number;
 }
 
 export const EQUIPMENT_IMPACTS: EquipmentImpact[] = [
@@ -27,7 +31,7 @@ export const EQUIPMENT_IMPACTS: EquipmentImpact[] = [
   { key: "gardien", label: "Gardien / concierge", icon: "👤", category: "exterieur", impactPresent: 0.02, impactAbsent: 0 },
 
   // ── Confort intérieur ──
-  { key: "cuisine_equipee", label: "Cuisine équipée", icon: "🍳", category: "confort", impactPresent: 0.03, impactAbsent: -0.02 },
+  { key: "cuisine_equipee", label: "Cuisine équipée", icon: "🍳", category: "confort", impactPresent: 0.03, impactAbsent: -0.02, replacementCost: 2000, lifespanYears: 10 },
   { key: "climatisation", label: "Climatisation", icon: "❄️", category: "confort", impactPresent: 0.03, impactAbsent: 0 },
   { key: "double_vitrage", label: "Double vitrage", icon: "🪟", category: "confort", impactPresent: 0.02, impactAbsent: -0.03 },
   { key: "fibre", label: "Fibre optique", icon: "📡", category: "confort", impactPresent: 0.01, impactAbsent: -0.01 },
@@ -36,6 +40,9 @@ export const EQUIPMENT_IMPACTS: EquipmentImpact[] = [
   { key: "interphone", label: "Interphone / digicode", icon: "🔔", category: "confort", impactPresent: 0.01, impactAbsent: 0 },
   { key: "meuble", label: "Meublé", icon: "🛋️", category: "confort", impactPresent: 0.15, impactAbsent: 0 },
   { key: "piscine", label: "Piscine", icon: "🏊", category: "confort", impactPresent: 0.08, impactAbsent: 0 },
+  // ── Équipements avec entretien récurrent ──
+  { key: "chauffe_eau", label: "Chauffe-eau", icon: "🚿", category: "confort", impactPresent: 0, impactAbsent: 0, replacementCost: 1200, lifespanYears: 12 },
+  { key: "chaudiere", label: "Chaudière / PAC", icon: "🔧", category: "confort", impactPresent: 0, impactAbsent: 0, replacementCost: 4000, lifespanYears: 15 },
 ];
 
 export const EQUIPMENT_CATEGORIES: { key: EquipmentImpact["category"]; label: string }[] = [

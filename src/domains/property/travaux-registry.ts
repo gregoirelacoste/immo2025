@@ -6,7 +6,7 @@
 export interface TravauxPoste {
   key: string;
   label: string;
-  category: "structure" | "installations" | "pieces" | "exterieur" | "entretien";
+  category: "structure" | "installations" | "pieces" | "exterieur";
   /** Coût unitaire de référence (€/m² ou € forfait) */
   referenceCostPerUnit: number;
   /** Comment calculer le coût total de référence */
@@ -112,12 +112,6 @@ export const TRAVAUX_POSTES: TravauxPoste[] = [
   // ── Extérieur (maison) ──
   { key: "reno_roof", label: "Toiture", category: "exterieur", referenceCostPerUnit: 120, costMode: "per_m2_half", hint: "Tuiles, étanchéité, charpente — jusqu'à 75% de ROI", valorisationCoefficient: 0.70 },
   { key: "reno_facade", label: "Façade", category: "exterieur", referenceCostPerUnit: 50, costMode: "per_m2_x1_5", hint: "Ravalement, fissures, isolation extérieure", valorisationCoefficient: 0.55 },
-
-  // ── Entretien récurrent (pas de valorisation — c'est du consommable) ──
-  { key: "wear_appliances", label: "Électroménager", category: "entretien", referenceCostPerUnit: 2000, costMode: "forfait", isRecurrent: true, lifespanYears: 10, hint: "Lave-linge, frigo, four, lave-vaisselle" },
-  { key: "wear_furniture", label: "Mobilier (si meublé)", category: "entretien", referenceCostPerUnit: 3000, costMode: "forfait", isRecurrent: true, lifespanYears: 8, hint: "Canapé, lit, table, rangements" },
-  { key: "wear_water_heater", label: "Chauffe-eau", category: "entretien", referenceCostPerUnit: 1200, costMode: "forfait", isRecurrent: true, lifespanYears: 12, hint: "Cumulus, ballon d'eau chaude" },
-  { key: "wear_boiler", label: "Chaudière / PAC", category: "entretien", referenceCostPerUnit: 4000, costMode: "forfait", isRecurrent: true, lifespanYears: 15, hint: "Chaudière gaz, pompe à chaleur" },
 ];
 
 export const TRAVAUX_CATEGORIES: { key: TravauxPoste["category"]; label: string }[] = [
@@ -125,7 +119,6 @@ export const TRAVAUX_CATEGORIES: { key: TravauxPoste["category"]; label: string 
   { key: "installations", label: "Installations" },
   { key: "pieces", label: "Pièces" },
   { key: "exterieur", label: "Extérieur (maison)" },
-  { key: "entretien", label: "Entretien récurrent" },
 ];
 
 /** Retrouver un poste par sa clé */

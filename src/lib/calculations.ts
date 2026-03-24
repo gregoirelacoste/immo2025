@@ -1,5 +1,7 @@
 import { Property, PropertyCalculations, FiscalImpact, CapitalGainsTax, ExitSimulation, ChargesBreakdown, LoanBreakdown, CashflowBreakdown } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
+import { calculateEquipmentImpact } from "@/domains/property/equipment-calculator";
+import { parseAmenities } from "@/domains/property/amenities";
 
 export function calculateNotaryFees(
   price: number,
@@ -362,8 +364,21 @@ export function calculateSimulation(property: Property, simulation: Simulation):
     renovation_cost: simulation.renovation_cost,
     fiscal_regime: simulation.fiscal_regime,
   };
+  // Equipment maintenance provisions (chauffe-eau, chaudière, électroménager...)
+  const amenities = parseAmenities(property.amenities);
+  const equipSummary = calculateEquipmentImpact(0, amenities); // marketRent=0, we only need maintenance
+  const equipMaintenanceAnnual = equipSummary.totalMonthlyMaintenance * 12;
+
+  // Furniture maintenance provision (mobilier if meublé/deja_meuble)
+  const FURNITURE_LIFESPAN_YEARS = 8;
+  const isFurnished = property.meuble_status === "meuble" || property.meuble_status === "deja_meuble";
+  const furnitureCostForMaint = isFurnished ? (property.furniture_cost || 5000) : 0;
+  const furnitureMaintenanceAnnual = furnitureCostForMaint > 0
+    ? Math.round(furnitureCostForMaint / FURNITURE_LIFESPAN_YEARS)
+    : 0;
+
   const simCharges: SimulationCharges = {
-    annualMaintenanceCost: (simulation.maintenance_per_m2 || 0) * (property.surface || 0),
+    annualMaintenanceCost: (simulation.maintenance_per_m2 || 0) * (property.surface || 0) + equipMaintenanceAnnual + furnitureMaintenanceAnnual,
     pnoInsurance: simulation.pno_insurance || 0,
     gliRate: simulation.gli_rate || 0,
   };
