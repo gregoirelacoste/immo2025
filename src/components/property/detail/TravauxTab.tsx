@@ -246,19 +246,11 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
         {/* Budget summary — compact */}
         {hasAnyRating && summary.totalRenovationCost > 0 ? (
           <div className="mb-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
-            <div className="flex items-baseline justify-between">
-              <div>
-                <div className="text-2xl font-extrabold text-orange-700">
-                  {formatCurrency(summary.totalRenovationCost)}
-                </div>
-                <div className="text-xs text-orange-500 font-medium">Budget travaux estimé</div>
+            <div>
+              <div className="text-2xl font-extrabold text-orange-700">
+                {formatCurrency(summary.totalRenovationCost)}
               </div>
-              {summary.monthlyMaintenanceCost > 0 && (
-                <div className="text-right">
-                  <div className="text-sm font-bold text-blue-600">+{summary.monthlyMaintenanceCost}{"\u202f"}€/mois</div>
-                  <div className="text-[10px] text-blue-400">Entretien</div>
-                </div>
-              )}
+              <div className="text-xs text-orange-500 font-medium">Budget travaux estimé</div>
             </div>
             {/* Inline split: remise à niveau / valorisation / négo */}
             {(summary.totalRemiseANiveauCost > 0 || summary.totalValorisationCost > 0) && (

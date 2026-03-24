@@ -23,6 +23,8 @@ export interface PipelineOptions {
   city?: string;
   postalCode?: string;
   codeInsee?: string;
+  /** Thème libre — l'IA rédige sur ce sujet */
+  customTopic?: string;
   /** Publier directement ou rester en brouillon */
   autoPublish?: boolean;
   /** Qui déclenche : "cron" | "admin" */
@@ -70,6 +72,7 @@ export async function runPipeline(
       city: options.city,
       postalCode: options.postalCode,
       codeInsee: options.codeInsee,
+      customTopic: options.customTopic,
     };
 
     const context = await collectNewsContext(fetcherOptions);

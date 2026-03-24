@@ -34,6 +34,7 @@ export interface ScrapedPropertyData {
   room_count?: number;
   image_urls?: string[];
   amenities?: string[];
+  dpe_rating?: string;
   // Champs locatifs (souvent dans les annonces)
   monthly_rent?: number;
   condo_charges?: number;

@@ -106,6 +106,12 @@ export default function EquipementsTab({ property, marketData, isOwner = false }
               Loyer mensuel ajusté : ~{formatCurrency(Math.round(summary.adjustedRentPerM2 * property.surface))}
             </div>
           )}
+          {summary.totalMonthlyMaintenance > 0 && (
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+              <span className="text-xs text-gray-500">Provision entretien équipements</span>
+              <span className="text-xs font-bold text-blue-600">{summary.totalMonthlyMaintenance}{"\u202f"}€/mois</span>
+            </div>
+          )}
         </div>
 
         {/* Equipment toggles by category */}
@@ -128,6 +134,11 @@ export default function EquipementsTab({ property, marketData, isOwner = false }
                       <span className="text-sm font-medium text-gray-700 truncate">{item.label}</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
+                      {item.present && item.monthlyMaintenance > 0 && (
+                        <span className="text-[10px] text-blue-500 font-medium">
+                          {item.monthlyMaintenance}{"\u202f"}€/m
+                        </span>
+                      )}
                       {item.impactPercent !== 0 && (
                         <span className={`text-xs font-semibold ${
                           item.impactPercent > 0 ? "text-green-600" : "text-red-500"

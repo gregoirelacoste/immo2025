@@ -12,6 +12,8 @@ export interface EquipmentItemResult {
   present: boolean;
   /** Impact appliqué (valeur brute : +0.05, -0.03, etc.) */
   impactPercent: number;
+  /** Provision entretien mensuelle (€/mois) si présent et a un coût de remplacement */
+  monthlyMaintenance: number;
 }
 
 export interface EquipmentSummary {
@@ -19,6 +21,8 @@ export interface EquipmentSummary {
   adjustedRentPerM2: number;
   /** Somme de tous les impacts en % (peut être négatif) */
   totalImpactPercent: number;
+  /** Provision entretien mensuelle totale des équipements (€/mois) */
+  totalMonthlyMaintenance: number;
   /** Détail par équipement */
   items: EquipmentItemResult[];
 }
@@ -34,11 +38,15 @@ export function calculateEquipmentImpact(
 ): EquipmentSummary {
   const amenitySet = new Set(amenities);
   let totalImpactPercent = 0;
+  let totalMonthlyMaintenance = 0;
   const items: EquipmentItemResult[] = [];
 
   for (const eq of EQUIPMENT_IMPACTS) {
     const present = amenitySet.has(eq.key);
     const impact = present ? eq.impactPresent : eq.impactAbsent;
+    const monthlyMaintenance = present && eq.replacementCost && eq.lifespanYears
+      ? Math.round(eq.replacementCost / (eq.lifespanYears * 12))
+      : 0;
 
     items.push({
       key: eq.key,
@@ -47,9 +55,11 @@ export function calculateEquipmentImpact(
       category: eq.category,
       present,
       impactPercent: impact,
+      monthlyMaintenance,
     });
 
     totalImpactPercent += impact;
+    totalMonthlyMaintenance += monthlyMaintenance;
   }
 
   const adjustedRentPerM2 = marketRentPerM2 * (1 + totalImpactPercent);
@@ -57,6 +67,7 @@ export function calculateEquipmentImpact(
   return {
     adjustedRentPerM2: Math.round(adjustedRentPerM2 * 100) / 100,
     totalImpactPercent: Math.round(totalImpactPercent * 1000) / 1000,
+    totalMonthlyMaintenance,
     items,
   };
 }

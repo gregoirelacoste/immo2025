@@ -23,7 +23,8 @@ async function requireAdmin() {
 export async function generateArticleAction(
   category: ArticleCategory,
   city?: string,
-  autoPublish = false
+  autoPublish = false,
+  customTopic?: string
 ): Promise<{
   success: boolean;
   error?: string;
@@ -36,6 +37,7 @@ export async function generateArticleAction(
     const result = await runPipeline({
       category,
       city: city || undefined,
+      customTopic: customTopic || undefined,
       autoPublish,
       triggeredBy: "admin",
     });
