@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireUserId, getAuthContext } from "@/lib/auth-actions";
+import { requireAdmin, requireUserId } from "@/lib/auth-actions";
 import { auth } from "@/lib/auth";
 import {
   getAllRoadmapItems,
@@ -16,9 +16,6 @@ import {
 import type {
   RoadmapItem,
   RoadmapItemInput,
-  RoadmapStatus,
-  RoadmapCategory,
-  RoadmapSource,
   FeedbackItem,
   FeedbackInput,
 } from "./types";
@@ -26,8 +23,12 @@ import type {
 // ── Admin: Roadmap management ──
 
 export async function adminGetRoadmap(): Promise<RoadmapItem[]> {
-  await requireAdmin();
-  return getAllRoadmapItems();
+  try {
+    await requireAdmin();
+    return await getAllRoadmapItems();
+  } catch {
+    return [];
+  }
 }
 
 export async function adminCreateRoadmapItem(
@@ -100,8 +101,12 @@ ${item.description || "Pas de description détaillée."}
 // ── Admin: Feedback view ──
 
 export async function adminGetFeedback(): Promise<FeedbackItem[]> {
-  await requireAdmin();
-  return getAllFeedback();
+  try {
+    await requireAdmin();
+    return await getAllFeedback();
+  } catch {
+    return [];
+  }
 }
 
 // ── Public: User feedback submission ──
@@ -132,19 +137,23 @@ export async function createAIInsight(
   title: string,
   description: string
 ): Promise<void> {
-  // Deduplicate: if same title exists, just increment vote
-  const existing = await findByTitle(title);
-  if (existing) {
-    await incrementVote(existing.id);
-    return;
-  }
+  try {
+    // Deduplicate: if same title exists, just increment vote
+    const existing = await findByTitle(title);
+    if (existing) {
+      await incrementVote(existing.id);
+      return;
+    }
 
-  await createRoadmapItem({
-    title,
-    description,
-    category: "improvement",
-    source: "ai_insight",
-    source_detail: "text-extractor",
-    status: "backlog",
-  });
+    await createRoadmapItem({
+      title,
+      description,
+      category: "improvement",
+      source: "ai_insight",
+      source_detail: "text-extractor",
+      status: "backlog",
+    });
+  } catch (e) {
+    console.warn("[roadmap] createAIInsight failed:", (e as Error).message);
+  }
 }

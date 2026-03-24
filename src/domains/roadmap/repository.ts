@@ -26,10 +26,10 @@ export async function getAllRoadmapItems(): Promise<RoadmapItem[]> {
   return res.rows.map((r) => rowAs<RoadmapItem>(r));
 }
 
-export async function getRoadmapItemById(id: string): Promise<RoadmapItem | null> {
+export async function getRoadmapItemById(id: string): Promise<RoadmapItem | undefined> {
   const db = await getDb();
   const res = await db.execute({ sql: "SELECT * FROM roadmap_items WHERE id = ?", args: [id] });
-  return res.rows[0] ? rowAs<RoadmapItem>(res.rows[0]) : null;
+  return res.rows[0] ? rowAs<RoadmapItem>(res.rows[0]) : undefined;
 }
 
 export async function createRoadmapItem(input: RoadmapItemInput): Promise<RoadmapItem> {
@@ -54,8 +54,14 @@ export async function createRoadmapItem(input: RoadmapItemInput): Promise<Roadma
     ],
   });
 
-  return (await getRoadmapItemById(id))!;
+  const item = await getRoadmapItemById(id);
+  if (!item) throw new Error("Failed to create roadmap item");
+  return item;
 }
+
+const UPDATABLE_COLUMNS = new Set([
+  "title", "description", "category", "status", "priority", "source", "source_detail",
+]);
 
 export async function updateRoadmapItem(
   id: string,
@@ -66,7 +72,7 @@ export async function updateRoadmapItem(
   const args: (string | number | null)[] = [];
 
   for (const [key, val] of Object.entries(fields)) {
-    if (val !== undefined) {
+    if (val !== undefined && UPDATABLE_COLUMNS.has(key)) {
       sets.push(`${key} = ?`);
       args.push(val);
     }
@@ -94,13 +100,13 @@ export async function incrementVote(id: string): Promise<void> {
 }
 
 /** Find existing roadmap item by exact title (used for dedup of AI insights) */
-export async function findByTitle(title: string): Promise<RoadmapItem | null> {
+export async function findByTitle(title: string): Promise<RoadmapItem | undefined> {
   const db = await getDb();
   const res = await db.execute({
     sql: "SELECT * FROM roadmap_items WHERE LOWER(title) = LOWER(?) LIMIT 1",
     args: [title],
   });
-  return res.rows[0] ? rowAs<RoadmapItem>(res.rows[0]) : null;
+  return res.rows[0] ? rowAs<RoadmapItem>(res.rows[0]) : undefined;
 }
 
 // ── Feedback CRUD ──

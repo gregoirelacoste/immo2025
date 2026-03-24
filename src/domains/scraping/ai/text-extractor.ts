@@ -147,7 +147,9 @@ export async function extractFromText(
 
   // ── Missing insights → auto-feed roadmap (fire & forget) ──
   if (Array.isArray(parsed.missing_insights) && parsed.missing_insights.length > 0) {
-    processInsights(parsed.missing_insights as MissingInsight[]).catch(() => {});
+    processInsights(parsed.missing_insights as MissingInsight[]).catch((e) =>
+      console.warn("[text-extractor] processInsights failed:", e)
+    );
   }
 
   return data;
@@ -164,7 +166,8 @@ async function processInsights(insights: MissingInsight[]): Promise<void> {
   for (const insight of insights.slice(0, 5)) {
     if (!insight.field || !insight.reason) continue;
     const title = `Ajouter le champ "${insight.field}" au simulateur`;
-    const description = `Détecté dans une annonce. Valeur exemple : "${insight.value}". Pertinence : ${insight.reason}`;
+    const value = insight.value ?? "";
+    const description = `Détecté dans une annonce.${value ? ` Valeur exemple : "${value}".` : ""} Pertinence : ${insight.reason}`;
     await createAIInsight(title, description);
   }
 }

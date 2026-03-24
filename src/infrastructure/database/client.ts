@@ -655,7 +655,7 @@ async function initializeDatabase(client: Client): Promise<void> {
       title TEXT NOT NULL,
       description TEXT DEFAULT '',
       page_url TEXT DEFAULT '',
-      roadmap_item_id TEXT DEFAULT '',
+      roadmap_item_id TEXT DEFAULT NULL,
       created_at TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedback(user_id);

@@ -79,7 +79,7 @@ export default function FeedbackWidget() {
           <div className="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">Votre retour</h2>
-              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl">
+              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl min-h-[44px] min-w-[44px] flex items-center justify-center">
                 &times;
               </button>
             </div>
@@ -97,7 +97,7 @@ export default function FeedbackWidget() {
                     <button
                       key={opt.value}
                       onClick={() => setType(opt.value)}
-                      className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
+                      className={`rounded-xl border px-3 py-3 text-left text-sm min-h-[44px] transition-colors ${
                         type === opt.value
                           ? "border-amber-400 bg-amber-50 font-medium"
                           : "border-gray-200 hover:bg-gray-50"

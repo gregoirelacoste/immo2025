@@ -26,8 +26,8 @@ const STATUS_COLORS: Record<RoadmapStatus, string> = {
 };
 
 const CATEGORY_LABELS: Record<RoadmapCategory, string> = {
-  feature: "Feature",
-  fix: "Fix",
+  feature: "Fonctionnalité",
+  fix: "Correctif",
   improvement: "Amélioration",
   idea: "Idée",
 };
@@ -40,10 +40,10 @@ const CATEGORY_ICONS: Record<RoadmapCategory, string> = {
 };
 
 const SOURCE_LABELS: Record<RoadmapSource, string> = {
-  admin: "Admin",
+  admin: "Administration",
   user_feedback: "Utilisateur",
   ai_insight: "IA (texte)",
-  scraping_gap: "Scraping",
+  scraping_gap: "Extraction auto",
 };
 
 const SOURCE_COLORS: Record<RoadmapSource, string> = {
