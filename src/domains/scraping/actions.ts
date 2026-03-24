@@ -384,7 +384,7 @@ export async function createPropertyFromText(
       airbnb_occupancy_rate: 60,
       airbnb_charges: 0,
       renovation_cost: 0,
-      dpe_rating: null,
+      dpe_rating: d.dpe_rating ?? null,
       fiscal_regime: "micro_bic",
       amenities: d.amenities ? JSON.stringify(d.amenities) : "[]",
       meuble_status: "non_meuble",
@@ -493,6 +493,7 @@ export async function extractAndUpdateFromText(
       ...(d.neighborhood && { neighborhood: d.neighborhood }),
       ...(d.property_type && { property_type: d.property_type }),
       ...(d.room_count != null && d.room_count > 0 && { room_count: d.room_count }),
+      ...(d.dpe_rating && { dpe_rating: d.dpe_rating }),
       ...(d.amenities && d.amenities.length > 0 && {
         amenities: JSON.stringify([...new Set([
           ...JSON.parse(property.amenities || "[]"),

@@ -42,6 +42,7 @@ export default function AdminBlogClient({ stats, initialArticles }: Props) {
   // Form state
   const [category, setCategory] = useState<ArticleCategory>("guide_ville");
   const [city, setCity] = useState("");
+  const [customTopic, setCustomTopic] = useState("");
   const [autoPublish, setAutoPublish] = useState(false);
 
   const cityRequired = ["guide_ville", "guide_quartier", "etude_de_cas"].includes(category);
@@ -59,7 +60,8 @@ export default function AdminBlogClient({ stats, initialArticles }: Props) {
     const result = await generateArticleAction(
       category,
       city.trim() || undefined,
-      autoPublish
+      autoPublish,
+      customTopic.trim() || undefined
     );
 
     setGenerating(false);
@@ -79,6 +81,7 @@ export default function AdminBlogClient({ stats, initialArticles }: Props) {
       }
       setSuccess(parts.join(" — "));
       setCity("");
+      setCustomTopic("");
       router.refresh();
     } else {
       setError(result.error || "Erreur inconnue");
@@ -230,6 +233,22 @@ export default function AdminBlogClient({ stats, initialArticles }: Props) {
               Publier directement
             </label>
           </div>
+        </div>
+
+        <div className="mt-3">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Thème libre <span className="text-gray-400 font-normal">(optionnel)</span>
+          </label>
+          <textarea
+            value={customTopic}
+            onChange={(e) => setCustomTopic(e.target.value)}
+            placeholder="Ex: Les pièges du LMNP en 2025, Comparatif Lyon vs Bordeaux pour un T2 locatif, Impact des JO sur l'immobilier parisien..."
+            rows={2}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Si renseigné, l'IA rédige sur ce sujet. Sinon, elle choisit selon la catégorie.
+          </p>
         </div>
 
         <button

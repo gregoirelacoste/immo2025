@@ -158,6 +158,7 @@ export async function collectNewsContext(
       department,
       region,
       generatedAt: now,
+      customTopic: options.customTopic,
     },
     dvf,
     insee,
@@ -185,6 +186,7 @@ export function serializeNewsContext(ctx: NewsContext): string {
   if (ctx.meta.department) sections.push(`Département : ${ctx.meta.department}`);
   if (ctx.meta.region) sections.push(`Région : ${ctx.meta.region}`);
   sections.push(`Date de collecte : ${ctx.meta.generatedAt}`);
+  if (ctx.meta.customTopic) sections.push(`\nTHÈME LIBRE DEMANDÉ PAR L'ADMIN :\n${ctx.meta.customTopic}\n\nL'article DOIT traiter ce sujet spécifique. Adapte la catégorie et le format au thème demandé.`);
   sections.push(`</meta>`);
 
   if (ctx.dvf) {

@@ -150,6 +150,7 @@ export function mergeTextExtractionIntoPrefill(
   if (data.monthly_rent != null) merged.monthly_rent = { source: "Collage texte (IA)", value: data.monthly_rent };
   if (data.condo_charges != null) merged.condo_charges = { source: "Collage texte (IA)", value: data.condo_charges };
   if (data.property_tax != null) merged.property_tax = { source: "Collage texte (IA)", value: data.property_tax };
+  if (data.dpe_rating) merged.dpe_rating = { source: "Collage texte (IA)", value: data.dpe_rating };
 
   return merged;
 }

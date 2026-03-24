@@ -54,6 +54,8 @@ export interface NewsContext {
     department?: string;
     region?: string;
     generatedAt: string;
+    /** Thème libre saisi par l'admin — injecté dans le prompt Gemini */
+    customTopic?: string;
   };
 
   /** Données DVF (prix immobilier) */
@@ -84,6 +86,8 @@ export interface NewsFetcherOptions {
   codeInsee?: string;
   /** Nombre max d'actus RSS à inclure */
   maxNews?: number;
+  /** Thème libre — transmis au contexte Gemini */
+  customTopic?: string;
 }
 
 // ── Article en base ──
