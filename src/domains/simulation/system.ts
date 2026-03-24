@@ -55,7 +55,7 @@ export function buildSystemSimulation(
     gli_rate: property.gli_rate,
     // Exit — locality trend or default (not on property tabs)
     holding_duration: 0,
-    annual_appreciation: loc.price_trend_pct ?? 1.5,
+    annual_appreciation: loc.price_trend_pct ?? 0.5,
     // Timestamps (virtual)
     created_at: "",
     updated_at: "",

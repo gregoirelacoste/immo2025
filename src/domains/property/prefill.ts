@@ -50,7 +50,8 @@ export function applyMarketDataToPrefill(
   prefill: PrefillRecord,
   market: MarketData,
   surface: number,
-  propertyType: "ancien" | "neuf"
+  propertyType: "ancien" | "neuf",
+  buildingType?: "appartement" | "maison"
 ): { prefill: PrefillRecord; rentPerM2: number; monthlyRent: number; propertyTax: number; condoCharges: number } {
   let rentPerM2 = 0;
   let monthlyRent = 0;
@@ -86,16 +87,19 @@ export function applyMarketDataToPrefill(
         propertyTax = Math.round(market.avgPropertyTaxPerM2 * surface);
         prefill.property_tax = { source: "Données locales (taxe foncière)", value: propertyTax };
       } else {
-        propertyTax = Math.round(monthlyRent * 1.5);
-        prefill.property_tax = { source: "Estimation (~1.5× loyer)", value: propertyTax };
+        propertyTax = Math.round(monthlyRent * 1);
+        prefill.property_tax = { source: "Estimation (~1× loyer)", value: propertyTax };
       }
     } else {
       propertyTax = Number(prefill.property_tax.value) || 0;
     }
   }
 
-  // condo_charges: use real local data if available, otherwise estimate
-  if (!prefill.condo_charges) {
+  // condo_charges: pas de copro pour les maisons
+  if (buildingType === "maison") {
+    condoCharges = 0;
+    prefill.condo_charges = { source: "Maison (pas de copropriété)", value: 0 };
+  } else if (!prefill.condo_charges) {
     if (market.avgCondoChargesPerM2) {
       condoCharges = Math.round(market.avgCondoChargesPerM2 * surface * 12);
       prefill.condo_charges = { source: "Données locales (charges copro)", value: condoCharges };
