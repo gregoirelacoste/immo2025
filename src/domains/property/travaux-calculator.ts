@@ -170,8 +170,8 @@ export function calculateTravaux(
     let remiseANiveauCost = 0;
     let valorisationCost = 0;
 
-    if (target !== null && rating !== null) {
-      // Mode target : coût = delta entre rating et target
+    if (target !== null && rating !== null && target > rating) {
+      // Coût = delta entre rating actuel et target
       const deltaFactor = computeDeltaFactor(rating, target);
       estimatedCost = Math.round(referenceCost * deltaFactor);
 
@@ -183,15 +183,9 @@ export function calculateTravaux(
 
       // Valorisation = de max(rating, 3) jusqu'à target
       valorisationCost = Math.max(0, estimatedCost - remiseANiveauCost);
-    } else if (rating !== null) {
-      // Mode legacy (pas de target) : ancien comportement = coût vers 5★
-      const factor = RATING_FACTORS[rating] ?? 0;
-      estimatedCost = Math.round(referenceCost * factor);
-
-      // Split basé sur les facteurs prédéfinis
-      remiseANiveauCost = Math.round(referenceCost * (REMISE_A_NIVEAU_FACTORS[rating] ?? 0));
-      valorisationCost = Math.round(referenceCost * (VALORISATION_FACTORS[rating] ?? 0));
     } else {
+      // Pas de target, ou target ≤ rating → pas de travaux chiffrés
+      // Le rating seul sert à documenter l'état, pas à générer un coût
       estimatedCost = 0;
     }
 
