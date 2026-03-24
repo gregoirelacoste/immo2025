@@ -119,26 +119,21 @@ function computeDeltaFactor(currentRating: number, targetRating: number): number
 }
 
 /**
- * Applique les targets globaux du preset aux postes qui n'ont pas de target individuel.
+ * Applique un preset global à tous les postes notés.
+ * Le preset écrase TOUTES les targets — pas de conservation d'overrides manuels.
  */
 export function applyPresetToTargets(
   ratings: Record<string, number>,
-  existingTargets: Record<string, number>,
   presetTargetRating: number
 ): Record<string, number> {
   const result: Record<string, number> = {};
   for (const poste of TRAVAUX_POSTES) {
     const currentRating = ratings[poste.key];
     if (currentRating == null) continue; // pas noté = pas de travaux
-
-    if (existingTargets[poste.key] != null) {
-      // Override individuel : on le garde
-      result[poste.key] = Math.max(existingTargets[poste.key], currentRating);
-    } else if (presetTargetRating > 0 && presetTargetRating > currentRating) {
-      // Preset global s'applique
+    if (presetTargetRating > 0 && presetTargetRating > currentRating) {
       result[poste.key] = presetTargetRating;
     }
-    // Si preset = "none" (0) et pas d'override → pas de target (pas de travaux)
+    // Si preset = "none" (0) ou rating >= preset → pas de target
   }
   return result;
 }

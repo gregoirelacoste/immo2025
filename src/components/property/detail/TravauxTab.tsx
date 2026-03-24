@@ -106,24 +106,35 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
     const next = { ...localRatings };
     if (value === null) {
       delete next[key];
-      // Also remove target if rating is removed
-      const nextTargets = { ...localTargets };
-      delete nextTargets[key];
-      setLocalTargets(nextTargets);
-      persistTargets(nextTargets);
     } else {
       next[key] = value;
-      // If target exists and is now below rating, bump it up
-      if (localTargets[key] != null && localTargets[key] < value) {
-        const nextTargets = { ...localTargets, [key]: value };
+    }
+    setLocalRatings(next);
+    persistRatings(next);
+
+    // Recalculate targets based on active preset
+    const presetConfig = TRAVAUX_PRESETS.find(p => p.key === activePreset);
+    if (presetConfig && presetConfig.targetRating > 0) {
+      // Re-apply preset with updated ratings
+      const newTargets = applyPresetToTargets(next, presetConfig.targetRating);
+      setLocalTargets(newTargets);
+      persistTargets(newTargets);
+    } else {
+      // Manual mode: remove target if rating removed, bump if target < new rating
+      const nextTargets = { ...localTargets };
+      if (value === null) {
+        delete nextTargets[key];
+      } else if (nextTargets[key] != null && nextTargets[key] < value) {
+        nextTargets[key] = value;
+      }
+      if (JSON.stringify(nextTargets) !== JSON.stringify(localTargets)) {
         setLocalTargets(nextTargets);
         persistTargets(nextTargets);
       }
     }
-    setLocalRatings(next);
-    persistRatings(next);
   }
 
+  // Manual target change — only available when preset is "aucun"
   function handleTargetChange(key: string, value: number | null) {
     const next = { ...localTargets };
     const currentRating = localRatings[key];
@@ -136,24 +147,15 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
     persistTargets(next);
   }
 
+  // Preset change — overwrites ALL per-item targets
   function handlePresetChange(preset: TravauxPreset) {
     setActivePreset(preset);
     const presetConfig = TRAVAUX_PRESETS.find(p => p.key === preset);
     if (!presetConfig) return;
 
-    // Clear all targets when "none", otherwise apply preset (keep individual overrides)
-    const individualOverrides: Record<string, number> = {};
-    // Keep targets that were manually set (different from any preset value)
-    for (const [key, val] of Object.entries(localTargets)) {
-      const rating = localRatings[key];
-      if (rating != null && val !== presetConfig.targetRating) {
-        individualOverrides[key] = val;
-      }
-    }
-
     const newTargets = presetConfig.targetRating === 0
       ? {}
-      : applyPresetToTargets(localRatings, individualOverrides, presetConfig.targetRating);
+      : applyPresetToTargets(localRatings, presetConfig.targetRating);
 
     setLocalTargets(newTargets);
     persistTargets(newTargets);
@@ -367,8 +369,8 @@ export default function TravauxTab({ property, isOwner = false }: Props) {
                             </div>
                           )}
 
-                          {/* Target selector */}
-                          {isOwner && item.rating !== null && !item.isRecurrent && (
+                          {/* Target selector — only in manual mode (preset = "aucun") */}
+                          {isOwner && activePreset === "none" && item.rating !== null && !item.isRecurrent && (
                             <div className="flex items-center gap-2">
                               <label className="text-xs text-gray-500 font-medium shrink-0">Objectif :</label>
                               <div className="flex gap-1">
