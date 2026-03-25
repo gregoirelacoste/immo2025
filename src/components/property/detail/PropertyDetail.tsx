@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
-import { calculateSimulation, calculateAll, calculateExitSimulation, formatCurrency } from "@/lib/calculations";
+import { calculateSimulation, calculateExitSimulation, formatCurrency } from "@/lib/calculations";
 import { calculateTravaux } from "@/domains/property/travaux-calculator";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
@@ -34,6 +34,8 @@ import CompletenessChecklist from "./CompletenessChecklist";
 import CashflowBreakdownModal from "./CashflowBreakdownModal";
 import YieldBreakdownModal from "./YieldBreakdownModal";
 import LoanCostBreakdownModal from "./LoanCostBreakdownModal";
+import BeginnerVerdict from "./BeginnerVerdict";
+import { useUserMode } from "@/contexts/UserModeContext";
 
 const PropertyMap = dynamic(() => import("./PropertyMap"), { ssr: false });
 
@@ -93,6 +95,7 @@ function parseJson<T>(json: string, fallback: T): T {
 export default function PropertyDetail({ property, isOwner = false, isLoggedIn = false, isPremium = false, photos = [], simulations = [] }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isBeginner } = useUserMode();
 
   // Local optimistic state for active simulation — updates instantly on switch
   const [localActiveSimId, setLocalActiveSimId] = useState<string>(
@@ -183,7 +186,7 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
 
   const marketData = useMemo(() => parseJson<MarketData | null>(property.market_data, null), [property.market_data]);
   const scoreBreakdown = useMemo(() => parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null), [property.score_breakdown]);
-  const images: string[] = parseJson(property.image_urls, []);
+  const images: string[] = useMemo(() => parseJson(property.image_urls, []), [property.image_urls]);
 
   const negoPrice = effectiveSim.negotiated_price ?? 0;
   const hasNegotiatedPrice = negoPrice > 0 && negoPrice !== property.purchase_price;
@@ -268,7 +271,7 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
                       >
                         {calcs.monthly_cashflow > 0 ? "+" : ""}{Math.round(calcs.monthly_cashflow)}{"\u202f"}€/mois
                       </button>
-                      {exitSim.holdingDuration > 0 && (
+                      {!isBeginner && exitSim.holdingDuration > 0 && (
                         <span className={`text-sm font-bold font-[family-name:var(--font-mono)] ${
                           exitSim.roi >= 0 ? "text-green-600" : "text-red-600"
                         }`}>
@@ -288,26 +291,30 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
       {/* Sticky header (visible only on scroll past hero) */}
       <StickyHeader property={property} calcs={calcs} visible={heroHidden} onCashflowClick={() => setCashflowModalOpen(true)} onYieldClick={() => setYieldModalOpen(true)} />
 
-      {/* Simulation banner — always visible, acts as context selector */}
-      <SimulationBanner
-        property={property}
-        simulations={simulations}
-        activeSim={effectiveSim}
-        activeSimId={localActiveSimId}
-        isLoggedIn={isLoggedIn}
-        onSimSwitch={async (simId) => {
-          setLocalActiveSimId(simId);
-          setLiveSimFromEditor(null);
-          // Persist in background — UI already updated optimistically
-          const { setActiveSimulationAction } = await import("@/domains/property/actions");
-          await setActiveSimulationAction(property.id, simId === "__system__" ? "" : simId);
-          router.refresh();
-        }}
-        onOpenDrawer={() => setSimDrawerOpen(true)}
-      />
+      {/* Beginner verdict — human-readable summary */}
+      {isBeginner && <BeginnerVerdict property={property} calcs={calcs} />}
 
-      {/* Completeness checklist — only for property owners */}
-      {isOwner && <CompletenessChecklist property={property} />}
+      {/* Simulation banner — expert only */}
+      {!isBeginner && (
+        <SimulationBanner
+          property={property}
+          simulations={simulations}
+          activeSim={effectiveSim}
+          activeSimId={localActiveSimId}
+          isLoggedIn={isLoggedIn}
+          onSimSwitch={async (simId) => {
+            setLocalActiveSimId(simId);
+            setLiveSimFromEditor(null);
+            const { setActiveSimulationAction } = await import("@/domains/property/actions");
+            await setActiveSimulationAction(property.id, simId === "__system__" ? "" : simId);
+            router.refresh();
+          }}
+          onOpenDrawer={() => setSimDrawerOpen(true)}
+        />
+      )}
+
+      {/* Completeness checklist — only for property owners, expert mode */}
+      {isOwner && !isBeginner && <CompletenessChecklist property={property} />}
 
       {/* Tab navigation */}
       <TabNavigation />
@@ -425,24 +432,29 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
         onLoanCostClick={() => setLoanCostModalOpen(true)}
       />
 
-      {/* ═══════════════════ ONGLET TRAVAUX ═══════════════════ */}
-      {activeTab === "travaux" && (
-        <TravauxTab property={property} isOwner={isOwner} />
-      )}
+      {/* Expert-only tabs */}
+      {!isBeginner && (
+        <>
+          {/* ═══════════════════ ONGLET TRAVAUX ═══════════════════ */}
+          {activeTab === "travaux" && (
+            <TravauxTab property={property} isOwner={isOwner} />
+          )}
 
-      {/* ═══════════════════ ONGLET ÉQUIPEMENTS ═══════════════════ */}
-      {activeTab === "equipements" && (
-        <EquipementsTab property={property} marketData={marketData} isOwner={isOwner} />
-      )}
+          {/* ═══════════════════ ONGLET ÉQUIPEMENTS ═══════════════════ */}
+          {activeTab === "equipements" && (
+            <EquipementsTab property={property} marketData={marketData} isOwner={isOwner} />
+          )}
 
-      {/* ═══════════════════ ONGLET AMEUBLEMENT LMNP ═══════════════════ */}
-      {activeTab === "amenagement" && (
-        <AmenagementTab property={property} isOwner={isOwner} />
-      )}
+          {/* ═══════════════════ ONGLET AMEUBLEMENT LMNP ═══════════════════ */}
+          {activeTab === "amenagement" && (
+            <AmenagementTab property={property} isOwner={isOwner} />
+          )}
 
-      {/* ═══════════════════ ONGLET LOCALITÉ ═══════════════════ */}
-      {activeTab === "localite" && (
-        <LocaliteTab property={property} isPremium={isPremium} />
+          {/* ═══════════════════ ONGLET LOCALITÉ ═══════════════════ */}
+          {activeTab === "localite" && (
+            <LocaliteTab property={property} isPremium={isPremium} />
+          )}
+        </>
       )}
 
       {/* Cashflow breakdown modal — opens on cashflow click */}

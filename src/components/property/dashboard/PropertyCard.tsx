@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Property, PropertyCalculations, ExitSimulation, PROPERTY_STATUS_CONFIG, type PropertyStatus } from "@/domains/property/types";
 import { getGrade, cashflowColor } from "@/lib/grade";
+import { useUserMode } from "@/contexts/UserModeContext";
 
 interface Props {
   property: Property;
@@ -54,6 +55,7 @@ function getCashflowPrefix(cf: number): string {
 }
 
 export default function PropertyCard({ property: p, calcs: c, exitSim, index = 0 }: Props) {
+  const { isBeginner } = useUserMode();
   const grade = getGrade(p.investment_score);
   const status = (p.property_status || "added") as PropertyStatus;
   const scoreNum = p.investment_score ?? 0;
@@ -164,8 +166,8 @@ export default function PropertyCard({ property: p, calcs: c, exitSim, index = 0
           </span>
         </div>
 
-        {/* Line 4: ROI + Profit net (projection) */}
-        {exitSim.holdingDuration > 0 && (
+        {/* Line 4: ROI + Profit net (projection) — expert only */}
+        {!isBeginner && exitSim.holdingDuration > 0 && (
           <div className="flex items-center gap-2 mt-1">
             <span className={`text-[11px] font-bold tabular-nums ${exitSim.roi >= 0 ? "text-green-600" : "text-red-600"}`}>
               ROI {exitSim.roi > 0 ? "+" : ""}{exitSim.roi.toFixed(0)}%
