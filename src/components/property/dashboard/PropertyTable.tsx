@@ -8,6 +8,7 @@ import { formatCurrency, formatPercent } from "@/lib/calculations";
 import InvestmentScoreBadge from "@/components/ui/InvestmentScoreBadge";
 import StatusBadge from "@/components/property/StatusBadge";
 import { getGrade, rentaColor, cashflowColor } from "@/lib/grade";
+import { useUserMode } from "@/contexts/UserModeContext";
 import { SortKey } from "./SortBar";
 
 const PAGE_SIZE = 50;
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, currentUserId, isAdmin, onDelete, onToggleFavorite }: Props) {
+  const { isBeginner } = useUserMode();
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const visibleRows = useMemo(() => sorted.slice(0, visibleCount), [sorted, visibleCount]);
   const sortIcon = (key: SortKey) =>
@@ -46,20 +48,24 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
               Prix{sortIcon("purchase_price")}
             </th>
             <th className={thClass}>Surface</th>
-            <th className={thClass}>Prix/m²</th>
+            {!isBeginner && <th className={thClass}>Prix/m²</th>}
             <th className={thClass} onClick={() => onSort("net_yield")}>
               Renta nette{sortIcon("net_yield")}
             </th>
             <th className={thClass} onClick={() => onSort("monthly_cashflow")}>
               Cash-flow{sortIcon("monthly_cashflow")}
             </th>
-            <th className={thClass} onClick={() => onSort("roi")}>
-              ROI{sortIcon("roi")}
-            </th>
-            <th className={thClass} onClick={() => onSort("airbnb_net_yield")}>
-              Renta Airbnb{sortIcon("airbnb_net_yield")}
-            </th>
-            <th className={thClass}>CF Airbnb</th>
+            {!isBeginner && (
+              <th className={thClass} onClick={() => onSort("roi")}>
+                ROI{sortIcon("roi")}
+              </th>
+            )}
+            {!isBeginner && (
+              <th className={thClass} onClick={() => onSort("airbnb_net_yield")}>
+                Renta Airbnb{sortIcon("airbnb_net_yield")}
+              </th>
+            )}
+            {!isBeginner && <th className={thClass}>CF Airbnb</th>}
             <th className={thClass} onClick={() => onSort("investment_score")}>
               Grade{sortIcon("investment_score")}
             </th>
@@ -114,25 +120,33 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
                 </td>
                 <td className="px-3 py-4 text-sm text-gray-700 font-[family-name:var(--font-mono)]">{formatCurrency(p.purchase_price)}</td>
                 <td className="px-3 py-4 text-sm text-gray-700">{p.surface} m²</td>
-                <td className="px-3 py-4 text-sm text-gray-700 font-[family-name:var(--font-mono)]">
-                  {p.surface > 0 ? formatCurrency(p.purchase_price / p.surface) : "\u2014"}
-                </td>
+                {!isBeginner && (
+                  <td className="px-3 py-4 text-sm text-gray-700 font-[family-name:var(--font-mono)]">
+                    {p.surface > 0 ? formatCurrency(p.purchase_price / p.surface) : "\u2014"}
+                  </td>
+                )}
                 <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${rentaColor(c.net_yield)}`}>
                   {formatPercent(c.net_yield)}
                 </td>
                 <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${cashflowColor(c.monthly_cashflow)}`}>
                   {formatCurrency(c.monthly_cashflow)}
                 </td>
-                <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${exitSim.roi >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {exitSim.roi > 0 ? "+" : ""}{exitSim.roi.toFixed(1)}%
-                  <span className="block text-[10px] font-medium text-gray-400">{exitSim.holdingDuration}a</span>
-                </td>
-                <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${rentaColor(c.airbnb_net_yield)}`}>
-                  {formatPercent(c.airbnb_net_yield)}
-                </td>
-                <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${cashflowColor(c.airbnb_monthly_cashflow)}`}>
-                  {formatCurrency(c.airbnb_monthly_cashflow)}
-                </td>
+                {!isBeginner && (
+                  <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${exitSim.roi >= 0 ? "text-green-600" : "text-red-600"}`}>
+                    {exitSim.roi > 0 ? "+" : ""}{exitSim.roi.toFixed(1)}%
+                    <span className="block text-[10px] font-medium text-gray-400">{exitSim.holdingDuration}a</span>
+                  </td>
+                )}
+                {!isBeginner && (
+                  <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${rentaColor(c.airbnb_net_yield)}`}>
+                    {formatPercent(c.airbnb_net_yield)}
+                  </td>
+                )}
+                {!isBeginner && (
+                  <td className={`px-3 py-4 text-sm font-bold font-[family-name:var(--font-mono)] ${cashflowColor(c.airbnb_monthly_cashflow)}`}>
+                    {formatCurrency(c.airbnb_monthly_cashflow)}
+                  </td>
+                )}
                 <td className="px-3 py-4 text-sm">
                   <InvestmentScoreBadge score={p.investment_score} size="sm" />
                 </td>
