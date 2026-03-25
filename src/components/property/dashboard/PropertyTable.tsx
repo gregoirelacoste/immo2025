@@ -7,7 +7,7 @@ import { Property, PropertyCalculations, ExitSimulation, type PropertyStatus } f
 import { formatCurrency, formatPercent } from "@/lib/calculations";
 import InvestmentScoreBadge from "@/components/ui/InvestmentScoreBadge";
 import StatusBadge from "@/components/property/StatusBadge";
-import { getGrade, rentaColor, cashflowColor } from "@/lib/grade";
+import { rentaColor, cashflowColor } from "@/lib/grade";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { SortKey } from "./SortBar";
 
@@ -74,7 +74,6 @@ export default function PropertyTable({ sorted, sortKey, sortAsc, onSort, curren
         </thead>
         <tbody className="divide-y divide-tiili-border">
           {visibleRows.map(({ property: p, calcs: c, exitSim }) => {
-            const grade = getGrade(p.investment_score);
             return (
               <tr key={p.id} className="hover:bg-tiili-surface/50">
                 <td className="px-1 py-4 text-center">

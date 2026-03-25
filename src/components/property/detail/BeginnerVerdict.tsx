@@ -1,5 +1,3 @@
-"use client";
-
 import { Property, PropertyCalculations } from "@/domains/property/types";
 import { formatCurrency } from "@/lib/calculations";
 

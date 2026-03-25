@@ -22,14 +22,12 @@ const STORAGE_KEY = "tiili-user-mode";
 
 export function UserModeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<UserMode>("beginner");
-  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as UserMode | null;
+    const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === "beginner" || stored === "expert") {
       setModeState(stored);
     }
-    setHydrated(true);
   }, []);
 
   const setMode = useCallback((newMode: UserMode) => {
@@ -41,11 +39,10 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
     setMode(mode === "beginner" ? "expert" : "beginner");
   }, [mode, setMode]);
 
-  // Avoid hydration mismatch — render children only after reading localStorage
-  if (!hydrated) return <>{children}</>;
+  const value = { mode, isBeginner: mode === "beginner", toggleMode, setMode };
 
   return (
-    <UserModeContext.Provider value={{ mode, isBeginner: mode === "beginner", toggleMode, setMode }}>
+    <UserModeContext.Provider value={value}>
       {children}
     </UserModeContext.Provider>
   );
