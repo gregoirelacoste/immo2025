@@ -12,7 +12,6 @@ interface Props {
   onChange: (field: keyof PropertyFormData, value: string | number) => void;
   prefillHint: (field: string) => ReactNode;
   marketDataJson?: string;
-  isBeginner?: boolean;
 }
 
 const inputClass =
@@ -51,7 +50,7 @@ function getRoomLabel(roomCount: number): string {
   return "";
 }
 
-export default function PropertyInfoSection({ form, onChange, prefillHint, marketDataJson, isBeginner }: Props) {
+export default function PropertyInfoSection({ form, onChange, prefillHint, marketDataJson }: Props) {
   const dpe = form.dpe_rating;
   const isDpeAlert = dpe === "F" || dpe === "G";
   const { cityStatus, neighborhoodStatus, checkCity, checkNeighborhood } = useLocalityCheck(form.city, form.neighborhood ?? "");
@@ -94,20 +93,18 @@ export default function PropertyInfoSection({ form, onChange, prefillHint, marke
           />
           {prefillHint("city")}
         </div>
-        {!isBeginner && (
-          <div>
-            <label className={labelClass}>Quartier<LocalityBadge status={neighborhoodStatus} /></label>
-            <input
-              type="text"
-              value={form.neighborhood}
-              onChange={(e) => onChange("neighborhood", e.target.value)}
-              onBlur={checkNeighborhood}
-              className={inputClass}
-              placeholder="Centre historique"
-            />
-            {prefillHint("neighborhood")}
-          </div>
-        )}
+        <div>
+          <label className={labelClass}>Quartier<LocalityBadge status={neighborhoodStatus} /></label>
+          <input
+            type="text"
+            value={form.neighborhood}
+            onChange={(e) => onChange("neighborhood", e.target.value)}
+            onBlur={checkNeighborhood}
+            className={inputClass}
+            placeholder="Centre historique"
+          />
+          {prefillHint("neighborhood")}
+        </div>
         <div>
           <label className={labelClass}>Prix d&apos;achat</label>
           <input
@@ -159,88 +156,78 @@ export default function PropertyInfoSection({ form, onChange, prefillHint, marke
             <option value="neuf">Neuf (~2.5% frais notaire)</option>
           </select>
         </div>
-        {!isBeginner && (
-          <div>
-            <label className={labelClass}>Catégorie</label>
-            <select
-              value={form.building_type || "appartement"}
-              onChange={(e) => {
-                const val = e.target.value as "appartement" | "maison";
-                onChange("building_type", val);
-                if (val === "maison") onChange("condo_charges", 0);
-              }}
-              className={selectClass}
-            >
-              <option value="appartement">Appartement (copropriété)</option>
-              <option value="maison">Maison</option>
-            </select>
+        <div>
+          <label className={labelClass}>Catégorie</label>
+          <select
+            value={form.building_type || "appartement"}
+            onChange={(e) => {
+              const val = e.target.value as "appartement" | "maison";
+              onChange("building_type", val);
+              if (val === "maison") onChange("condo_charges", 0);
+            }}
+            className={selectClass}
+          >
+            <option value="appartement">Appartement (copropriété)</option>
+            <option value="maison">Maison</option>
+          </select>
+        </div>
+        <div>
+          <label className={labelClass}>
+            Prix au m²
+            {marketPricePerM2 && form.room_count > 0 && (
+              <span className="ml-1 text-xs font-normal text-gray-400">
+                (marché {getRoomLabel(form.room_count)} : {formatCurrency(marketPricePerM2)})
+              </span>
+            )}
+          </label>
+          <div className="flex items-center gap-2">
+            <p className={valueClass}>
+              {pricePerM2 > 0 ? formatCurrency(pricePerM2) : "—"}
+            </p>
+            {priceDelta !== null && form.room_count > 0 && (
+              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                priceDelta <= 0 ? "bg-green-100 text-green-700" : "bg-red-50 text-red-700"
+              }`}>
+                {priceDelta > 0 ? "+" : ""}{priceDelta.toFixed(1)}%
+              </span>
+            )}
           </div>
-        )}
-        {!isBeginner && (
-          <div>
-            <label className={labelClass}>
-              Prix au m²
-              {marketPricePerM2 && form.room_count > 0 && (
-                <span className="ml-1 text-xs font-normal text-gray-400">
-                  (marché {getRoomLabel(form.room_count)} : {formatCurrency(marketPricePerM2)})
-                </span>
-              )}
-            </label>
-            <div className="flex items-center gap-2">
-              <p className={valueClass}>
-                {pricePerM2 > 0 ? formatCurrency(pricePerM2) : "—"}
-              </p>
-              {priceDelta !== null && form.room_count > 0 && (
-                <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
-                  priceDelta <= 0 ? "bg-green-100 text-green-700" : "bg-red-50 text-red-700"
-                }`}>
-                  {priceDelta > 0 ? "+" : ""}{priceDelta.toFixed(1)}%
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-        {!isBeginner && (
-          <div>
-            <label className={labelClass}>DPE<FieldTooltip text="Diagnostic de Performance Énergétique (A=excellent, G=passoire). Les DPE F et G ont des restrictions de location." /></label>
-            <select
-              className={selectClass}
-              value={form.dpe_rating || ""}
-              onChange={e => onChange("dpe_rating", e.target.value || "")}
-            >
-              <option value="">Non renseigné</option>
-              {["A", "B", "C", "D", "E", "F", "G"].map(grade => (
-                <option key={grade} value={grade}>{grade}</option>
-              ))}
-            </select>
-            {prefillHint("dpe_rating")}
-          </div>
-        )}
-        {!isBeginner && (
-          <div>
-            <label className={labelClass}>Visibilité</label>
-            <select
-              value={form.visibility}
-              onChange={(e) => onChange("visibility", e.target.value as "public" | "private")}
-              className={inputClass}
-            >
-              <option value="public">Public — visible par tous</option>
-              <option value="private">Privé — visible uniquement par vous</option>
-            </select>
-          </div>
-        )}
-        {!isBeginner && (
-          <div className="md:col-span-2">
-            <label className={labelClass}>Description / Notes</label>
-            <textarea
-              value={form.description}
-              onChange={(e) => onChange("description", e.target.value)}
-              className={inputClass + " min-h-[80px]"}
-              rows={2}
-              placeholder="Notes libres sur le bien..."
-            />
-          </div>
-        )}
+        </div>
+        <div>
+          <label className={labelClass}>DPE<FieldTooltip text="Diagnostic de Performance Énergétique (A=excellent, G=passoire). Les DPE F et G ont des restrictions de location." /></label>
+          <select
+            className={selectClass}
+            value={form.dpe_rating || ""}
+            onChange={e => onChange("dpe_rating", e.target.value || "")}
+          >
+            <option value="">Non renseigné</option>
+            {["A", "B", "C", "D", "E", "F", "G"].map(grade => (
+              <option key={grade} value={grade}>{grade}</option>
+            ))}
+          </select>
+          {prefillHint("dpe_rating")}
+        </div>
+        <div>
+          <label className={labelClass}>Visibilité</label>
+          <select
+            value={form.visibility}
+            onChange={(e) => onChange("visibility", e.target.value as "public" | "private")}
+            className={inputClass}
+          >
+            <option value="public">Public — visible par tous</option>
+            <option value="private">Privé — visible uniquement par vous</option>
+          </select>
+        </div>
+        <div className="md:col-span-2">
+          <label className={labelClass}>Description / Notes</label>
+          <textarea
+            value={form.description}
+            onChange={(e) => onChange("description", e.target.value)}
+            className={inputClass + " min-h-[80px]"}
+            rows={2}
+            placeholder="Notes libres sur le bien..."
+          />
+        </div>
       </div>
 
       {isDpeAlert && (

@@ -308,7 +308,7 @@ export default function PropertyForm({ existingProperty, defaultInputs, equipmen
         />
       )}
 
-      <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} marketDataJson={existingProperty?.market_data} isBeginner={isBeginner} />
+      <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} marketDataJson={existingProperty?.market_data} />
 
       {/* Amenities: expert mode only in create */}
       {!isEditing && !isBeginner && (
