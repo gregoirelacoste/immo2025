@@ -119,12 +119,12 @@ export default function Navbar() {
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 className="block w-full text-left px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                Deconnexion
+                Déconnexion
               </button>
             ) : (
               <>
                 {drawerLink("/login", "Se connecter")}
-                {drawerLink("/register", "Creer un compte")}
+                {drawerLink("/register", "Créer un compte")}
               </>
             )}
           </div>

@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Property, type PropertyStatus } from "@/domains/property/types";
-import { calculateSimulation, calculateAll, calculateExitSimulation, formatCurrency } from "@/lib/calculations";
+import { calculateSimulation, calculateExitSimulation, formatCurrency } from "@/lib/calculations";
 import { calculateTravaux } from "@/domains/property/travaux-calculator";
 import { removeProperty } from "@/domains/property/actions";
 import { refreshEnrichment } from "@/domains/enrich/actions";
@@ -186,7 +186,7 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
 
   const marketData = useMemo(() => parseJson<MarketData | null>(property.market_data, null), [property.market_data]);
   const scoreBreakdown = useMemo(() => parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null), [property.score_breakdown]);
-  const images: string[] = parseJson(property.image_urls, []);
+  const images: string[] = useMemo(() => parseJson(property.image_urls, []), [property.image_urls]);
 
   const negoPrice = effectiveSim.negotiated_price ?? 0;
   const hasNegotiatedPrice = negoPrice > 0 && negoPrice !== property.purchase_price;

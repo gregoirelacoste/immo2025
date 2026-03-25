@@ -14,7 +14,7 @@ export default function ModeSwitcher({ variant = "default" }: Props) {
     return (
       <button
         onClick={() => setMode(mode === "beginner" ? "expert" : "beginner")}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors bg-gray-100 hover:bg-gray-200 text-gray-600"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 min-h-[44px] rounded-lg text-xs font-medium transition-colors bg-gray-100 hover:bg-gray-200 text-gray-600"
         title={mode === "beginner" ? "Passer en mode Expert" : "Passer en mode Simplifié"}
       >
         {mode === "beginner" ? (
