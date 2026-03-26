@@ -2,6 +2,7 @@ import { ReactNode, useState } from "react";
 import { PropertyFormData } from "@/domains/property/types";
 import { fetchLocalityFields } from "@/domains/locality/actions";
 import { adjustRentPerM2, calculateDegressiveRent } from "@/domains/market/rent-degressive";
+import type { LocalityDataFields } from "@/domains/locality/types";
 import FieldTooltip from "@/components/ui/FieldTooltip";
 
 interface Props {
@@ -21,11 +22,44 @@ export default function ClassicRentalSection({ form, onChange, prefillHint, isBe
 
   const canRecalc = form.city.trim().length > 0 && form.surface > 0;
 
+  /**
+   * Pick the best rent/m² for the current building_type + room_count.
+   * Priority: neighborhood AI pricing > segmented locality data > generic avg.
+   */
+  function pickBestRentPerM2(fields: LocalityDataFields): number | null {
+    const rooms = form.room_count;
+    const isMaison = form.building_type === "maison";
+
+    // 1. Neighborhood-level AI pricing (highest priority)
+    if (isMaison && fields.neighborhood_rent_price_house) return fields.neighborhood_rent_price_house;
+    if (!isMaison) {
+      if (rooms === 1 && fields.neighborhood_rent_price_t1) return fields.neighborhood_rent_price_t1;
+      if (rooms === 2 && fields.neighborhood_rent_price_t2) return fields.neighborhood_rent_price_t2;
+      if (rooms === 3 && fields.neighborhood_rent_price_t3) return fields.neighborhood_rent_price_t3;
+      if (rooms >= 4 && fields.neighborhood_rent_price_t4plus) return fields.neighborhood_rent_price_t4plus;
+    }
+
+    // 2. Segmented locality data
+    if (isMaison && fields.avg_rent_house_per_m2) return fields.avg_rent_house_per_m2;
+    if (!isMaison) {
+      if (rooms >= 1 && rooms <= 2 && fields.avg_rent_t1t2_per_m2) return fields.avg_rent_t1t2_per_m2;
+      if (rooms >= 3 && fields.avg_rent_t3plus_per_m2) return fields.avg_rent_t3plus_per_m2;
+    }
+
+    // 3. Generic fallback
+    return fields.avg_rent_per_m2 ?? null;
+  }
+
   async function handleRecalcFromLocality() {
     setRecalcError("");
     setLoading(true);
     try {
-      const result = await fetchLocalityFields(form.city.trim(), form.postal_code || undefined);
+      // Pass neighborhood for quartier-level resolution
+      const result = await fetchLocalityFields(
+        form.city.trim(),
+        form.postal_code || undefined,
+        form.neighborhood?.trim() || undefined
+      );
       if (!result) {
         setRecalcError("Aucune donnée locale trouvée pour cette ville.");
         return;
@@ -34,12 +68,14 @@ export default function ClassicRentalSection({ form, onChange, prefillHint, isBe
       const { fields } = result;
       const surface = form.surface;
 
-      // monthly_rent from avg_rent_per_m2 with degressive adjustment
-      if (fields.avg_rent_per_m2) {
+      // Pick best rent/m² based on building_type + room_count
+      const baseRent = pickBestRentPerM2(fields);
+
+      if (baseRent) {
         const alpha = fields.rent_elasticity_alpha ?? undefined;
         const refSurface = fields.rent_reference_surface ?? undefined;
-        const rentPerM2 = adjustRentPerM2(fields.avg_rent_per_m2, surface, alpha, refSurface);
-        const monthlyRent = calculateDegressiveRent(fields.avg_rent_per_m2, surface, alpha, refSurface);
+        const rentPerM2 = adjustRentPerM2(baseRent, surface, alpha, refSurface);
+        const monthlyRent = calculateDegressiveRent(baseRent, surface, alpha, refSurface);
         onChange("rent_per_m2", Math.round(rentPerM2 * 100) / 100);
         onChange("monthly_rent", monthlyRent);
 
