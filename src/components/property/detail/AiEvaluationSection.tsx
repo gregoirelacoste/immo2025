@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { AiEvaluation } from "@/domains/evaluation/types";
 import Spinner from "@/components/ui/Spinner";
 import PremiumGate from "@/components/ui/PremiumGate";
@@ -42,6 +43,7 @@ function getGlobalColor(score: number): string {
 }
 
 export default function AiEvaluationSection({ propertyId, evaluation, evaluatedAt, isPremium }: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedAxis, setExpandedAxis] = useState<string | null>(null);
@@ -68,6 +70,8 @@ export default function AiEvaluationSection({ propertyId, evaluation, evaluatedA
       const result = await runAiEvaluation(propertyId);
       if (!result.success) {
         setError(result.error ?? "Erreur inconnue");
+      } else {
+        router.refresh();
       }
     } catch (e) {
       setError((e as Error).message);
@@ -92,7 +96,7 @@ export default function AiEvaluationSection({ propertyId, evaluation, evaluatedA
         <button
           onClick={handleEvaluate}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 min-h-[44px] text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
         >
           {loading ? (
             <>
@@ -137,7 +141,8 @@ export default function AiEvaluationSection({ propertyId, evaluation, evaluatedA
                 <div key={key} className="border border-gray-100 rounded-lg overflow-hidden">
                   <button
                     onClick={() => setExpandedAxis(isExpanded ? null : key)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors"
+                    aria-expanded={isExpanded}
+                    className="w-full flex items-center gap-3 px-3 min-h-[44px] hover:bg-gray-50 transition-colors"
                   >
                     <span className="text-base">{icon}</span>
                     <span className="text-sm font-medium text-gray-700 min-w-[90px] text-left">{label}</span>
@@ -160,7 +165,7 @@ export default function AiEvaluationSection({ propertyId, evaluation, evaluatedA
           {/* Red flags & Points forts */}
           {evaluation.red_flags.length > 0 && (
             <div className="bg-red-50 rounded-lg p-3">
-              <p className="text-xs font-semibold text-red-700 uppercase mb-1.5">Red flags</p>
+              <p className="text-xs font-semibold text-red-700 uppercase mb-1.5">Signaux d&apos;alerte</p>
               <ul className="space-y-1">
                 {evaluation.red_flags.map((flag, i) => (
                   <li key={i} className="text-sm text-red-700 flex gap-2">

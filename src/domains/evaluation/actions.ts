@@ -2,20 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { getAuthContext } from "@/lib/auth-actions";
-import { getPropertyByIdPublic, updateAiEvaluation } from "@/domains/property/repository";
+import { getPropertyById, updateAiEvaluation } from "@/domains/property/repository";
 import { calculateSimulation } from "@/lib/calculations";
 import { buildSystemSimulation } from "@/domains/simulation/system";
 import { resolveLocalityData } from "@/domains/locality/resolver";
+import { getSimulationById } from "@/domains/simulation/repository";
 import { evaluatePropertyWithAI } from "./service";
 import type { Simulation } from "@/domains/simulation/types";
-
-/** Get simulation by ID from DB */
-async function getSimulationById(simId: string): Promise<Simulation | null> {
-  const { getDb } = await import("@/infrastructure/database/client");
-  const db = await getDb();
-  const result = await db.execute({ sql: "SELECT * FROM simulations WHERE id = ?", args: [simId] });
-  return (result.rows[0] as unknown as Simulation) ?? null;
-}
 
 export async function runAiEvaluation(
   propertyId: string
@@ -25,7 +18,7 @@ export async function runAiEvaluation(
   if (!isAdmin && !isPremium) return { success: false, error: "Fonctionnalité réservée premium/admin" };
 
   try {
-    const property = await getPropertyByIdPublic(propertyId);
+    const property = await getPropertyById(propertyId, userId, isAdmin);
     if (!property) return { success: false, error: "Bien introuvable" };
 
     // Resolve active simulation
