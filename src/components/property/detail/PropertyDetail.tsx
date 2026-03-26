@@ -29,6 +29,8 @@ import PhotoGallery from "./PhotoGallery";
 import LocaliteTab from "./LocaliteTab";
 import AmenagementTab from "./AmenagementTab";
 import FinancementTab from "./FinancementTab";
+import AiEvaluationSection from "./AiEvaluationSection";
+import type { AiEvaluation } from "@/domains/evaluation/types";
 
 import CompletenessChecklist from "./CompletenessChecklist";
 import CashflowBreakdownModal from "./CashflowBreakdownModal";
@@ -186,6 +188,7 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
 
   const marketData = useMemo(() => parseJson<MarketData | null>(property.market_data, null), [property.market_data]);
   const scoreBreakdown = useMemo(() => parseJson<InvestmentScoreBreakdown | null>(property.score_breakdown, null), [property.score_breakdown]);
+  const aiEvaluation = useMemo(() => parseJson<AiEvaluation | null>(property.ai_evaluation, null), [property.ai_evaluation]);
   const images: string[] = useMemo(() => parseJson(property.image_urls, []), [property.image_urls]);
 
   const negoPrice = effectiveSim.negotiated_price ?? 0;
@@ -511,6 +514,12 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
               cityName={marketData?.communeName || property.city || undefined}
               onRefresh={handleRefreshEnrichment}
               refreshing={refreshing}
+            />
+            <AiEvaluationSection
+              propertyId={property.id}
+              evaluation={aiEvaluation}
+              evaluatedAt={property.ai_evaluation_at}
+              isPremium={isPremium}
             />
           </div>
         </div>

@@ -71,6 +71,9 @@ export interface Property {
   maintenance_per_m2: number;  // Provision entretien en €/m²/an (default 12)
   // Simulation active (référence vers la simulation favorite pour dashboard/résumé)
   active_simulation_id: string; // "" = utiliser la simulation système
+  // Évaluation IA (premium/admin)
+  ai_evaluation: string; // JSON: AiEvaluation
+  ai_evaluation_at: string;
   // Metadata
   source_url: string;    // URL active (= première de collect_urls, utilisée pour le scraping)
   image_urls: string;    // JSON array of image URLs
@@ -79,7 +82,7 @@ export interface Property {
   updated_at: string;
 }
 
-export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "socioeconomic_data" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at" | "active_simulation_id">;
+export type PropertyFormData = Omit<Property, "id" | "created_at" | "updated_at" | "latitude" | "longitude" | "market_data" | "investment_score" | "score_breakdown" | "socioeconomic_data" | "enrichment_status" | "enrichment_error" | "enrichment_at" | "collect_urls" | "collect_texts" | "property_status" | "is_favorite" | "status_changed_at" | "active_simulation_id" | "ai_evaluation" | "ai_evaluation_at">;
 
 export type FiscalRegime = "micro_bic" | "lmnp_reel" | "micro_foncier" | "reel_foncier";
 
