@@ -116,6 +116,7 @@ export async function saveProperty(
           airbnb_occupancy_rate: payload.airbnb_occupancy_rate,
           airbnb_charges: payload.airbnb_charges,
           renovation_cost: payload.renovation_cost ?? 0,
+          furniture_cost: payload.meuble_status === "meuble" ? (payload.furniture_cost || 0) : 0,
           fiscal_regime: payload.fiscal_regime || "micro_bic",
           maintenance_per_m2: payload.maintenance_per_m2,
           pno_insurance: payload.pno_insurance,
