@@ -1,6 +1,7 @@
 import { ScrapedPropertyData } from "@/domains/scraping/types";
 import { callGemini } from "@/infrastructure/ai/gemini";
 import { getAllEquipments, ensureEquipmentsExist } from "@/domains/property/equipment-service";
+import { normalizeNeighborhoodName } from "@/domains/locality/normalize";
 
 // ── Registre des champs à extraire ──
 // Chaque entrée = clé JSON attendue + description pour le prompt + type + validation
@@ -113,10 +114,14 @@ export async function extractFromText(
         break;
       }
       case "city":
-      case "address":
-      case "neighborhood": {
+      case "address": {
         const s = String(val).trim();
         if (s) (data as Record<string, unknown>)[field.key] = s.slice(0, 1000);
+        break;
+      }
+      case "neighborhood": {
+        const s = String(val).trim();
+        if (s) data.neighborhood = normalizeNeighborhoodName(s).slice(0, 1000);
         break;
       }
       case "description": {

@@ -2,6 +2,7 @@ import { ReactNode, useState } from "react";
 import { PropertyFormData } from "@/domains/property/types";
 import { fetchLocalityFields } from "@/domains/locality/actions";
 import { adjustRentPerM2, calculateDegressiveRent } from "@/domains/market/rent-degressive";
+import type { LocalityDataFields } from "@/domains/locality/types";
 import FieldTooltip from "@/components/ui/FieldTooltip";
 
 interface Props {
@@ -15,6 +16,38 @@ const inputClass =
   "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]";
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
+/**
+ * Pick the best rent/m² for the given building_type + room_count.
+ * Priority: neighborhood AI pricing > segmented locality data > generic avg.
+ * When room_count is 0 (unknown), skips segmented data and falls back to generic avg.
+ */
+function pickBestRentPerM2(
+  fields: LocalityDataFields,
+  roomCount: number,
+  buildingType: "appartement" | "maison"
+): number | null {
+  const isMaison = buildingType === "maison";
+
+  // 1. Neighborhood-level AI pricing (highest priority)
+  if (isMaison && fields.neighborhood_rent_price_house) return fields.neighborhood_rent_price_house;
+  if (!isMaison && roomCount > 0) {
+    if (roomCount === 1 && fields.neighborhood_rent_price_t1) return fields.neighborhood_rent_price_t1;
+    if (roomCount === 2 && fields.neighborhood_rent_price_t2) return fields.neighborhood_rent_price_t2;
+    if (roomCount === 3 && fields.neighborhood_rent_price_t3) return fields.neighborhood_rent_price_t3;
+    if (roomCount >= 4 && fields.neighborhood_rent_price_t4plus) return fields.neighborhood_rent_price_t4plus;
+  }
+
+  // 2. Segmented locality data
+  if (isMaison && fields.avg_rent_house_per_m2) return fields.avg_rent_house_per_m2;
+  if (!isMaison && roomCount > 0) {
+    if (roomCount <= 2 && fields.avg_rent_t1t2_per_m2) return fields.avg_rent_t1t2_per_m2;
+    if (roomCount >= 3 && fields.avg_rent_t3plus_per_m2) return fields.avg_rent_t3plus_per_m2;
+  }
+
+  // 3. Generic fallback (also used when room_count is 0 / unknown)
+  return fields.avg_rent_per_m2 ?? null;
+}
+
 export default function ClassicRentalSection({ form, onChange, prefillHint, isBeginner }: Props) {
   const [loading, setLoading] = useState(false);
   const [recalcError, setRecalcError] = useState("");
@@ -25,7 +58,12 @@ export default function ClassicRentalSection({ form, onChange, prefillHint, isBe
     setRecalcError("");
     setLoading(true);
     try {
-      const result = await fetchLocalityFields(form.city.trim(), form.postal_code || undefined);
+      // Pass neighborhood for quartier-level resolution
+      const result = await fetchLocalityFields(
+        form.city.trim(),
+        form.postal_code || undefined,
+        form.neighborhood?.trim() || undefined
+      );
       if (!result) {
         setRecalcError("Aucune donnée locale trouvée pour cette ville.");
         return;
@@ -34,12 +72,14 @@ export default function ClassicRentalSection({ form, onChange, prefillHint, isBe
       const { fields } = result;
       const surface = form.surface;
 
-      // monthly_rent from avg_rent_per_m2 with degressive adjustment
-      if (fields.avg_rent_per_m2) {
+      // Pick best rent/m² based on building_type + room_count
+      const baseRent = pickBestRentPerM2(fields, form.room_count, form.building_type || "appartement");
+
+      if (baseRent) {
         const alpha = fields.rent_elasticity_alpha ?? undefined;
         const refSurface = fields.rent_reference_surface ?? undefined;
-        const rentPerM2 = adjustRentPerM2(fields.avg_rent_per_m2, surface, alpha, refSurface);
-        const monthlyRent = calculateDegressiveRent(fields.avg_rent_per_m2, surface, alpha, refSurface);
+        const rentPerM2 = adjustRentPerM2(baseRent, surface, alpha, refSurface);
+        const monthlyRent = calculateDegressiveRent(baseRent, surface, alpha, refSurface);
         onChange("rent_per_m2", Math.round(rentPerM2 * 100) / 100);
         onChange("monthly_rent", monthlyRent);
 

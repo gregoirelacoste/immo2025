@@ -128,6 +128,20 @@ export interface LocalityDataFields {
   neighborhood_investment_outlook?: string | null;
   neighborhood_main_employers?: string[] | null;
   neighborhood_target_tenants?: string | null;
+
+  // Prix quartier par type de bien (recherche IA)
+  neighborhood_purchase_price_t1?: number | null; // €/m² achat T1
+  neighborhood_purchase_price_t2?: number | null; // €/m² achat T2
+  neighborhood_purchase_price_t3?: number | null; // €/m² achat T3
+  neighborhood_purchase_price_t4plus?: number | null; // €/m² achat T4+
+  neighborhood_purchase_price_house?: number | null; // €/m² achat maison
+  neighborhood_rent_price_t1?: number | null; // €/m² loyer T1
+  neighborhood_rent_price_t2?: number | null; // €/m² loyer T2
+  neighborhood_rent_price_t3?: number | null; // €/m² loyer T3
+  neighborhood_rent_price_t4plus?: number | null; // €/m² loyer T4+
+  neighborhood_rent_price_house?: number | null; // €/m² loyer maison
+  /** "quartier" if prices are neighborhood-specific, "ville" if fallback to city-level */
+  neighborhood_pricing_level?: "quartier" | "ville" | null;
 }
 
 /** All field keys of LocalityDataFields */
@@ -186,6 +200,17 @@ export const LOCALITY_DATA_FIELD_KEYS: (keyof LocalityDataFields)[] = [
   "neighborhood_investment_outlook",
   "neighborhood_main_employers",
   "neighborhood_target_tenants",
+  "neighborhood_purchase_price_t1",
+  "neighborhood_purchase_price_t2",
+  "neighborhood_purchase_price_t3",
+  "neighborhood_purchase_price_t4plus",
+  "neighborhood_purchase_price_house",
+  "neighborhood_rent_price_t1",
+  "neighborhood_rent_price_t2",
+  "neighborhood_rent_price_t3",
+  "neighborhood_rent_price_t4plus",
+  "neighborhood_rent_price_house",
+  "neighborhood_pricing_level",
 ];
 
 /** Mapping: field key → which thematic table it belongs to */
@@ -244,6 +269,17 @@ export const FIELD_TO_TABLE: Record<keyof LocalityDataFields, LocalityTableName>
   neighborhood_investment_outlook: "locality_qualitative",
   neighborhood_main_employers: "locality_qualitative",
   neighborhood_target_tenants: "locality_qualitative",
+  neighborhood_purchase_price_t1: "locality_qualitative",
+  neighborhood_purchase_price_t2: "locality_qualitative",
+  neighborhood_purchase_price_t3: "locality_qualitative",
+  neighborhood_purchase_price_t4plus: "locality_qualitative",
+  neighborhood_purchase_price_house: "locality_qualitative",
+  neighborhood_rent_price_t1: "locality_qualitative",
+  neighborhood_rent_price_t2: "locality_qualitative",
+  neighborhood_rent_price_t3: "locality_qualitative",
+  neighborhood_rent_price_t4plus: "locality_qualitative",
+  neighborhood_rent_price_house: "locality_qualitative",
+  neighborhood_pricing_level: "locality_qualitative",
 };
 
 /** Resolved locality data with source tracking per field */

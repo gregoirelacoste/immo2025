@@ -261,6 +261,18 @@ async function initializeDatabase(client: Client): Promise<void> {
     // v21 — AI property evaluation (premium/admin feature)
     "ALTER TABLE properties ADD COLUMN ai_evaluation TEXT DEFAULT ''",
     "ALTER TABLE properties ADD COLUMN ai_evaluation_at TEXT DEFAULT ''",
+    // v22 — neighborhood pricing per property type (AI research)
+    "ALTER TABLE locality_qualitative ADD COLUMN neighborhood_purchase_price_t1 REAL DEFAULT NULL",
+    "ALTER TABLE locality_qualitative ADD COLUMN neighborhood_purchase_price_t2 REAL DEFAULT NULL",
+    "ALTER TABLE locality_qualitative ADD COLUMN neighborhood_purchase_price_t3 REAL DEFAULT NULL",
+    "ALTER TABLE locality_qualitative ADD COLUMN neighborhood_purchase_price_t4plus REAL DEFAULT NULL",
+    "ALTER TABLE locality_qualitative ADD COLUMN neighborhood_purchase_price_house REAL DEFAULT NULL",
+    "ALTER TABLE locality_qualitative ADD COLUMN neighborhood_rent_price_t1 REAL DEFAULT NULL",
+    "ALTER TABLE locality_qualitative ADD COLUMN neighborhood_rent_price_t2 REAL DEFAULT NULL",
+    "ALTER TABLE locality_qualitative ADD COLUMN neighborhood_rent_price_t3 REAL DEFAULT NULL",
+    "ALTER TABLE locality_qualitative ADD COLUMN neighborhood_rent_price_t4plus REAL DEFAULT NULL",
+    "ALTER TABLE locality_qualitative ADD COLUMN neighborhood_rent_price_house REAL DEFAULT NULL",
+    "ALTER TABLE locality_qualitative ADD COLUMN neighborhood_pricing_level TEXT DEFAULT NULL",
   ];
   const migrationErrors: Array<{ stmt: string; error: unknown }> = [];
   for (const stmt of alterMigrations) {
