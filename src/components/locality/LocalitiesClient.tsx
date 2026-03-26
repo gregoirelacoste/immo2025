@@ -64,10 +64,47 @@ export default function LocalitiesClient({ localities, dataMap }: Props) {
   const [showDataImport, setShowDataImport] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [search, setSearch] = useState("");
 
-  // Build tree
-  const roots = localities.filter((l) => !l.parent_id);
-  const childrenOf = (parentId: string) => localities.filter((l) => l.parent_id === parentId);
+  // Count by type
+  const totalCount = localities.length;
+  const cityCount = localities.filter((l) => l.type === "ville").length;
+
+  // Filter localities by search term
+  const searchLower = search.trim().toLowerCase();
+  const matchingIds = new Set<string>();
+
+  if (searchLower) {
+    // Find localities matching the search
+    for (const loc of localities) {
+      const postalCodes = (() => {
+        try { return JSON.parse(loc.postal_codes || "[]") as string[]; } catch { return []; }
+      })();
+      if (
+        loc.name.toLowerCase().includes(searchLower) ||
+        (loc.code && loc.code.toLowerCase().includes(searchLower)) ||
+        postalCodes.some((pc) => pc.includes(searchLower))
+      ) {
+        matchingIds.add(loc.id);
+        // Also include ancestors so the tree path is visible
+        let parentId = loc.parent_id;
+        while (parentId) {
+          matchingIds.add(parentId);
+          const parent = localities.find((l) => l.id === parentId);
+          parentId = parent?.parent_id ?? null;
+        }
+      }
+    }
+  }
+
+  const filteredLocalities = searchLower
+    ? localities.filter((l) => matchingIds.has(l.id))
+    : localities;
+
+  // Build tree from filtered list
+  const filteredSet = new Set(filteredLocalities.map((l) => l.id));
+  const roots = filteredLocalities.filter((l) => !l.parent_id || !filteredSet.has(l.parent_id));
+  const childrenOf = (parentId: string) => filteredLocalities.filter((l) => l.parent_id === parentId);
 
   function clearMessages() {
     setError("");
@@ -84,6 +121,30 @@ export default function LocalitiesClient({ localities, dataMap }: Props) {
         onSuccess={(msg) => { setSuccess(msg); router.refresh(); }}
         onError={setError}
       />
+
+      {/* Locality count + search */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-sm text-gray-500">
+          <span className="font-semibold text-gray-700">{totalCount}</span> localité{totalCount !== 1 ? "s" : ""}
+          {cityCount !== totalCount && (
+            <span> dont <span className="font-semibold text-gray-700">{cityCount}</span> ville{cityCount !== 1 ? "s" : ""}</span>
+          )}
+        </span>
+        <div className="flex-1 min-w-[200px] max-w-md">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher une localité (nom, code postal, INSEE)..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+          />
+        </div>
+        {searchLower && (
+          <span className="text-xs text-gray-400">
+            {filteredLocalities.length} résultat{filteredLocalities.length !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
 
       {/* Bulk actions */}
       <div className="flex gap-2 flex-wrap">
@@ -110,10 +171,14 @@ export default function LocalitiesClient({ localities, dataMap }: Props) {
         />
       )}
 
-      {/* Tree view */}
-      {roots.length === 0 ? (
+      {/* Tree view — only show when searching or few localities */}
+      {!searchLower && totalCount > 50 ? (
         <p className="text-sm text-gray-500 py-8 text-center">
-          Aucune localité. Commencez par ajouter un pays ou une région.
+          {totalCount} localités en base. Utilisez la recherche ci-dessus pour trouver une localité.
+        </p>
+      ) : roots.length === 0 ? (
+        <p className="text-sm text-gray-500 py-8 text-center">
+          {searchLower ? "Aucune localité trouvée." : "Aucune localité. Commencez par ajouter un pays ou une région."}
         </p>
       ) : (
         <div className="space-y-2">
