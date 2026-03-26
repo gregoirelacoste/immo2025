@@ -21,6 +21,7 @@ export interface Simulation {
   airbnb_occupancy_rate: number;
   airbnb_charges: number;
   renovation_cost: number;
+  furniture_cost: number;   // coût mobilier (0 = utiliser la valeur du bien)
   fiscal_regime: string;
   // Charges récurrentes
   maintenance_per_m2: number; // provision entretien/réparation en €/m²/an
@@ -54,6 +55,7 @@ export const SIMULATION_FIELDS = [
   "airbnb_occupancy_rate",
   "airbnb_charges",
   "renovation_cost",
+  "furniture_cost",
   "fiscal_regime",
   "maintenance_per_m2",
   "pno_insurance",

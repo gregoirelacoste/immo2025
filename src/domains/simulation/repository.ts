@@ -37,16 +37,16 @@ export async function createSimulation(
       insurance_rate, loan_fees, notary_fees,
       monthly_rent, condo_charges, property_tax, vacancy_rate,
       airbnb_price_per_night, airbnb_occupancy_rate, airbnb_charges,
-      renovation_cost, fiscal_regime, maintenance_per_m2, pno_insurance, gli_rate,
+      renovation_cost, furniture_cost, fiscal_regime, maintenance_per_m2, pno_insurance, gli_rate,
       holding_duration, annual_appreciation
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       id, propertyId, userId, data.name, data.negotiated_price ?? 0,
       data.loan_amount, data.interest_rate, data.loan_duration, data.personal_contribution,
       data.insurance_rate, data.loan_fees, data.notary_fees,
       data.monthly_rent, data.condo_charges, data.property_tax, data.vacancy_rate,
       data.airbnb_price_per_night, data.airbnb_occupancy_rate, data.airbnb_charges,
-      data.renovation_cost, data.fiscal_regime, data.maintenance_per_m2, data.pno_insurance, data.gli_rate,
+      data.renovation_cost, data.furniture_cost ?? 0, data.fiscal_regime, data.maintenance_per_m2, data.pno_insurance, data.gli_rate,
       data.holding_duration, data.annual_appreciation,
     ],
   });
@@ -253,6 +253,7 @@ function rowToSimulation(row: any): Simulation {
     airbnb_occupancy_rate: safeNum(row.airbnb_occupancy_rate, 60),
     airbnb_charges: safeNum(row.airbnb_charges),
     renovation_cost: safeNum(row.renovation_cost),
+    furniture_cost: safeNum(row.furniture_cost),
     fiscal_regime: String(row.fiscal_regime || "micro_bic"),
     maintenance_per_m2: safeNum(row.maintenance_per_m2, 12),
     pno_insurance: safeNum(row.pno_insurance, 200),

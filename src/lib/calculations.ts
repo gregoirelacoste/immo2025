@@ -338,12 +338,17 @@ export function calculateSimulation(property: Property, simulation: Simulation):
   const notary = simulation.notary_fees > 0
     ? simulation.notary_fees
     : calculateNotaryFees(effectivePrice, property.property_type);
-  const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
+  // Furniture cost: simulation override > 0, else property value
+  const isFurnished = property.meuble_status === "meuble" || property.meuble_status === "deja_meuble";
+  const furnitureCost = simulation.furniture_cost > 0
+    ? simulation.furniture_cost
+    : (property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0);
   const computedLoan = computeLoanAmount(effectivePrice, notary, simulation.renovation_cost, furnitureCost, simulation.personal_contribution);
 
   const merged: Property = {
     ...property,
     purchase_price: effectivePrice,
+    furniture_cost: furnitureCost,
     // Loan params — always from simulation, loan_amount recomputed
     loan_amount: computedLoan,
     interest_rate: simulation.interest_rate,
@@ -381,8 +386,7 @@ export function calculateSimulation(property: Property, simulation: Simulation):
 
   // Furniture maintenance provision (mobilier if meublé/deja_meuble)
   const FURNITURE_LIFESPAN_YEARS = 8;
-  const isFurnished = property.meuble_status === "meuble" || property.meuble_status === "deja_meuble";
-  const furnitureCostForMaint = isFurnished ? (property.furniture_cost || 5000) : 0;
+  const furnitureCostForMaint = isFurnished ? (furnitureCost || 5000) : 0;
   const furnitureMaintenanceAnnual = furnitureCostForMaint > 0
     ? Math.round(furnitureCostForMaint / FURNITURE_LIFESPAN_YEARS)
     : 0;
@@ -517,7 +521,9 @@ export function calculateExitSimulation(
   const notary = simulation.notary_fees > 0
     ? simulation.notary_fees
     : calculateNotaryFees(effectivePrice, property.property_type);
-  const furnitureCostExit = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
+  const furnitureCostExit = simulation.furniture_cost > 0
+    ? simulation.furniture_cost
+    : (property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0);
   const effectiveLoan = computeLoanAmount(effectivePrice, notary, simulation.renovation_cost, furnitureCostExit, simulation.personal_contribution);
   const remainingCapital = Math.round(calculateRemainingCapital(
     effectiveLoan,

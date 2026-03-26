@@ -48,6 +48,7 @@ export function buildSystemSimulation(
     airbnb_charges: property.airbnb_charges,
     // Costs — direct from property
     renovation_cost: property.renovation_cost,
+    furniture_cost: property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0,
     fiscal_regime: property.fiscal_regime || "micro_bic",
     // Recurring charges — mirror from property (factual data)
     maintenance_per_m2: property.maintenance_per_m2,
