@@ -166,6 +166,75 @@ function SectionSources({ fields, dataSources }: { fields: (keyof LocalityDataFi
   );
 }
 
+/** Pricing table row for neighborhood pricing by property type */
+function PricingRow({ label, purchasePrice, rentPrice }: { label: string; purchasePrice?: number | null; rentPrice?: number | null }) {
+  if (purchasePrice == null && rentPrice == null) return null;
+  return (
+    <tr className="border-b border-gray-100 last:border-b-0">
+      <td className="py-2 pr-3 text-sm font-medium text-gray-700">{label}</td>
+      <td className="py-2 px-3 text-sm text-right font-[family-name:var(--font-mono)] text-gray-900">
+        {purchasePrice != null ? `${Math.round(purchasePrice).toLocaleString("fr-FR")} €` : "\u2014"}
+      </td>
+      <td className="py-2 pl-3 text-sm text-right font-[family-name:var(--font-mono)] text-gray-900">
+        {rentPrice != null ? `${rentPrice.toFixed(1)} €` : "\u2014"}
+      </td>
+    </tr>
+  );
+}
+
+/** Section showing purchase and rent prices per property type from AI research */
+function NeighborhoodPricingSection({ fields: f }: { fields: LocalityDataFields }) {
+  const hasPurchase = f.neighborhood_purchase_price_t1 != null || f.neighborhood_purchase_price_t2 != null ||
+    f.neighborhood_purchase_price_t3 != null || f.neighborhood_purchase_price_t4plus != null || f.neighborhood_purchase_price_house != null;
+  const hasRent = f.neighborhood_rent_price_t1 != null || f.neighborhood_rent_price_t2 != null ||
+    f.neighborhood_rent_price_t3 != null || f.neighborhood_rent_price_t4plus != null || f.neighborhood_rent_price_house != null;
+
+  if (!hasPurchase && !hasRent) return null;
+
+  const isQuartierLevel = f.neighborhood_pricing_level === "quartier";
+
+  return (
+    <div className="bg-white rounded-xl border border-tiili-border p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Prix par type de bien</h3>
+        <span className="ml-2 px-1.5 py-0.5 text-[10px] font-medium rounded bg-purple-50 text-purple-600">
+          Recherche IA
+        </span>
+        <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
+          isQuartierLevel
+            ? "bg-green-50 text-green-600"
+            : "bg-amber-50 text-amber-600"
+        }`}>
+          {isQuartierLevel ? "Quartier" : "Ville"}
+        </span>
+      </div>
+
+      {!isQuartierLevel && (
+        <p className="text-xs text-amber-600 mb-3">
+          Pas de données spécifiques au quartier trouvées — prix au niveau de la ville.
+        </p>
+      )}
+
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-gray-200">
+            <th className="py-1.5 pr-3 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Type</th>
+            <th className="py-1.5 px-3 text-right text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Achat €/m²</th>
+            <th className="py-1.5 pl-3 text-right text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Loyer €/m²/mois</th>
+          </tr>
+        </thead>
+        <tbody>
+          <PricingRow label="T1 (studio)" purchasePrice={f.neighborhood_purchase_price_t1} rentPrice={f.neighborhood_rent_price_t1} />
+          <PricingRow label="T2" purchasePrice={f.neighborhood_purchase_price_t2} rentPrice={f.neighborhood_rent_price_t2} />
+          <PricingRow label="T3" purchasePrice={f.neighborhood_purchase_price_t3} rentPrice={f.neighborhood_rent_price_t3} />
+          <PricingRow label="T4+" purchasePrice={f.neighborhood_purchase_price_t4plus} rentPrice={f.neighborhood_rent_price_t4plus} />
+          <PricingRow label="Maison" purchasePrice={f.neighborhood_purchase_price_house} rentPrice={f.neighborhood_rent_price_house} />
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function LocalityDataView({ cityName, fields: f, dataSources: ds = {}, fieldSources: fs = {}, propertyComparison }: Props) {
   const grossYield =
     f.avg_purchase_price_per_m2 && f.avg_rent_per_m2
@@ -306,6 +375,9 @@ export default function LocalityDataView({ cityName, fields: f, dataSources: ds 
               <p className="text-sm text-amber-900 leading-relaxed">{f.neighborhood_investment_outlook}</p>
             </div>
           )}
+
+          {/* Prix par type de bien (recherche IA) */}
+          <NeighborhoodPricingSection fields={f} />
         </div>
       )}
 

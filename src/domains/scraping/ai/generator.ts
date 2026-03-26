@@ -2,6 +2,7 @@ import { FieldSelector, ScrapedPropertyData } from "@/domains/scraping/types";
 import { cleanHtmlForAi } from "@/domains/scraping/pipeline/html-cleaner";
 import { callGemini } from "@/infrastructure/ai/gemini";
 import { getAllEquipments, ensureEquipmentsExist } from "@/domains/property/equipment-service";
+import { normalizeNeighborhoodName } from "@/domains/locality/normalize";
 
 function buildGeneratePrompt(knownKeys: string[]): string {
   const keysList = knownKeys.map((k) => `"${k}"`).join(", ");
@@ -141,7 +142,7 @@ export async function generateWithAi(
   if (extractedValues.description) {
     data.description = String(extractedValues.description).trim().slice(0, 1000);
   }
-  if (extractedValues.neighborhood) data.neighborhood = String(extractedValues.neighborhood).trim();
+  if (extractedValues.neighborhood) data.neighborhood = normalizeNeighborhoodName(String(extractedValues.neighborhood));
   if (extractedValues.property_type === "neuf") {
     data.property_type = "neuf";
   } else if (extractedValues.property_type === "ancien") {

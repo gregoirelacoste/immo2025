@@ -27,6 +27,7 @@ import type { EnrichLocalityResult } from "./enrichment/types";
 import { getPropertyByIdPublic } from "@/domains/property/repository";
 import { getLatestLocalityFields } from "./repository";
 import { researchNeighborhood, RESEARCH_CACHE_DAYS } from "./enrichment/research";
+import { normalizeNeighborhoodName, neighborhoodMatchKey } from "./normalize";
 
 // ─── Public action: check if a locality exists in DB ───
 
@@ -48,16 +49,19 @@ export async function checkLocalityExists(
       return { found: true, name: loc.name, postalCodes };
     }
 
-    // Quartier: search by name + parent_id
+    // Quartier: search by name + parent_id (fuzzy match via normalized key)
     if (!parentId) return { found: false };
     const db = await (await import("@/infrastructure/database/client")).getDb();
-    const result = await db.execute({
-      sql: "SELECT * FROM localities WHERE LOWER(name) = LOWER(?) AND parent_id = ? AND type = 'quartier' LIMIT 1",
-      args: [trimmed, parentId],
+    const searchKey = neighborhoodMatchKey(trimmed);
+    const allQuartiers = await db.execute({
+      sql: "SELECT * FROM localities WHERE parent_id = ? AND type = 'quartier'",
+      args: [parentId],
     });
-    if (!result.rows[0]) return { found: false };
-    const row = result.rows[0];
-    return { found: true, name: row.name as string };
+    const match = allQuartiers.rows.find(
+      (r) => neighborhoodMatchKey(r.name as string) === searchKey
+    );
+    if (!match) return { found: false };
+    return { found: true, name: match.name as string };
   } catch {
     return null;
   }
@@ -420,29 +424,34 @@ export async function searchQuartier(
       return { success: false, error: "Accès non autorisé" };
     }
 
-    const neighborhoodName = property.neighborhood?.trim() || property.city;
+    const rawNeighborhood = property.neighborhood?.trim() || property.city;
+    const neighborhoodName = normalizeNeighborhoodName(rawNeighborhood);
+    const searchKey = neighborhoodMatchKey(neighborhoodName);
 
-    // 2. Find or create the quartier locality
+    // 2. Find or create the quartier locality (fuzzy match by normalized key)
     const ville = await findLocalityByCity(property.city, property.postal_code || undefined);
     if (!ville) return { success: false, error: `Ville "${property.city}" introuvable en base` };
 
     let quartierLocality: Awaited<ReturnType<typeof getLocalityById>>;
     const db = await (await import("@/infrastructure/database/client")).getDb();
-    const existing = await db.execute({
-      sql: "SELECT * FROM localities WHERE LOWER(name) = LOWER(?) AND parent_id = ? AND type = 'quartier' LIMIT 1",
-      args: [neighborhoodName, ville.id],
+    const allQuartiers = await db.execute({
+      sql: "SELECT * FROM localities WHERE parent_id = ? AND type = 'quartier'",
+      args: [ville.id],
     });
+    const existingRow = allQuartiers.rows.find(
+      (r) => neighborhoodMatchKey(r.name as string) === searchKey
+    );
 
-    if (existing.rows[0]) {
+    if (existingRow) {
       quartierLocality = {
-        id: existing.rows[0].id as string,
-        name: existing.rows[0].name as string,
+        id: existingRow.id as string,
+        name: existingRow.name as string,
         type: "quartier" as const,
         parent_id: ville.id,
-        code: (existing.rows[0].code as string) || "",
-        postal_codes: (existing.rows[0].postal_codes as string) || "[]",
-        created_at: existing.rows[0].created_at as string,
-        updated_at: existing.rows[0].updated_at as string,
+        code: (existingRow.code as string) || "",
+        postal_codes: (existingRow.postal_codes as string) || "[]",
+        created_at: existingRow.created_at as string,
+        updated_at: existingRow.updated_at as string,
       };
     } else {
       const id = await createLocality({
