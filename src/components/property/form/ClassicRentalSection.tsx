@@ -16,39 +16,43 @@ const inputClass =
   "w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-base min-h-[44px]";
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
+/**
+ * Pick the best rent/m² for the given building_type + room_count.
+ * Priority: neighborhood AI pricing > segmented locality data > generic avg.
+ * When room_count is 0 (unknown), skips segmented data and falls back to generic avg.
+ */
+function pickBestRentPerM2(
+  fields: LocalityDataFields,
+  roomCount: number,
+  buildingType: "appartement" | "maison"
+): number | null {
+  const isMaison = buildingType === "maison";
+
+  // 1. Neighborhood-level AI pricing (highest priority)
+  if (isMaison && fields.neighborhood_rent_price_house) return fields.neighborhood_rent_price_house;
+  if (!isMaison && roomCount > 0) {
+    if (roomCount === 1 && fields.neighborhood_rent_price_t1) return fields.neighborhood_rent_price_t1;
+    if (roomCount === 2 && fields.neighborhood_rent_price_t2) return fields.neighborhood_rent_price_t2;
+    if (roomCount === 3 && fields.neighborhood_rent_price_t3) return fields.neighborhood_rent_price_t3;
+    if (roomCount >= 4 && fields.neighborhood_rent_price_t4plus) return fields.neighborhood_rent_price_t4plus;
+  }
+
+  // 2. Segmented locality data
+  if (isMaison && fields.avg_rent_house_per_m2) return fields.avg_rent_house_per_m2;
+  if (!isMaison && roomCount > 0) {
+    if (roomCount <= 2 && fields.avg_rent_t1t2_per_m2) return fields.avg_rent_t1t2_per_m2;
+    if (roomCount >= 3 && fields.avg_rent_t3plus_per_m2) return fields.avg_rent_t3plus_per_m2;
+  }
+
+  // 3. Generic fallback (also used when room_count is 0 / unknown)
+  return fields.avg_rent_per_m2 ?? null;
+}
+
 export default function ClassicRentalSection({ form, onChange, prefillHint, isBeginner }: Props) {
   const [loading, setLoading] = useState(false);
   const [recalcError, setRecalcError] = useState("");
 
   const canRecalc = form.city.trim().length > 0 && form.surface > 0;
-
-  /**
-   * Pick the best rent/m² for the current building_type + room_count.
-   * Priority: neighborhood AI pricing > segmented locality data > generic avg.
-   */
-  function pickBestRentPerM2(fields: LocalityDataFields): number | null {
-    const rooms = form.room_count;
-    const isMaison = form.building_type === "maison";
-
-    // 1. Neighborhood-level AI pricing (highest priority)
-    if (isMaison && fields.neighborhood_rent_price_house) return fields.neighborhood_rent_price_house;
-    if (!isMaison) {
-      if (rooms === 1 && fields.neighborhood_rent_price_t1) return fields.neighborhood_rent_price_t1;
-      if (rooms === 2 && fields.neighborhood_rent_price_t2) return fields.neighborhood_rent_price_t2;
-      if (rooms === 3 && fields.neighborhood_rent_price_t3) return fields.neighborhood_rent_price_t3;
-      if (rooms >= 4 && fields.neighborhood_rent_price_t4plus) return fields.neighborhood_rent_price_t4plus;
-    }
-
-    // 2. Segmented locality data
-    if (isMaison && fields.avg_rent_house_per_m2) return fields.avg_rent_house_per_m2;
-    if (!isMaison) {
-      if (rooms >= 1 && rooms <= 2 && fields.avg_rent_t1t2_per_m2) return fields.avg_rent_t1t2_per_m2;
-      if (rooms >= 3 && fields.avg_rent_t3plus_per_m2) return fields.avg_rent_t3plus_per_m2;
-    }
-
-    // 3. Generic fallback
-    return fields.avg_rent_per_m2 ?? null;
-  }
 
   async function handleRecalcFromLocality() {
     setRecalcError("");
@@ -69,7 +73,7 @@ export default function ClassicRentalSection({ form, onChange, prefillHint, isBe
       const surface = form.surface;
 
       // Pick best rent/m² based on building_type + room_count
-      const baseRent = pickBestRentPerM2(fields);
+      const baseRent = pickBestRentPerM2(fields, form.room_count, form.building_type || "appartement");
 
       if (baseRent) {
         const alpha = fields.rent_elasticity_alpha ?? undefined;
