@@ -230,6 +230,7 @@ export async function processShareAndCreate(
         airbnb_occupancy_rate: 60,
         airbnb_charges: 0,
         renovation_cost: 0,
+        furniture_cost: 0,
         fiscal_regime: "micro_bic",
         maintenance_per_m2: 12,
         pno_insurance: 200,

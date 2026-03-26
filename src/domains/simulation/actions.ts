@@ -138,6 +138,7 @@ export async function duplicateSimulation(
       airbnb_occupancy_rate: existing.airbnb_occupancy_rate,
       airbnb_charges: existing.airbnb_charges,
       renovation_cost: existing.renovation_cost,
+      furniture_cost: existing.furniture_cost,
       fiscal_regime: existing.fiscal_regime,
       maintenance_per_m2: existing.maintenance_per_m2,
       pno_insurance: existing.pno_insurance,
@@ -178,6 +179,7 @@ export async function createDefaultSimulation(property: Property): Promise<strin
     airbnb_occupancy_rate: property.airbnb_occupancy_rate,
     airbnb_charges: property.airbnb_charges,
     renovation_cost: property.renovation_cost,
+    furniture_cost: property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0,
     fiscal_regime: property.fiscal_regime || "micro_bic",
     maintenance_per_m2: property.maintenance_per_m2,
     pno_insurance: property.pno_insurance,
@@ -227,7 +229,7 @@ export async function syncFieldToSimulations(
       const simNotary = updatedSim.notary_fees > 0
         ? updatedSim.notary_fees
         : calculateNotaryFees(updatedProperty.purchase_price, updatedProperty.property_type);
-      const furnitureCost = updatedProperty.meuble_status === "meuble" ? (updatedProperty.furniture_cost || 0) : 0;
+      const furnitureCost = updatedSim.furniture_cost > 0 ? updatedSim.furniture_cost : (updatedProperty.meuble_status === "meuble" ? (updatedProperty.furniture_cost || 0) : 0);
       const loanAmount = Math.max(0, updatedProperty.purchase_price + simNotary + updatedSim.renovation_cost + furnitureCost - updatedSim.personal_contribution);
 
       await updateSimulation(sim.id, sim.user_id, {
@@ -260,18 +262,26 @@ export async function resyncSimulationsAction(
     if (simulations.length === 0) return { success: true, count: 0 };
 
     for (const sim of simulations) {
-      // Use each simulation's own notary_fees / personal_contribution / renovation_cost
+      // Use each simulation's own notary_fees / personal_contribution
+      // but sync renovation_cost from property (travaux estimation)
+      const renovationCost = property.renovation_cost;
       const simNotary = sim.notary_fees > 0
         ? sim.notary_fees
         : calculateNotaryFees(property.purchase_price, property.property_type);
-      const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
-      const loanAmount = Math.max(0, property.purchase_price + simNotary + sim.renovation_cost + furnitureCost - sim.personal_contribution);
+      const propertyFurnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
+      const furnitureCost = sim.furniture_cost > 0 ? sim.furniture_cost : propertyFurnitureCost;
+      const loanAmount = Math.max(0, property.purchase_price + simNotary + renovationCost + furnitureCost - sim.personal_contribution);
 
-      // Only sync property-derived fields that the user cannot customize per-simulation
+      // Sync property-derived fields + recalculate loan_amount
       await updateSimulation(sim.id, sim.user_id, {
         loan_amount: loanAmount,
         condo_charges: property.condo_charges,
         property_tax: property.property_tax,
+        renovation_cost: renovationCost,
+        furniture_cost: sim.furniture_cost > 0 ? sim.furniture_cost : propertyFurnitureCost,
+        pno_insurance: property.pno_insurance,
+        gli_rate: property.gli_rate,
+        maintenance_per_m2: property.maintenance_per_m2,
       });
     }
 

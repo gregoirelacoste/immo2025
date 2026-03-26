@@ -32,6 +32,7 @@ const EDITABLE_FIELDS: FieldConfig[] = [
   { field: "monthly_rent", label: "Loyer mensuel", step: 10, unit: "€" },
   { field: "vacancy_rate", label: "Taux de vacance", step: 1, unit: "%" },
   { field: "renovation_cost", label: "Travaux", step: 1000, unit: "€" },
+  { field: "furniture_cost", label: "Mobilier", step: 500, unit: "€" },
   { field: "maintenance_per_m2", label: "Entretien / m² / an", step: 1, unit: "€" },
   { field: "pno_insurance", label: "Assurance PNO", step: 10, unit: "€/an" },
   { field: "gli_rate", label: "GLI (loyers impayés)", step: 0.5, unit: "%", decimals: 1 },
@@ -47,7 +48,9 @@ function computeLoanFromForm(property: Property, form: SimulationFormData): numb
   const notary = form.notary_fees > 0
     ? form.notary_fees
     : calculateNotaryFees(effectivePrice, property.property_type);
-  const furnitureCost = property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0;
+  const furnitureCost = (form.furniture_cost ?? 0) > 0
+    ? form.furniture_cost
+    : (property.meuble_status === "meuble" ? (property.furniture_cost || 0) : 0);
   return computeLoanAmount(effectivePrice, notary, form.renovation_cost, furnitureCost, form.personal_contribution);
 }
 
@@ -70,6 +73,7 @@ function simFormFromSimulation(sim: Simulation): SimulationFormData {
     airbnb_occupancy_rate: sim.airbnb_occupancy_rate,
     airbnb_charges: sim.airbnb_charges,
     renovation_cost: sim.renovation_cost,
+    furniture_cost: sim.furniture_cost,
     fiscal_regime: sim.fiscal_regime,
     maintenance_per_m2: sim.maintenance_per_m2,
     pno_insurance: sim.pno_insurance,
@@ -309,9 +313,16 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
           // For Défaut sim: PNO/GLI/maintenance are shown in "Données du bien" section, skip here
           if (readOnly && PROPERTY_CHARGE_FIELDS.includes(config.field)) return null;
 
-          // For monthly_rent: show effective value (property fallback when 0)
+          // Hide furniture_cost when not furnished
+          const isFurnished = property.meuble_status === "meuble" || property.meuble_status === "deja_meuble";
+          if (config.field === "furniture_cost" && !isFurnished) return null;
+
+          // For monthly_rent / furniture_cost: show effective value (property fallback when 0)
+          const isFurnitureFallback = config.field === "furniture_cost" && (form.furniture_cost === 0 || form.furniture_cost == null);
           const displayValue = config.field === "monthly_rent" && (form.monthly_rent === 0 || form.monthly_rent == null)
             ? property.monthly_rent
+            : config.field === "furniture_cost" && isFurnitureFallback
+            ? (property.furniture_cost || 0)
             : form[config.field] as number;
           const isRentFallback = config.field === "monthly_rent" && (form.monthly_rent === 0 || form.monthly_rent == null);
 
@@ -335,6 +346,9 @@ export default function SimulationEditor({ property, simulation, onUpdated, onLi
                 onCommit={handleCommit}
               />
               {isRentFallback && (
+                <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">Valeur du bien · modifiable</p>
+              )}
+              {isFurnitureFallback && displayValue > 0 && (
                 <p className="text-[10px] text-gray-400 text-right -mt-1 mb-1 pr-2">Valeur du bien · modifiable</p>
               )}
               {config.field === "maintenance_per_m2" && property.surface > 0 && (
