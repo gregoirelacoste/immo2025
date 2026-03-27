@@ -26,7 +26,7 @@ function buildEvaluationPrompt(
   if (property.room_count > 0) lines.push(`- Pièces : ${property.room_count}`);
   if (property.dpe_rating) lines.push(`- DPE : ${property.dpe_rating}`);
   if (property.renovation_cost > 0) lines.push(`- Travaux prévus : ${formatCurrency(property.renovation_cost)}`);
-  lines.push(`- Charges copro : ${formatCurrency(property.condo_charges)}/mois`);
+  lines.push(`- Charges copro : ${formatCurrency(property.condo_charges)}/an`);
   lines.push(`- Taxe foncière : ${formatCurrency(property.property_tax)}/an`);
 
   // Section 2: La simulation active
