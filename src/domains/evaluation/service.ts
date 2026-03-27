@@ -228,6 +228,7 @@ export async function evaluatePropertyWithAI(
     temperature: 0.4,
     maxOutputTokens: 4096,
     responseMimeType: "application/json",
+    model: "capable",
   });
   console.log("[evaluatePropertyWithAI] Fallback response length:", fallbackResponse.length);
 

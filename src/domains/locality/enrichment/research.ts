@@ -228,6 +228,7 @@ export async function researchNeighborhood(
     temperature: 0.3,
     maxOutputTokens: 4096,
     responseMimeType: "application/json",
+    model: "capable",
   });
   console.log("[researchNeighborhood] Fallback response length:", fallbackResponse.length);
 

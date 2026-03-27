@@ -24,15 +24,17 @@ function getApiKey(): string {
 /**
  * Text-only Gemini call (flash-lite, cheap).
  * Used for scraping, text extraction, validation.
+ * Set `model: "capable"` to use the more powerful flash model instead of flash-lite.
  */
 export async function callGemini(
   prompt: string,
-  config: GeminiConfig
+  config: GeminiConfig & { model?: "lite" | "capable" }
 ): Promise<string> {
   const apiKey = getApiKey();
+  const modelId = config.model === "capable" ? GEMINI_VISION_MODEL : GEMINI_TEXT_MODEL;
 
   const response = await fetch(
-    `${GEMINI_API_BASE}/${GEMINI_TEXT_MODEL}:generateContent?key=${apiKey}`,
+    `${GEMINI_API_BASE}/${modelId}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
