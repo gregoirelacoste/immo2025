@@ -1,4 +1,4 @@
-import { callGeminiWithSearch } from "@/infrastructure/ai/gemini";
+import { callGeminiWithSearch, callGemini } from "@/infrastructure/ai/gemini";
 import { extractJsonFromAIResponse } from "@/infrastructure/ai/json-extractor";
 import type { Property, PropertyCalculations } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
@@ -209,23 +209,34 @@ export async function evaluatePropertyWithAI(
   locality: Partial<LocalityDataFields> | null
 ): Promise<AiEvaluation> {
   const prompt = buildEvaluationPrompt(property, simulation, calcs, locality);
-  const config = { temperature: 0.4, maxOutputTokens: 4096 };
 
-  // Try up to 2 times (initial + 1 retry)
-  let lastError: Error | null = null;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const rawResponse = await callGeminiWithSearch(prompt, config);
-      console.log(`[evaluatePropertyWithAI] Attempt ${attempt + 1} — response length: ${rawResponse.length}`);
-      const parsed = extractJsonFromAIResponse<Record<string, unknown>>(rawResponse, "évaluation");
-      return validateEvaluation(parsed);
-    } catch (e) {
-      lastError = e as Error;
-      if (attempt === 0) {
-        console.warn("[evaluatePropertyWithAI] First attempt failed, retrying...");
-      }
-    }
+  // Strategy 1: Gemini with Google Search grounding (richer data but JSON format not guaranteed)
+  try {
+    const rawResponse = await callGeminiWithSearch(prompt, {
+      temperature: 0.4,
+      maxOutputTokens: 4096,
+    });
+    console.log("[evaluatePropertyWithAI] Grounded response length:", rawResponse.length);
+    const parsed = extractJsonFromAIResponse<Record<string, unknown>>(rawResponse, "évaluation");
+    return validateEvaluation(parsed);
+  } catch (e) {
+    console.warn("[evaluatePropertyWithAI] Grounded call failed, falling back to non-grounded:", (e as Error).message);
   }
 
-  throw lastError!;
+  // Strategy 2: Fallback — non-grounded call with responseMimeType: "application/json" (guaranteed valid JSON)
+  const fallbackResponse = await callGemini(prompt, {
+    temperature: 0.4,
+    maxOutputTokens: 4096,
+    responseMimeType: "application/json",
+  });
+  console.log("[evaluatePropertyWithAI] Fallback response length:", fallbackResponse.length);
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(fallbackResponse);
+  } catch {
+    // Even with responseMimeType, try the extractor as last resort
+    parsed = extractJsonFromAIResponse<Record<string, unknown>>(fallbackResponse, "évaluation");
+  }
+  return validateEvaluation(parsed);
 }

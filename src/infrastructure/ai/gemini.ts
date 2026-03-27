@@ -166,8 +166,19 @@ export async function callGeminiWithSearch(
 
   const result = await response.json();
 
-  // Log response structure for debugging
   const candidate = result?.candidates?.[0];
+
+  // Detect blocked or filtered responses
+  const finishReason = candidate?.finishReason;
+  const blockReason = result?.promptFeedback?.blockReason;
+  if (blockReason) {
+    console.error("[callGeminiWithSearch] Prompt blocked:", blockReason);
+    throw new Error(`L'IA a bloqué la requête (${blockReason})`);
+  }
+  if (finishReason && finishReason !== "STOP") {
+    console.warn("[callGeminiWithSearch] Non-STOP finishReason:", finishReason);
+  }
+
   if (!candidate?.content?.parts) {
     console.error("[callGeminiWithSearch] Unexpected response structure:", JSON.stringify(result).substring(0, 1000));
   }
@@ -179,7 +190,7 @@ export async function callGeminiWithSearch(
     : "";
 
   if (!text.trim()) {
-    console.error("[callGeminiWithSearch] Empty text. Full response:", JSON.stringify(result).substring(0, 2000));
+    console.error("[callGeminiWithSearch] Empty text. finishReason:", finishReason, "Full response:", JSON.stringify(result).substring(0, 2000));
     throw new Error("L'IA (recherche web) a retourné une réponse vide");
   }
 
