@@ -8,14 +8,25 @@ import {
 } from "@/domains/property/repository";
 import { ensureLocalityEnriched } from "@/domains/locality/enrichment/ensure";
 
+// Track in-flight enrichments to prevent concurrent runs on the same property
+const inFlight = new Set<string>();
+
 /**
  * Run enrichment pipeline (internal, no revalidation).
  * Used by fire-and-forget calls from other server actions.
  * Does NOT call revalidatePath to avoid "revalidate during render" errors.
+ * Skips silently if an enrichment is already running for this property.
  */
 export async function enrichPropertyQuiet(
   propertyId: string
 ): Promise<{ success: boolean; error?: string }> {
+  // Skip if already running for this property (prevents concurrent runs)
+  if (inFlight.has(propertyId)) {
+    console.log(`[enrichPropertyQuiet] Skipping — already running for ${propertyId}`);
+    return { success: true };
+  }
+
+  inFlight.add(propertyId);
   try {
     await updateEnrichmentFields(propertyId, {
       enrichment_status: "running",
@@ -50,6 +61,8 @@ export async function enrichPropertyQuiet(
       enrichment_at: new Date().toISOString(),
     }).catch(() => {});
     return { success: false, error: (e as Error).message };
+  } finally {
+    inFlight.delete(propertyId);
   }
 }
 

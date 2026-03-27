@@ -1,4 +1,5 @@
 import { callGeminiWithSearch } from "@/infrastructure/ai/gemini";
+import { extractJsonFromAIResponse } from "@/infrastructure/ai/json-extractor";
 import type { Property, PropertyCalculations } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
 import type { LocalityDataFields } from "@/domains/locality/types";
@@ -159,31 +160,6 @@ Ne retourne RIEN d'autre que le bloc JSON.`;
 
 // ─── JSON parsing ───────────────────────────────────────────────
 
-function cleanJsonBlock(raw: string): string {
-  const fencedMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fencedMatch) return fencedMatch[1].trim();
-
-  const start = raw.indexOf("{");
-  if (start === -1) return raw.trim();
-
-  let depth = 0;
-  let inString = false;
-  let escape = false;
-  for (let i = start; i < raw.length; i++) {
-    const ch = raw[i];
-    if (escape) { escape = false; continue; }
-    if (ch === "\\") { escape = true; continue; }
-    if (ch === '"') { inString = !inString; continue; }
-    if (inString) continue;
-    if (ch === "{") depth++;
-    if (ch === "}") { depth--; if (depth === 0) return raw.substring(start, i + 1); }
-  }
-
-  const braceMatch = raw.match(/\{[\s\S]*\}/);
-  if (braceMatch) return braceMatch[0].trim();
-  return raw.trim();
-}
-
 function clampScore(v: unknown, max: number): number {
   const n = typeof v === "number" ? v : 0;
   return Math.max(0, Math.min(max, Math.round(n)));
@@ -233,22 +209,23 @@ export async function evaluatePropertyWithAI(
   locality: Partial<LocalityDataFields> | null
 ): Promise<AiEvaluation> {
   const prompt = buildEvaluationPrompt(property, simulation, calcs, locality);
+  const config = { temperature: 0.4, maxOutputTokens: 4096 };
 
-  const rawResponse = await callGeminiWithSearch(prompt, {
-    temperature: 0.4,
-    maxOutputTokens: 4096,
-  });
-
-  console.log("[evaluatePropertyWithAI] Response length:", rawResponse.length);
-
-  const jsonStr = cleanJsonBlock(rawResponse);
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(jsonStr);
-  } catch {
-    console.error("[evaluatePropertyWithAI] Failed to parse JSON:", jsonStr.substring(0, 500));
-    throw new Error("Échec du parsing de la réponse IA (évaluation)");
+  // Try up to 2 times (initial + 1 retry)
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const rawResponse = await callGeminiWithSearch(prompt, config);
+      console.log(`[evaluatePropertyWithAI] Attempt ${attempt + 1} — response length: ${rawResponse.length}`);
+      const parsed = extractJsonFromAIResponse<Record<string, unknown>>(rawResponse, "évaluation");
+      return validateEvaluation(parsed);
+    } catch (e) {
+      lastError = e as Error;
+      if (attempt === 0) {
+        console.warn("[evaluatePropertyWithAI] First attempt failed, retrying...");
+      }
+    }
   }
 
-  return validateEvaluation(parsed);
+  throw lastError!;
 }
