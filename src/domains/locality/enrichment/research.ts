@@ -4,7 +4,7 @@
  * vibe, strengths/weaknesses, urban projects, transport, safety, investment outlook.
  */
 
-import { callGeminiWithSearch } from "@/infrastructure/ai/gemini";
+import { callGeminiWithSearch, callGemini } from "@/infrastructure/ai/gemini";
 import { extractJsonFromAIResponse } from "@/infrastructure/ai/json-extractor";
 import type { LocalityDataFields } from "@/domains/locality/types";
 
@@ -209,24 +209,35 @@ export async function researchNeighborhood(
 ): Promise<Partial<LocalityDataFields>> {
   const prompt = buildResearchPrompt(city, neighborhood, postalCode, quantData);
 
-  const config = { temperature: 0.3, maxOutputTokens: 4096 };
-
-  // Try up to 2 times (initial + 1 retry)
-  let lastError: Error | null = null;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const rawResponse = await callGeminiWithSearch(prompt, config);
-      console.log(`[researchNeighborhood] Attempt ${attempt + 1} — response length: ${rawResponse.length}`);
-      const parsed = extractJsonFromAIResponse<Record<string, unknown>>(rawResponse, "recherche quartier");
-      const payload = validatePayload(parsed);
-      return mapResearchToFields(payload);
-    } catch (e) {
-      lastError = e as Error;
-      if (attempt === 0) {
-        console.warn("[researchNeighborhood] First attempt failed, retrying...");
-      }
-    }
+  // Strategy 1: Gemini with Google Search grounding (richer data but JSON format not guaranteed)
+  try {
+    const rawResponse = await callGeminiWithSearch(prompt, {
+      temperature: 0.3,
+      maxOutputTokens: 4096,
+    });
+    console.log("[researchNeighborhood] Grounded response length:", rawResponse.length);
+    const parsed = extractJsonFromAIResponse<Record<string, unknown>>(rawResponse, "recherche quartier");
+    const payload = validatePayload(parsed);
+    return mapResearchToFields(payload);
+  } catch (e) {
+    console.warn("[researchNeighborhood] Grounded call failed, falling back to non-grounded:", (e as Error).message);
   }
 
-  throw lastError!;
+  // Strategy 2: Fallback — non-grounded call with responseMimeType: "application/json" (guaranteed valid JSON)
+  const fallbackResponse = await callGemini(prompt, {
+    temperature: 0.3,
+    maxOutputTokens: 4096,
+    responseMimeType: "application/json",
+    model: "capable",
+  });
+  console.log("[researchNeighborhood] Fallback response length:", fallbackResponse.length);
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(fallbackResponse);
+  } catch {
+    parsed = extractJsonFromAIResponse<Record<string, unknown>>(fallbackResponse, "recherche quartier");
+  }
+  const payload = validatePayload(parsed);
+  return mapResearchToFields(payload);
 }

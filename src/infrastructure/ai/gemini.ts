@@ -24,15 +24,17 @@ function getApiKey(): string {
 /**
  * Text-only Gemini call (flash-lite, cheap).
  * Used for scraping, text extraction, validation.
+ * Set `model: "capable"` to use the more powerful flash model instead of flash-lite.
  */
 export async function callGemini(
   prompt: string,
-  config: GeminiConfig
+  config: GeminiConfig & { model?: "lite" | "capable" }
 ): Promise<string> {
   const apiKey = getApiKey();
+  const modelId = config.model === "capable" ? GEMINI_VISION_MODEL : GEMINI_TEXT_MODEL;
 
   const response = await fetch(
-    `${GEMINI_API_BASE}/${GEMINI_TEXT_MODEL}:generateContent?key=${apiKey}`,
+    `${GEMINI_API_BASE}/${modelId}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -166,8 +168,19 @@ export async function callGeminiWithSearch(
 
   const result = await response.json();
 
-  // Log response structure for debugging
   const candidate = result?.candidates?.[0];
+
+  // Detect blocked or filtered responses
+  const finishReason = candidate?.finishReason;
+  const blockReason = result?.promptFeedback?.blockReason;
+  if (blockReason) {
+    console.error("[callGeminiWithSearch] Prompt blocked:", blockReason);
+    throw new Error(`L'IA a bloqué la requête (${blockReason})`);
+  }
+  if (finishReason && finishReason !== "STOP") {
+    console.warn("[callGeminiWithSearch] Non-STOP finishReason:", finishReason);
+  }
+
   if (!candidate?.content?.parts) {
     console.error("[callGeminiWithSearch] Unexpected response structure:", JSON.stringify(result).substring(0, 1000));
   }
@@ -179,7 +192,7 @@ export async function callGeminiWithSearch(
     : "";
 
   if (!text.trim()) {
-    console.error("[callGeminiWithSearch] Empty text. Full response:", JSON.stringify(result).substring(0, 2000));
+    console.error("[callGeminiWithSearch] Empty text. finishReason:", finishReason, "Full response:", JSON.stringify(result).substring(0, 2000));
     throw new Error("L'IA (recherche web) a retourné une réponse vide");
   }
 
