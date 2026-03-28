@@ -108,7 +108,7 @@ export default function SimulationBanner({ property, simulations, activeSim, act
 
         {/* Right: edit button — owner can edit, others can view */}
         <button
-          onClick={isOwner ? onOpenDrawer : isLoggedIn ? onOpenDrawer : handleGatedClick}
+          onClick={isOwner || isLoggedIn ? onOpenDrawer : handleGatedClick}
           className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors shrink-0"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
