@@ -19,6 +19,7 @@ import {
   setActiveSimulation,
   setActiveSimulationAsAdmin,
   updateMeubleFields,
+  updateMeubleFieldsAsAdmin,
 } from "@/domains/property/repository";
 import { requireUserId, getOptionalUserId, isAdmin } from "@/lib/auth-actions";
 import { calculateNotaryFees } from "@/lib/calculations";
@@ -167,10 +168,15 @@ export async function saveMeubleChoice(
   furnitureCost: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const userId = await requireUserId();
+    const { userId, adminAccess } = await getOwnerOrAllowOrphan(propertyId);
+    const effectiveUserId = userId ?? "";
 
     // 1. Persist meuble_status + furniture_cost on property
-    await updateMeubleFields(propertyId, userId, meubleStatus, furnitureCost);
+    if (adminAccess) {
+      await updateMeubleFieldsAsAdmin(propertyId, meubleStatus, furnitureCost);
+    } else {
+      await updateMeubleFields(propertyId, effectiveUserId, meubleStatus, furnitureCost);
+    }
 
     // 2. Sync fiscal_regime + recalculate loan_amount on all simulations
     const targetRegime = meubleStatus === "non_meuble" ? "micro_bic" : "lmnp_reel";

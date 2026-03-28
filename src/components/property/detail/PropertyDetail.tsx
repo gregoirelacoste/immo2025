@@ -304,13 +304,17 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
           simulations={simulations}
           activeSim={effectiveSim}
           activeSimId={localActiveSimId}
+          isOwner={isOwner}
           isLoggedIn={isLoggedIn}
           onSimSwitch={async (simId) => {
             setLocalActiveSimId(simId);
             setLiveSimFromEditor(null);
-            const { setActiveSimulationAction } = await import("@/domains/property/actions");
-            await setActiveSimulationAction(property.id, simId === "__system__" ? "" : simId);
-            router.refresh();
+            // Only persist the active simulation if the user is the owner
+            if (isOwner) {
+              const { setActiveSimulationAction } = await import("@/domains/property/actions");
+              await setActiveSimulationAction(property.id, simId === "__system__" ? "" : simId);
+              router.refresh();
+            }
           }}
           onOpenDrawer={() => setSimDrawerOpen(true)}
         />

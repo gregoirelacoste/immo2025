@@ -11,12 +11,13 @@ interface Props {
   simulations: Simulation[];
   activeSim: Simulation;
   activeSimId: string;
+  isOwner?: boolean;
   isLoggedIn?: boolean;
   onSimSwitch: (simId: string) => void;
   onOpenDrawer: () => void;
 }
 
-export default function SimulationBanner({ property, simulations, activeSim, activeSimId, isLoggedIn = false, onSimSwitch, onOpenDrawer }: Props) {
+export default function SimulationBanner({ property, simulations, activeSim, activeSimId, isOwner = false, isLoggedIn = false, onSimSwitch, onOpenDrawer }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const [handleGatedClick, authModal] = useAuthGate(isLoggedIn, {
@@ -105,15 +106,15 @@ export default function SimulationBanner({ property, simulations, activeSim, act
           <span>{formatCurrency(effectiveRent)}/mois</span>
         </div>
 
-        {/* Right: edit button */}
+        {/* Right: edit button — owner can edit, others can view */}
         <button
-          onClick={isLoggedIn ? onOpenDrawer : handleGatedClick}
+          onClick={isOwner ? onOpenDrawer : isLoggedIn ? onOpenDrawer : handleGatedClick}
           className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors shrink-0"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
           </svg>
-          Simuler
+          {isOwner ? "Simuler" : "Voir simulations"}
         </button>
       </div>
       {authModal}

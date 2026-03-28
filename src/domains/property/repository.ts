@@ -530,6 +530,14 @@ export async function updateMeubleFields(id: string, userId: string, meubleStatu
   });
 }
 
+export async function updateMeubleFieldsAsAdmin(id: string, meubleStatus: string, furnitureCost: number): Promise<void> {
+  const db = await getDb();
+  await db.execute({
+    sql: "UPDATE properties SET meuble_status = ?, furniture_cost = ?, updated_at = datetime('now') WHERE id = ?",
+    args: [meubleStatus, furnitureCost, id],
+  });
+}
+
 /** Admin: update any property regardless of ownership */
 export async function updatePropertyAsAdmin(
   id: string,
