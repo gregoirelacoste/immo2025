@@ -295,22 +295,24 @@ export default function PropertyDetail({ property, isOwner = false, isLoggedIn =
       {/* Verdict — always visible human-readable summary */}
       <BeginnerVerdict property={property} calcs={calcs} />
 
-      {/* Simulation banner */}
-      <SimulationBanner
-        property={property}
-        simulations={simulations}
-        activeSim={effectiveSim}
-        activeSimId={localActiveSimId}
-        isLoggedIn={isLoggedIn}
-        onSimSwitch={async (simId) => {
-          setLocalActiveSimId(simId);
-          setLiveSimFromEditor(null);
-          const { setActiveSimulationAction } = await import("@/domains/property/actions");
-          await setActiveSimulationAction(property.id, simId === "__system__" ? "" : simId);
-          router.refresh();
-        }}
-        onOpenDrawer={() => setSimDrawerOpen(true)}
-      />
+      {/* Simulation banner — only for logged-in users (requires auth to interact) */}
+      {isLoggedIn && (
+        <SimulationBanner
+          property={property}
+          simulations={simulations}
+          activeSim={effectiveSim}
+          activeSimId={localActiveSimId}
+          isLoggedIn={isLoggedIn}
+          onSimSwitch={async (simId) => {
+            setLocalActiveSimId(simId);
+            setLiveSimFromEditor(null);
+            const { setActiveSimulationAction } = await import("@/domains/property/actions");
+            await setActiveSimulationAction(property.id, simId === "__system__" ? "" : simId);
+            router.refresh();
+          }}
+          onOpenDrawer={() => setSimDrawerOpen(true)}
+        />
+      )}
 
       {/* Completeness checklist — only for property owners */}
       {isOwner && <CompletenessChecklist property={property} />}
