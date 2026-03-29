@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import AppVersion from "@/components/AppVersion";
-import ModeSwitcher from "@/components/ui/ModeSwitcher";
 
 /** tiili brick logo mark */
 function TiiliLogo() {
@@ -128,11 +127,7 @@ export default function Navbar() {
               </>
             )}
           </div>
-          <div className="border-t border-gray-100 px-6 py-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400 font-medium">Mode</span>
-              <ModeSwitcher />
-            </div>
+          <div className="border-t border-gray-100 px-6 py-3">
             <AppVersion />
           </div>
         </nav>
@@ -197,7 +192,6 @@ export default function Navbar() {
               </Link>
             </div>
             <div className="flex items-center gap-3">
-              <ModeSwitcher />
               {burgerIcon}
             </div>
           </div>

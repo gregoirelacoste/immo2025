@@ -1,7 +1,6 @@
 "use client";
 
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useUserMode } from "@/contexts/UserModeContext";
 
 const TABS = [
   { id: "bien", label: "Bien" },
@@ -12,19 +11,13 @@ const TABS = [
   { id: "localite", label: "Localité" },
 ] as const;
 
-/** Tabs shown in beginner mode */
-const BEGINNER_TAB_IDS = new Set(["bien", "financement"]);
-
 export type TabId = typeof TABS[number]["id"];
 
 export default function TabNavigation() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const { isBeginner } = useUserMode();
   const current = (searchParams.get("tab") as TabId) || "bien";
-
-  const visibleTabs = isBeginner ? TABS.filter(t => BEGINNER_TAB_IDS.has(t.id)) : TABS;
 
   function setTab(tab: TabId) {
     const params = new URLSearchParams(searchParams.toString());
@@ -35,7 +28,7 @@ export default function TabNavigation() {
   return (
     <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1 min-w-max md:min-w-0">
-        {visibleTabs.map(({ id, label }) => (
+        {TABS.map(({ id, label }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
