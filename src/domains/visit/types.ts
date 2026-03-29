@@ -41,6 +41,8 @@ export interface SellerQuestion {
   label: string;
   /** Short hint to remind why this matters */
   hint?: string;
+  /** Priority question that must be asked during the visit */
+  essential?: boolean;
 }
 
 export interface SellerQuestionCategory {
@@ -88,6 +90,9 @@ export interface VisitPhoto {
   note?: string;
 }
 
+/** Which phase the user is currently in */
+export type VisitPhase = "avant" | "pendant" | "apres";
+
 export interface VisitData {
   property_id: string;
   visited_at: string;
@@ -101,6 +106,27 @@ export interface VisitData {
   notes: string;
   /** Overall impression 1-5 */
   overall_rating: number | null;
+  /** Current phase for restoring position */
+  current_phase?: VisitPhase;
+  /** Preparation checklist (avant phase) */
+  prep_checklist?: Record<string, boolean>;
+}
+
+// ─────────────────────────────────────────────
+// Voice notes (recorded during visit)
+// ─────────────────────────────────────────────
+
+export interface VisitVoiceNote {
+  uri: string;
+  recordedAt: string;
+  duration: number; // seconds
+}
+
+/** Prep checklist item (avant phase) */
+export interface PrepChecklistItem {
+  key: string;
+  label: string;
+  hint?: string;
 }
 
 // ─────────────────────────────────────────────

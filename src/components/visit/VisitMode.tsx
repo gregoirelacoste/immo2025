@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Property } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
+import type { VisitPhase } from "@/domains/visit/types";
 import { parseAmenities } from "@/domains/property/amenities";
 import type { Equipment } from "@/domains/property/equipment-service";
 import { calculateAll, calculateSimulation, formatCurrency, formatPercent } from "@/lib/calculations";
@@ -13,16 +14,14 @@ import { changePropertyStatus } from "@/domains/property/actions";
 import { useVisitData } from "@/domains/visit/hooks/useVisitData";
 import { useVisitPhotos } from "@/domains/visit/hooks/useVisitPhotos";
 import { useVisitProgress } from "@/domains/visit/hooks/useVisitProgress";
+import { useVisitVoiceNotes } from "@/domains/visit/hooks/useVisitVoiceNotes";
 import VisitStickyHeader from "./VisitStickyHeader";
-import VisitChecklist from "./VisitChecklist";
-import VisitRedFlags from "./VisitRedFlags";
-import VisitSellerQuestions from "./VisitSellerQuestions";
-import VisitNotes from "./VisitNotes";
-import VisitVerdict from "./VisitVerdict";
 import VisitBottomBar from "./VisitBottomBar";
-import VisitPhotoFAB from "./VisitPhotoFAB";
 import PhotoTagSheet from "./PhotoTagSheet";
 import PhotoGuidedMode from "./PhotoGuidedMode";
+import VisitPrepPhase from "./phases/VisitPrepPhase";
+import VisitLivePhase from "./phases/VisitLivePhase";
+import VisitAnalyzePhase from "./phases/VisitAnalyzePhase";
 
 interface Props {
   property: Property;
@@ -41,12 +40,12 @@ export default function VisitMode({ property, simulation, equipments = [], visit
     () => parseAmenities(property.amenities),
     [property.amenities],
   );
-  // Use server-provided config if available, otherwise fallback to synchronous resolver
   const config = useMemo(
     () => visitConfig ?? resolveVisitConfig(amenities, property.property_type as "ancien" | "neuf"),
     [visitConfig, amenities, property.property_type],
   );
 
+  // Visit data (answers, red flags, notes, etc.)
   const {
     data,
     loaded: dataLoaded,
@@ -57,6 +56,7 @@ export default function VisitMode({ property, simulation, equipments = [], visit
     flushSave,
   } = useVisitData(property.id);
 
+  // Photos
   const {
     photos,
     loaded: photosLoaded,
@@ -65,9 +65,47 @@ export default function VisitMode({ property, simulation, equipments = [], visit
     photoCount,
   } = useVisitPhotos(property.id);
 
+  // Voice notes
+  const {
+    notes: voiceNotes,
+    loaded: voiceLoaded,
+    isRecording,
+    startRecording,
+    stopRecording,
+    removeNote: removeVoiceNote,
+  } = useVisitVoiceNotes(property.id);
+
+  // Checklist progress
   const { categoryProgress, globalProgress } = useVisitProgress(
     config.checklist,
     data.answers,
+  );
+
+  // Phase navigation
+  const [phase, setPhase] = useState<VisitPhase>(
+    data.current_phase ?? "pendant",
+  );
+
+  const handlePhaseChange = useCallback(
+    (newPhase: VisitPhase) => {
+      setPhase(newPhase);
+      // Persist phase position
+      data.current_phase = newPhase;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [data],
+  );
+
+  // Prep checklist
+  const handlePrepToggle = useCallback(
+    (key: string) => {
+      const current = data.prep_checklist ?? {};
+      const updated = { ...current, [key]: !current[key] };
+      data.prep_checklist = updated;
+      // Trigger save via setAnswer with a dummy to force debounce
+      setAnswer("__prep_updated", { value: new Date().toISOString() });
+    },
+    [data, setAnswer],
   );
 
   // Photo capture flow
@@ -116,12 +154,7 @@ export default function VisitMode({ property, simulation, equipments = [], visit
     }
   }, [flushSave, property.id, router]);
 
-  // Scroll helpers
-  const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  if (!dataLoaded || !photosLoaded) {
+  if (!dataLoaded || !photosLoaded || !voiceLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full" />
@@ -130,14 +163,14 @@ export default function VisitMode({ property, simulation, equipments = [], visit
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f3ef] pb-24">
-      {/* Sticky collapsed header (appears on scroll) */}
+    <div className="min-h-screen bg-[#f4f3ef] pb-16">
+      {/* Sticky collapsed header */}
       <VisitStickyHeader property={property} calculations={calculations} />
 
-      {/* Full header recap */}
+      {/* Full header */}
       <header className="bg-white border-b border-tiili-border px-4 py-2.5">
         <div className="max-w-lg mx-auto space-y-2">
-          {/* Back + title */}
+          {/* Back + title + guide */}
           <div className="flex items-center justify-between">
             <button
               type="button"
@@ -147,57 +180,58 @@ export default function VisitMode({ property, simulation, equipments = [], visit
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
               </svg>
-              Retour fiche
+              Retour
             </button>
-            <button
-              type="button"
-              onClick={() => setGuidedMode(true)}
-              className="text-xs font-semibold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full hover:bg-purple-100 transition-colors min-h-[44px] flex items-center gap-1"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
-              </svg>
-              Mode guide
-            </button>
+
+            {/* Phase indicator */}
+            <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">
+              {phase === "avant" && "Préparation"}
+              {phase === "pendant" && "En visite"}
+              {phase === "apres" && "Analyse"}
+            </span>
+
+            {phase === "pendant" && (
+              <button
+                type="button"
+                onClick={() => setGuidedMode(true)}
+                className="text-xs font-semibold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full hover:bg-purple-100 transition-colors min-h-[44px] flex items-center gap-1"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+                </svg>
+                Guide
+              </button>
+            )}
+            {phase !== "pendant" && <div className="w-16" />}
           </div>
 
-          {/* Property info */}
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold text-[#1a1a2e] truncate">
+          {/* Property info (compact) */}
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <span className="font-bold text-[#1a1a2e] truncate">
               {property.city || "Bien"}
-              {property.address && (
-                <span className="font-normal text-gray-500 text-xs">
-                  {" "}— {property.address}
-                </span>
-              )}
-            </h1>
-            <div className="flex items-center gap-2 text-xs text-gray-600 mt-0.5">
-              <span className="font-semibold">
-                {formatCurrency(property.purchase_price)}
-              </span>
-              {property.surface > 0 && <span>{property.surface} m²</span>}
-              <span className="capitalize">{property.property_type}</span>
+            </span>
+            <span className="font-semibold">
+              {formatCurrency(property.purchase_price)}
+            </span>
+            {property.surface > 0 && <span>{property.surface} m²</span>}
+          </div>
+
+          {/* KPIs (only show in avant and apres phases) */}
+          {phase !== "pendant" && (
+            <div className="flex items-center justify-between gap-1 py-1">
+              <KPI label="Renta" value={formatPercent(calculations.net_yield)} />
+              <KPI
+                label="Cash-flow"
+                value={`${calculations.monthly_cashflow >= 0 ? "+" : ""}${formatCurrency(calculations.monthly_cashflow)}`}
+                color={calculations.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"}
+              />
+              <KPI label="Mensualité" value={formatCurrency(calculations.monthly_payment)} />
             </div>
-          </div>
+          )}
 
-          {/* KPIs */}
-          <div className="flex items-center justify-between gap-1 py-1">
-            <KPI label="Renta" value={formatPercent(calculations.net_yield)} />
-            <KPI
-              label="Cash-flow"
-              value={`${calculations.monthly_cashflow >= 0 ? "+" : ""}${formatCurrency(calculations.monthly_cashflow)}`}
-              color={calculations.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"}
-            />
-            <KPI label="Mensualité" value={formatCurrency(calculations.monthly_payment)} />
-            <KPI
-              label="Score"
-              value={property.investment_score != null ? `${property.investment_score}` : "—"}
-            />
-          </div>
-
-          {/* Amenities badges */}
-          {amenities.length > 0 && (
+          {/* Amenities (only avant) */}
+          {phase === "avant" && amenities.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {amenities.map((key) => (
                 <span
@@ -212,91 +246,104 @@ export default function VisitMode({ property, simulation, equipments = [], visit
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="max-w-lg mx-auto px-4 py-4 space-y-6">
-        {/* Checklist */}
-        <VisitChecklist
-          checklist={config.checklist}
-          answers={data.answers}
-          categoryProgress={categoryProgress}
-          globalProgress={globalProgress}
-          photos={photos}
-          onAnswer={setAnswer}
-        />
-
-        {/* Red flags */}
-        <div id="visit-redflags">
-          <VisitRedFlags
-            redFlags={config.red_flags}
-            flaggedKeys={data.red_flags}
-            onToggle={toggleRedFlag}
+      {/* Phase content */}
+      <main className="max-w-lg mx-auto px-4 py-4">
+        {phase === "avant" && (
+          <VisitPrepPhase
+            property={property}
+            sellerQuestions={config.seller_questions}
+            prepChecklist={data.prep_checklist ?? {}}
+            onPrepToggle={handlePrepToggle}
           />
-        </div>
-
-        {/* Seller questions */}
-        <VisitSellerQuestions
-          categories={config.seller_questions}
-          answers={data.answers}
-          onAnswer={setAnswer}
-        />
-
-        {/* Notes */}
-        <VisitNotes notes={data.notes} onNotesChange={setNotes} />
-
-        {/* Untagged photos gallery */}
-        {photos.length > 0 && (
-          <section className="space-y-2">
-            <h2 className="text-sm font-bold text-[#1a1a2e] uppercase tracking-wide">
-              Photos ({photos.length})
-            </h2>
-            <div className="grid grid-cols-3 gap-1.5">
-              {photos.map((photo) => (
-                <div key={photo.localId} className="relative">
-                  <img
-                    src={photo.uri}
-                    alt={photo.tag}
-                    className="w-full aspect-square rounded-lg object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removePhoto(photo.localId)}
-                    className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-xs shadow-sm"
-                  >
-                    ✕
-                  </button>
-                  {photo.tag && photo.tag !== "photo_other" && (
-                    <span className="absolute bottom-1 left-1 text-[10px] px-1.5 py-0.5 bg-black/50 text-white rounded">
-                      {photo.tag.replace("photo_", "")}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
         )}
 
-        {/* Verdict */}
-        <VisitVerdict
-          rating={data.overall_rating}
-          onRatingChange={setOverallRating}
-          notes={verdictComment}
-          onNotesChange={setVerdictComment}
-          onSave={handleSaveVisit}
-          submitting={submitting}
-        />
+        {phase === "pendant" && (
+          <VisitLivePhase
+            config={config}
+            answers={data.answers}
+            redFlags={data.red_flags}
+            photos={photos}
+            photoCount={photoCount}
+            notes={data.notes}
+            voiceNotes={voiceNotes}
+            isRecording={isRecording}
+            onAnswer={setAnswer}
+            onToggleRedFlag={toggleRedFlag}
+            onCapture={handleCapture}
+            onRemovePhoto={removePhoto}
+            onNotesChange={setNotes}
+            onStartRecording={startRecording}
+            onStopRecording={stopRecording}
+            onRemoveVoiceNote={removeVoiceNote}
+          />
+        )}
+
+        {phase === "apres" && (
+          <VisitAnalyzePhase
+            config={config}
+            answers={data.answers}
+            categoryProgress={categoryProgress}
+            globalProgress={globalProgress}
+            redFlags={data.red_flags}
+            photos={photos}
+            voiceNotes={voiceNotes}
+            isRecording={isRecording}
+            notes={data.notes}
+            overallRating={data.overall_rating}
+            verdictComment={verdictComment}
+            submitting={submitting}
+            onAnswer={setAnswer}
+            onToggleRedFlag={toggleRedFlag}
+            onRemovePhoto={removePhoto}
+            onNotesChange={setNotes}
+            onRatingChange={setOverallRating}
+            onVerdictCommentChange={setVerdictComment}
+            onSave={handleSaveVisit}
+            onStartRecording={startRecording}
+            onStopRecording={stopRecording}
+            onRemoveVoiceNote={removeVoiceNote}
+          />
+        )}
       </main>
 
-      {/* Photo FAB */}
-      <VisitPhotoFAB photoCount={photoCount} onCapture={handleCapture} />
+      {/* Phase selector bottom bar (hidden during "pendant" phase where LiveActionBar takes over) */}
+      {phase !== "pendant" && (
+        <VisitBottomBar
+          currentPhase={phase}
+          onPhaseChange={handlePhaseChange}
+          redFlagCount={data.red_flags.length}
+          photoCount={photoCount}
+        />
+      )}
 
-      {/* Bottom bar */}
-      <VisitBottomBar
-        progressPercent={globalProgress.percent}
-        redFlagCount={data.red_flags.length}
-        onScrollToRedFlags={() => scrollTo("visit-redflags")}
-        onScrollToVerdict={() => scrollTo("visit-verdict")}
-        onQuickNote={() => scrollTo("visit-notes")}
-      />
+      {/* During "pendant" phase, show a small phase switcher above the action bar */}
+      {phase === "pendant" && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-50"
+          style={{ paddingBottom: "var(--sab, 0px)" }}
+        >
+          {/* Phase mini-nav above the action bar */}
+          <div className="bg-white border-t border-gray-200 flex items-center justify-center gap-1 px-4 py-1">
+            <button
+              type="button"
+              onClick={() => handlePhaseChange("avant")}
+              className="text-[10px] text-gray-500 bg-gray-100 px-2 py-1 rounded-full min-h-[28px]"
+            >
+              ← Préparer
+            </button>
+            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-full">
+              En visite
+            </span>
+            <button
+              type="button"
+              onClick={() => handlePhaseChange("apres")}
+              className="text-[10px] text-gray-500 bg-gray-100 px-2 py-1 rounded-full min-h-[28px]"
+            >
+              Analyser →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Photo tag bottom sheet */}
       {pendingPhoto && (
