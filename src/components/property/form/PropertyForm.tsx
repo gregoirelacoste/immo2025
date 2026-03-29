@@ -27,8 +27,6 @@ import type { Equipment } from "@/domains/property/equipment-service";
 import ResultsSummarySection from "./ResultsSummarySection";
 import InvestmentScorePreview from "./InvestmentScorePreview";
 import Alert from "@/components/ui/Alert";
-import BeginnerTip from "@/components/ui/BeginnerTip";
-import { useUserMode } from "@/contexts/UserModeContext";
 import { PhotoMetadata } from "@/domains/collect/types";
 import { reverseGeocode } from "@/domains/collect/geocoding";
 import type { DefaultInputs } from "@/domains/auth/defaults";
@@ -107,7 +105,6 @@ interface Props {
 export default function PropertyForm({ existingProperty, defaultInputs, equipments = [] }: Props) {
   const isEditing = !!existingProperty;
   const router = useRouter();
-  const { isBeginner } = useUserMode();
   const searchParams = useSearchParams();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -308,63 +305,48 @@ export default function PropertyForm({ existingProperty, defaultInputs, equipmen
         />
       )}
 
-      <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} marketDataJson={existingProperty?.market_data} isBeginner={isBeginner} />
-
-      {/* Amenities: expert mode only in create */}
-      {!isEditing && !isBeginner && (
-        <AmenitiesSection
-          selected={parseAmenities(form.amenities)}
-          onChange={(keys: string[]) => updateField("amenities", JSON.stringify(keys))}
-          equipments={equipments}
-        />
-      )}
+      <PropertyInfoSection form={form} onChange={updateField} prefillHint={prefillHint} marketDataJson={existingProperty?.market_data} />
 
       {/* Financial sections: full set when creating, key property data when editing */}
       {!isEditing ? (
         <>
-          {isBeginner && (
-            <BeginnerTip>
-              Les champs de financement sont pré-remplis avec des valeurs par défaut.
-              Ajustez le taux d&apos;intérêt et la durée si vous le souhaitez. Les frais de notaire et charges sont calculés automatiquement.
-            </BeginnerTip>
-          )}
+          <LoanSection form={form} onChange={updateField} onLoanChange={handleLoanChange} calcs={calcs} monthlyPaymentPreview={monthlyPaymentPreview} prefillHint={prefillHint} loanAutoCalc={!loanManuallySet} />
 
-          <LoanSection form={form} onChange={updateField} onLoanChange={handleLoanChange} calcs={calcs} monthlyPaymentPreview={monthlyPaymentPreview} prefillHint={prefillHint} loanAutoCalc={!loanManuallySet} isBeginner={isBeginner} />
+          <ClassicRentalSection form={form} onChange={handleRentChange} prefillHint={prefillHint} />
 
-          {/* Fees & renovation: expert only (auto-calculated in beginner) */}
-          {!isBeginner && (
-            <>
+          <ResultsSummarySection calcs={calcs} showAirbnb={showAirbnb} />
+
+          {/* Collapsible advanced section */}
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="w-full flex items-center justify-center gap-2 text-sm text-amber-600 hover:text-amber-800 font-medium py-3 border border-dashed border-amber-300 rounded-xl hover:bg-amber-50/50 transition-colors"
+          >
+            <svg className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+            {showAdvanced ? "Masquer les options avancées" : "Affiner la simulation (frais, travaux, Airbnb, fiscalité...)"}
+          </button>
+
+          {showAdvanced && (
+            <div className="space-y-6">
               <FeesSection form={form} onChange={updateField} calcs={calcs} effectiveNotary={effectiveNotary} />
               <RenovationSection form={form} onChange={updateField} prefillHint={prefillHint} />
               <FiscalSection calcs={calcs} fiscalRegime={form.fiscal_regime || "micro_bic"} />
-            </>
+              <AirbnbSection form={form} onChange={updateField} calcs={calcs} />
+              <AmenitiesSection
+                selected={parseAmenities(form.amenities)}
+                onChange={(keys: string[]) => updateField("amenities", JSON.stringify(keys))}
+                equipments={equipments}
+              />
+            </div>
           )}
 
-          <ClassicRentalSection form={form} onChange={handleRentChange} prefillHint={prefillHint} isBeginner={isBeginner} />
-
-          {/* Advanced toggle & Airbnb: expert only */}
-          {!isBeginner && (
-            <>
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="w-full text-sm text-amber-600 hover:text-amber-800 font-medium py-2"
-              >
-                {showAdvanced ? "▲ Masquer les options avancées" : "▼ Afficher les options avancées (Airbnb, frais...)"}
-              </button>
-
-              {showAdvanced && (
-                <AirbnbSection form={form} onChange={updateField} calcs={calcs} />
-              )}
-            </>
-          )}
-
-          <ResultsSummarySection calcs={calcs} showAirbnb={!isBeginner && showAirbnb} isBeginner={isBeginner} />
-          {!isBeginner && <InvestmentScorePreview calcs={calcs} />}
+          <InvestmentScorePreview calcs={calcs} />
         </>
       ) : (
         /* Edit mode: only show factual property data (rent, charges, tax) */
-        <ClassicRentalSection form={form} onChange={handleRentChange} prefillHint={prefillHint} isBeginner={isBeginner} />
+        <ClassicRentalSection form={form} onChange={handleRentChange} prefillHint={prefillHint} />
       )}
 
       <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">

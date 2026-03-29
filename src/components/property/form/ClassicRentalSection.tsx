@@ -9,7 +9,6 @@ interface Props {
   form: PropertyFormData;
   onChange: (field: keyof PropertyFormData, value: string | number) => void;
   prefillHint: (field: string) => ReactNode;
-  isBeginner?: boolean;
 }
 
 const inputClass =
@@ -48,7 +47,7 @@ function pickBestRentPerM2(
   return fields.avg_rent_per_m2 ?? null;
 }
 
-export default function ClassicRentalSection({ form, onChange, prefillHint, isBeginner }: Props) {
+export default function ClassicRentalSection({ form, onChange, prefillHint }: Props) {
   const [loading, setLoading] = useState(false);
   const [recalcError, setRecalcError] = useState("");
 
@@ -139,33 +138,23 @@ export default function ClassicRentalSection({ form, onChange, prefillHint, isBe
           <input type="number" inputMode="numeric" value={form.monthly_rent || ""} onChange={(e) => onChange("monthly_rent", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="800" />
           {prefillHint("monthly_rent")}
         </div>
-        {/* Charges & tax: hidden in beginner mode (auto-estimated via locality) */}
-        {!isBeginner && (
-          <>
-            <div>
-              <label className={labelClass}>Charges copro / an<FieldTooltip text="Charges de copropriété annuelles (entretien, gardien, ascenseur...). Demandez le PV d'AG pour les connaître." /></label>
-              {form.building_type === "maison" ? (
-                <p className="text-sm text-gray-400 py-3">Pas de copropriété (maison)</p>
-              ) : (
-                <>
-                  <input type="number" inputMode="numeric" value={form.condo_charges || ""} onChange={(e) => onChange("condo_charges", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="1200" />
-                  {prefillHint("condo_charges")}
-                </>
-              )}
-            </div>
-            <div>
-              <label className={labelClass}>Taxe foncière / an<FieldTooltip text="Taxe foncière annuelle. Consultez l'avis d'imposition du vendeur ou estimez ~1 mois de loyer." /></label>
-              <input type="number" inputMode="numeric" value={form.property_tax || ""} onChange={(e) => onChange("property_tax", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="800" />
-              {prefillHint("property_tax")}
-            </div>
-          </>
-        )}
+        <div>
+          <label className={labelClass}>Charges copro / an<FieldTooltip text="Charges de copropriété annuelles (entretien, gardien, ascenseur...). Demandez le PV d'AG pour les connaître." /></label>
+          {form.building_type === "maison" ? (
+            <p className="text-sm text-gray-400 py-3">Pas de copropriété (maison)</p>
+          ) : (
+            <>
+              <input type="number" inputMode="numeric" value={form.condo_charges || ""} onChange={(e) => onChange("condo_charges", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="1200" />
+              {prefillHint("condo_charges")}
+            </>
+          )}
+        </div>
+        <div>
+          <label className={labelClass}>Taxe foncière / an<FieldTooltip text="Taxe foncière annuelle. Consultez l'avis d'imposition du vendeur ou estimez ~1 mois de loyer." /></label>
+          <input type="number" inputMode="numeric" value={form.property_tax || ""} onChange={(e) => onChange("property_tax", parseFloat(e.target.value) || 0)} className={inputClass} placeholder="800" />
+          {prefillHint("property_tax")}
+        </div>
       </div>
-      {isBeginner && (form.condo_charges > 0 || form.property_tax > 0) && (
-        <p className="text-xs text-gray-400 mt-2">
-          Charges estimées auto : copro {form.condo_charges > 0 ? `${Math.round(form.condo_charges)} €/an` : "—"} · taxe foncière {form.property_tax > 0 ? `${Math.round(form.property_tax)} €/an` : "—"}
-        </p>
-      )}
     </section>
   );
 }

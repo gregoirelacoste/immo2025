@@ -1,22 +1,11 @@
-"use client";
-
-import { useUserMode } from "@/contexts/UserModeContext";
-
 interface Props {
   children: React.ReactNode;
-  /** Only show in beginner mode (default true) */
-  beginnerOnly?: boolean;
 }
 
 /**
- * Contextual pedagogical tip shown in beginner mode.
- * Renders a light blue info box with an explanation.
+ * Contextual pedagogical tip shown as a light blue info box.
  */
-export default function BeginnerTip({ children, beginnerOnly = true }: Props) {
-  const { isBeginner } = useUserMode();
-
-  if (beginnerOnly && !isBeginner) return null;
-
+export default function BeginnerTip({ children }: Props) {
   return (
     <div className="flex gap-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-[13px] text-blue-700 leading-relaxed">
       <svg className="w-4 h-4 shrink-0 mt-0.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
