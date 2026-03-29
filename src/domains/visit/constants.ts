@@ -1,4 +1,4 @@
-import type { VisitChecklistConfig } from "./types";
+import type { VisitChecklistConfig, PrepChecklistItem } from "./types";
 
 // ─────────────────────────────────────────────────────────────────
 // Visit checklist configuration — exhaustive but quick-to-use
@@ -312,11 +312,11 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
       label: "Finances & charges",
       icon: "💰",
       questions: [
-        { key: "sq_reason_sale", label: "Raison de la vente ?", hint: "Rechercher urgence = marge de négo" },
+        { key: "sq_reason_sale", label: "Raison de la vente ?", hint: "Rechercher urgence = marge de négo", essential: true },
         { key: "sq_since_when", label: "Depuis combien de temps en vente ?", hint: "Si longtemps → possible négo" },
-        { key: "sq_price_negotiable", label: "Le prix est-il négociable ?", hint: "Demander directement" },
-        { key: "sq_charges_amount", label: "Montant exact des charges mensuelles ?", hint: "Vérifier avec les appels de fonds" },
-        { key: "sq_property_tax", label: "Montant de la taxe foncière ?", hint: "Demander le dernier avis" },
+        { key: "sq_price_negotiable", label: "Le prix est-il négociable ?", hint: "Demander directement", essential: true },
+        { key: "sq_charges_amount", label: "Montant exact des charges mensuelles ?", hint: "Vérifier avec les appels de fonds", essential: true },
+        { key: "sq_property_tax", label: "Montant de la taxe foncière ?", hint: "Demander le dernier avis", essential: true },
         { key: "sq_housing_tax", label: "Taxe d'habitation (si applicable) ?", hint: "Pour résidences secondaires" },
         { key: "sq_copro_fund", label: "Montant du fonds de travaux copro ?", hint: "Obligatoire depuis loi ALUR" },
         { key: "sq_unpaid_charges", label: "Impayés de charges en copro ?", hint: "Demander le pré-état daté" },
@@ -329,12 +329,12 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
       questions: [
         { key: "sq_copro_size", label: "Nombre de lots dans la copro ?", hint: "Petite copro = attention aux charges" },
         { key: "sq_copro_disputes", label: "Litiges en cours en copro ?", hint: "Vérifier les PV d'AG" },
-        { key: "sq_copro_works", label: "Travaux votés non encore réalisés ?", hint: "Qui paie : vendeur ou acheteur ?" },
-        { key: "sq_pv_ag", label: "Peut-on consulter les 3 derniers PV d'AG ?", hint: "Obligatoire avant compromis" },
+        { key: "sq_copro_works", label: "Travaux votés non encore réalisés ?", hint: "Qui paie : vendeur ou acheteur ?", essential: true },
+        { key: "sq_pv_ag", label: "Peut-on consulter les 3 derniers PV d'AG ?", hint: "Obligatoire avant compromis", essential: true },
         { key: "sq_syndic_type", label: "Type de syndic ?", hint: "Professionnel, bénévole, coopératif" },
         { key: "sq_servitudes", label: "Servitudes sur le bien ?", hint: "Passage, vue, etc." },
         { key: "sq_preemption", label: "Droit de préemption ?", hint: "Mairie, locataire en place" },
-        { key: "sq_tenant_in_place", label: "Locataire en place ?", hint: "Si oui : bail en cours, montant, historique paiement" },
+        { key: "sq_tenant_in_place", label: "Locataire en place ?", hint: "Si oui : bail en cours, montant, historique paiement", essential: true },
       ],
     },
     {
@@ -343,8 +343,8 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
       icon: "🔧",
       questions: [
         { key: "sq_diagnostics", label: "Tous les diagnostics disponibles ?", hint: "DPE, amiante, plomb, électricité, gaz, termites" },
-        { key: "sq_dpe_class", label: "Classe DPE exacte + consommation ?", hint: "Interdit de louer si F/G (loi Climat)" },
-        { key: "sq_last_renovation", label: "Date des derniers travaux ?", hint: "Toiture, façade, plomberie, élec" },
+        { key: "sq_dpe_class", label: "Classe DPE exacte + consommation ?", hint: "Interdit de louer si F/G (loi Climat)", essential: true },
+        { key: "sq_last_renovation", label: "Date des derniers travaux ?", hint: "Toiture, façade, plomberie, élec", essential: true },
         { key: "sq_boiler_age", label: "Âge de la chaudière / PAC ?", hint: "Budget remplacement si > 15 ans" },
         { key: "sq_water_heater_age", label: "Âge du chauffe-eau ?", hint: "Durée de vie ~10-15 ans" },
         { key: "sq_insulation_done", label: "Travaux d'isolation réalisés ?", hint: "Combles, murs, fenêtres" },
@@ -359,8 +359,8 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
         { key: "sq_rental_history", label: "Historique locatif du bien ?", hint: "Loyer pratiqué, vacance, incidents" },
         { key: "sq_rent_control", label: "Zone d'encadrement des loyers ?", hint: "Paris, Lyon, Lille, etc." },
         { key: "sq_furnished_allowed", label: "Location meublée autorisée ?", hint: "Vérifier règlement de copro" },
-        { key: "sq_airbnb_allowed", label: "Location courte durée autorisée ?", hint: "Règlement copro + mairie" },
-        { key: "sq_rental_demand", label: "Demande locative dans le quartier ?", hint: "Étudiants, actifs, touristes" },
+        { key: "sq_airbnb_allowed", label: "Location courte durée autorisée ?", hint: "Règlement copro + mairie", essential: true },
+        { key: "sq_rental_demand", label: "Demande locative dans le quartier ?", hint: "Étudiants, actifs, touristes", essential: true },
       ],
     },
   ],
@@ -461,6 +461,40 @@ export const VISIT_CHECKLIST_CONFIG: VisitChecklistConfig = {
     { key: "rf_heating_off", label: "Chauffage coupé (en hiver)", severity: "warning", hint: "Impossible de vérifier le fonctionnement" },
   ],
 };
+
+// ═══════════════════════════════════════════════════════════════
+// 7. PREP CHECKLIST — Phase "Avant"
+// ═══════════════════════════════════════════════════════════════
+
+export const PREP_CHECKLIST: PrepChecklistItem[] = [
+  { key: "prep_pv_ag", label: "Demander les 3 derniers PV d'AG", hint: "Documents indispensables avant compromis" },
+  { key: "prep_diagnostics", label: "Demander tous les diagnostics", hint: "DPE, amiante, plomb, électricité, gaz, termites" },
+  { key: "prep_tax_notice", label: "Demander dernier avis de taxe foncière", hint: "Pour vérifier le montant exact" },
+  { key: "prep_tools", label: "Prendre : mètre, niveau/bille, lampe", hint: "Pour mesurer et vérifier sur place" },
+  { key: "prep_georisques", label: "Vérifier Géorisques en ligne", hint: "Inondation, sismicité, radon, sols pollués" },
+  { key: "prep_fiber", label: "Vérifier éligibilité fibre", hint: "Sur eligibilite-fibre.fr" },
+  { key: "prep_transport", label: "Vérifier transports en commun", hint: "Temps de trajet, fréquence" },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// 8. FIELD CHECK KEYS — Items à vérifier sur le terrain (Phase "Pendant")
+// ═══════════════════════════════════════════════════════════════
+
+/** Checklist item keys that require on-site observation (check type only) */
+export const FIELD_CHECK_KEYS: string[] = [
+  "humidity_signs",
+  "cracks_visible",
+  "floor_level",
+  "odors",
+  "water_pressure",
+  "drainage_ok",
+  "leaks_visible",
+  "ventilation_working",
+  "electrical_panel",
+  "fire_safety",
+  "common_lighting",
+  "ceiling_height",
+];
 
 // ─────────────────────────────────────────────
 // Helper: build the full config for a given property

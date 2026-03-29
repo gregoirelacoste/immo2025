@@ -3,29 +3,40 @@
 import { useState } from "react";
 import type { SellerQuestionCategory, VisitItemValue } from "@/domains/visit/types";
 
+function getTextValue(answer: VisitItemValue | undefined): string {
+  if (!answer || !("value" in answer)) return "";
+  const v = answer.value;
+  return typeof v === "string" ? v : "";
+}
+
 interface Props {
   categories: SellerQuestionCategory[];
   answers: Record<string, VisitItemValue>;
   onAnswer: (key: string, value: VisitItemValue) => void;
+  /** Hide the section title (used when embedded in live phase) */
+  compact?: boolean;
 }
 
 export default function VisitSellerQuestions({
   categories,
   answers,
   onAnswer,
+  compact = false,
 }: Props) {
   const [openCat, setOpenCat] = useState<string | null>(null);
 
   return (
     <section className="space-y-3">
-      <h2 className="text-sm font-bold text-[#1a1a2e] uppercase tracking-wide">
-        Questions au vendeur
-      </h2>
+      {!compact && (
+        <h2 className="text-sm font-bold text-[#1a1a2e] uppercase tracking-wide">
+          Questions au vendeur
+        </h2>
+      )}
 
       {categories.map((cat) => {
         const isOpen = openCat === cat.key;
         const answeredCount = cat.questions.filter(
-          (q) => answers[q.key] && (answers[q.key] as { value: string }).value,
+          (q) => getTextValue(answers[q.key]).length > 0,
         ).length;
 
         return (
@@ -61,27 +72,36 @@ export default function VisitSellerQuestions({
 
             {isOpen && (
               <div className="px-3 pb-2 space-y-2">
-                {cat.questions.map((q) => (
-                  <div key={q.key}>
-                    <p className="text-[13px] font-medium text-gray-800">
-                      {q.label}
-                    </p>
-                    {q.hint && (
-                      <p className="text-xs text-gray-500 mb-1">{q.hint}</p>
-                    )}
-                    <input
-                      type="text"
-                      value={
-                        (answers[q.key] as { value: string })?.value ?? ""
-                      }
-                      onChange={(e) =>
-                        onAnswer(q.key, { value: e.target.value })
-                      }
-                      placeholder="Réponse..."
-                      className="w-full text-sm px-3 py-2 border border-tiili-border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                    />
-                  </div>
-                ))}
+                {cat.questions.map((q) => {
+                  const textVal = getTextValue(answers[q.key]);
+                  return (
+                    <div key={q.key}>
+                      <p className="text-[13px] font-medium text-gray-800 flex items-center gap-1.5">
+                        {q.essential && (
+                          <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-bold leading-none flex-shrink-0">
+                            essentielle
+                          </span>
+                        )}
+                        <span>{q.label}</span>
+                        {textVal.length > 0 && (
+                          <span className="text-green-500 text-xs flex-shrink-0">✓</span>
+                        )}
+                      </p>
+                      {q.hint && (
+                        <p className="text-xs text-gray-500 mb-1">{q.hint}</p>
+                      )}
+                      <input
+                        type="text"
+                        value={textVal}
+                        onChange={(e) =>
+                          onAnswer(q.key, { value: e.target.value })
+                        }
+                        placeholder="Réponse..."
+                        className="w-full text-sm px-3 py-2 border border-tiili-border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

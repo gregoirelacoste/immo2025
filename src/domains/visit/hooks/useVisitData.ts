@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { VisitData, VisitItemValue } from "../types";
+import type { VisitData, VisitItemValue, VisitPhase } from "../types";
 import { loadVisitData, saveVisitData } from "../storage";
 
 function createEmptyVisitData(propertyId: string): VisitData {
@@ -89,6 +89,23 @@ export function useVisitData(propertyId: string) {
     [updateData],
   );
 
+  const setCurrentPhase = useCallback(
+    (phase: VisitPhase) => {
+      updateData((prev) => ({ ...prev, current_phase: phase }));
+    },
+    [updateData],
+  );
+
+  const setPrepChecklist = useCallback(
+    (key: string, checked: boolean) => {
+      updateData((prev) => ({
+        ...prev,
+        prep_checklist: { ...(prev.prep_checklist ?? {}), [key]: checked },
+      }));
+    },
+    [updateData],
+  );
+
   // Force-save immediately (e.g. before navigating away)
   const flushSave = useCallback(() => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
@@ -102,6 +119,8 @@ export function useVisitData(propertyId: string) {
     toggleRedFlag,
     setNotes,
     setOverallRating,
+    setCurrentPhase,
+    setPrepChecklist,
     flushSave,
   };
 }
