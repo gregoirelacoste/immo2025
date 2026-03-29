@@ -2,6 +2,8 @@
 
 import { useCallback, useRef, useState } from "react";
 
+import type { VisitPhase } from "@/domains/visit/types";
+
 interface Props {
   photoCount: number;
   isRecording: boolean;
@@ -10,6 +12,7 @@ interface Props {
   onStopRecording: () => void;
   notes: string;
   onNotesChange: (notes: string) => void;
+  onPhaseChange: (phase: VisitPhase) => void;
 }
 
 export default function LiveActionBar({
@@ -20,6 +23,7 @@ export default function LiveActionBar({
   onStopRecording,
   notes,
   onNotesChange,
+  onPhaseChange,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [showNotes, setShowNotes] = useState(false);
@@ -93,11 +97,32 @@ export default function LiveActionBar({
         className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 shadow-lg"
         style={{ paddingBottom: "var(--sab, 0px)" }}
       >
+        {/* Phase mini-nav */}
+        <div className="flex items-center justify-center gap-1 px-4 py-1 border-b border-gray-100">
+          <button
+            type="button"
+            onClick={() => onPhaseChange("avant")}
+            className="text-[10px] text-gray-500 bg-gray-100 px-2.5 py-1.5 rounded-full min-h-[36px]"
+          >
+            ← Préparer
+          </button>
+          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2.5 py-1.5 rounded-full">
+            En visite
+          </span>
+          <button
+            type="button"
+            onClick={() => onPhaseChange("apres")}
+            className="text-[10px] text-gray-500 bg-gray-100 px-2.5 py-1.5 rounded-full min-h-[36px]"
+          >
+            Analyser →
+          </button>
+        </div>
         <div className="max-w-lg mx-auto flex items-center justify-center gap-3 px-4 py-2">
           {/* Voice note button */}
           <button
             type="button"
             onClick={handleVoice}
+            aria-label={isRecording ? "Arrêter l'enregistrement vocal" : "Enregistrer une note vocale"}
             className={`flex flex-col items-center justify-center gap-0.5 min-h-[56px] min-w-[56px] rounded-xl transition-colors ${
               isRecording
                 ? "bg-red-500 text-white"
@@ -123,6 +148,7 @@ export default function LiveActionBar({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
+            aria-label="Prendre une photo"
             className="relative flex flex-col items-center justify-center gap-0.5 min-h-[64px] min-w-[100px] bg-amber-500 text-white rounded-xl active:bg-amber-600 shadow-md"
           >
             <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">

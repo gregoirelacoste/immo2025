@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Property } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
@@ -53,6 +53,8 @@ export default function VisitMode({ property, simulation, equipments = [], visit
     toggleRedFlag,
     setNotes,
     setOverallRating,
+    setCurrentPhase,
+    setPrepChecklist,
     flushSave,
   } = useVisitData(property.id);
 
@@ -81,31 +83,32 @@ export default function VisitMode({ property, simulation, equipments = [], visit
     data.answers,
   );
 
-  // Phase navigation
-  const [phase, setPhase] = useState<VisitPhase>(
-    data.current_phase ?? "pendant",
-  );
+  // Phase navigation — default to "pendant", restore from loaded data
+  const [phase, setPhase] = useState<VisitPhase>("pendant");
+  const phaseRestoredRef = useRef(false);
+  useEffect(() => {
+    if (dataLoaded && !phaseRestoredRef.current) {
+      phaseRestoredRef.current = true;
+      if (data.current_phase) setPhase(data.current_phase);
+    }
+  }, [dataLoaded, data.current_phase]);
 
   const handlePhaseChange = useCallback(
     (newPhase: VisitPhase) => {
       setPhase(newPhase);
-      // Persist phase position
-      data.current_phase = newPhase;
+      setCurrentPhase(newPhase);
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
-    [data],
+    [setCurrentPhase],
   );
 
   // Prep checklist
   const handlePrepToggle = useCallback(
     (key: string) => {
       const current = data.prep_checklist ?? {};
-      const updated = { ...current, [key]: !current[key] };
-      data.prep_checklist = updated;
-      // Trigger save via setAnswer with a dummy to force debounce
-      setAnswer("__prep_updated", { value: new Date().toISOString() });
+      setPrepChecklist(key, !current[key]);
     },
-    [data, setAnswer],
+    [data.prep_checklist, setPrepChecklist],
   );
 
   // Photo capture flow
@@ -260,6 +263,7 @@ export default function VisitMode({ property, simulation, equipments = [], visit
         {phase === "pendant" && (
           <VisitLivePhase
             config={config}
+            onPhaseChange={handlePhaseChange}
             answers={data.answers}
             redFlags={data.red_flags}
             photos={photos}
@@ -314,35 +318,6 @@ export default function VisitMode({ property, simulation, equipments = [], visit
           redFlagCount={data.red_flags.length}
           photoCount={photoCount}
         />
-      )}
-
-      {/* During "pendant" phase, show a small phase switcher above the action bar */}
-      {phase === "pendant" && (
-        <div
-          className="fixed bottom-0 left-0 right-0 z-50"
-          style={{ paddingBottom: "var(--sab, 0px)" }}
-        >
-          {/* Phase mini-nav above the action bar */}
-          <div className="bg-white border-t border-gray-200 flex items-center justify-center gap-1 px-4 py-1">
-            <button
-              type="button"
-              onClick={() => handlePhaseChange("avant")}
-              className="text-[10px] text-gray-500 bg-gray-100 px-2 py-1 rounded-full min-h-[28px]"
-            >
-              ← Préparer
-            </button>
-            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-full">
-              En visite
-            </span>
-            <button
-              type="button"
-              onClick={() => handlePhaseChange("apres")}
-              className="text-[10px] text-gray-500 bg-gray-100 px-2 py-1 rounded-full min-h-[28px]"
-            >
-              Analyser →
-            </button>
-          </div>
-        </div>
       )}
 
       {/* Photo tag bottom sheet */}

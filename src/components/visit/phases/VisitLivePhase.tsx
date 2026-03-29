@@ -3,9 +3,8 @@
 import { useMemo } from "react";
 import type {
   ChecklistItem,
-  SellerQuestionCategory,
-  RedFlag,
   VisitItemValue,
+  VisitPhase,
 } from "@/domains/visit/types";
 import type { ResolvedVisitConfig } from "@/domains/visit/constants";
 import { FIELD_CHECK_KEYS } from "@/domains/visit/constants";
@@ -41,6 +40,7 @@ interface Props {
   onStartRecording: () => void;
   onStopRecording: () => void;
   onRemoveVoiceNote: (localId: number) => void;
+  onPhaseChange: (phase: VisitPhase) => void;
 }
 
 export default function VisitLivePhase({
@@ -60,6 +60,7 @@ export default function VisitLivePhase({
   onStartRecording,
   onStopRecording,
   onRemoveVoiceNote,
+  onPhaseChange,
 }: Props) {
   // Extract field check items from the full checklist
   const fieldCheckItems = useMemo(() => {
@@ -123,6 +124,7 @@ export default function VisitLivePhase({
         onStopRecording={onStopRecording}
         notes={notes}
         onNotesChange={onNotesChange}
+        onPhaseChange={onPhaseChange}
       />
     </div>
   );

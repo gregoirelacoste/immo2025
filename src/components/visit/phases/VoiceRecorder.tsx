@@ -74,6 +74,7 @@ function VoiceNoteRow({
       <button
         type="button"
         onClick={() => onRemove(note.localId)}
+        aria-label="Supprimer la note vocale"
         className="text-gray-400 hover:text-red-500 p-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">

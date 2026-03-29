@@ -112,16 +112,6 @@ export interface VisitData {
   prep_checklist?: Record<string, boolean>;
 }
 
-// ─────────────────────────────────────────────
-// Voice notes (recorded during visit)
-// ─────────────────────────────────────────────
-
-export interface VisitVoiceNote {
-  uri: string;
-  recordedAt: string;
-  duration: number; // seconds
-}
-
 /** Prep checklist item (avant phase) */
 export interface PrepChecklistItem {
   key: string;

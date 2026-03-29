@@ -21,15 +21,26 @@ export function useVisitVoiceNotes(propertyId: string) {
   const [isRecording, setIsRecording] = useState(false);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startTimeRef = useRef<number>(0);
+  const mountedRef = useRef(true);
+
+  // Track mounted state
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Load existing notes
   useEffect(() => {
     let cancelled = false;
     loadVoiceNotes(propertyId).then((stored) => {
       if (cancelled) return;
-      setNotes(stored.map(storedVoiceNoteToLocal));
+      const loaded = stored.map(storedVoiceNoteToLocal);
+      setNotes(loaded);
       setLoaded(true);
     });
     return () => {
@@ -37,9 +48,37 @@ export function useVisitVoiceNotes(propertyId: string) {
     };
   }, [propertyId]);
 
+  // Revoke all object URLs on unmount or propertyId change
+  useEffect(() => {
+    return () => {
+      setNotes((prev) => {
+        prev.forEach((n) => URL.revokeObjectURL(n.uri));
+        return [];
+      });
+    };
+  }, [propertyId]);
+
+  // Cleanup recorder on unmount
+  useEffect(() => {
+    return () => {
+      if (recorderRef.current && recorderRef.current.state === "recording") {
+        recorderRef.current.stop();
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+    };
+  }, []);
+
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!mountedRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      streamRef.current = stream;
       const recorder = new MediaRecorder(stream, {
         mimeType: MediaRecorder.isTypeSupported("audio/webm")
           ? "audio/webm"
@@ -51,6 +90,8 @@ export function useVisitVoiceNotes(propertyId: string) {
       };
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        if (!mountedRef.current) return;
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
         const duration = Math.round((Date.now() - startTimeRef.current) / 1000);
         const id = await saveVoiceNote({
@@ -59,6 +100,7 @@ export function useVisitVoiceNotes(propertyId: string) {
           recordedAt: new Date().toISOString(),
           duration,
         });
+        if (!mountedRef.current) return;
         const uri = URL.createObjectURL(blob);
         setNotes((prev) => [
           ...prev,
@@ -71,7 +113,8 @@ export function useVisitVoiceNotes(propertyId: string) {
       recorder.start();
       setIsRecording(true);
     } catch {
-      setIsRecording(false);
+      // Microphone permission denied or not available
+      if (mountedRef.current) setIsRecording(false);
     }
   }, [propertyId]);
 

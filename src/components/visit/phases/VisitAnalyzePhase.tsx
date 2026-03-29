@@ -98,6 +98,7 @@ export default function VisitAnalyzePhase({
                 <button
                   type="button"
                   onClick={() => onRemovePhoto(photo.localId)}
+                  aria-label="Supprimer la photo"
                   className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-xs shadow-sm"
                 >
                   ✕

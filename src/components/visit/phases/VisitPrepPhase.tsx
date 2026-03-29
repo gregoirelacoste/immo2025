@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
 import type { Property } from "@/domains/property/types";
-import type { SellerQuestionCategory, VisitItemValue } from "@/domains/visit/types";
+import type { SellerQuestionCategory } from "@/domains/visit/types";
 import { PREP_CHECKLIST } from "@/domains/visit/constants";
 import { formatCurrency } from "@/lib/calculations";
 
