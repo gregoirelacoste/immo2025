@@ -178,7 +178,7 @@ export default function PropertyInfoSection({ form, onChange, prefillHint, marke
       <button
         type="button"
         onClick={() => setShowMore(!showMore)}
-        className="mt-4 flex items-center gap-1.5 text-xs text-gray-500 hover:text-amber-600 font-medium transition-colors"
+        className="mt-4 flex items-center gap-1.5 text-xs text-gray-500 hover:text-amber-600 font-medium transition-colors min-h-[44px]"
       >
         <svg className={`w-3.5 h-3.5 transition-transform ${showMore ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
