@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AiEvaluation, AiOptimalSimulation } from "@/domains/evaluation/types";
+import { formatCurrency } from "@/lib/calculations";
 import Spinner from "@/components/ui/Spinner";
 import PremiumGate from "@/components/ui/PremiumGate";
 
@@ -49,41 +50,46 @@ const FISCAL_LABELS: Record<string, string> = {
   reel_foncier: "Réel Foncier",
 };
 
-function formatEur(v: number): string {
-  return v.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + "\u202f\u20ac";
+interface OptimalSimulationPanelProps {
+  propertyId: string;
+  optimal: AiOptimalSimulation;
 }
 
-function OptimalSimulationPanel({ propertyId, optimal }: { propertyId: string; optimal: AiOptimalSimulation }) {
+function OptimalSimulationPanel({ propertyId, optimal }: OptimalSimulationPanelProps) {
   const router = useRouter();
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleApply() {
     setApplying(true);
+    setError(null);
     try {
       const { applyOptimalSimulation } = await import("@/domains/evaluation/actions");
       const result = await applyOptimalSimulation(propertyId, optimal);
       if (result.success) {
         setApplied(true);
         router.refresh();
+      } else {
+        setError(result.error ?? "Erreur inconnue");
       }
     } catch (e) {
-      console.error("Failed to apply optimal simulation:", e);
+      setError((e as Error).message);
     } finally {
       setApplying(false);
     }
   }
 
   const params = [
-    optimal.negotiated_price > 0 && { label: "Prix négocié", value: formatEur(optimal.negotiated_price) },
-    optimal.monthly_rent > 0 && { label: "Loyer mensuel", value: formatEur(optimal.monthly_rent) },
+    optimal.negotiated_price > 0 && { label: "Prix négocié", value: formatCurrency(optimal.negotiated_price) },
+    optimal.monthly_rent > 0 && { label: "Loyer mensuel", value: formatCurrency(optimal.monthly_rent) },
     { label: "Taux de vacance", value: `${optimal.vacancy_rate}\u202f%` },
-    optimal.personal_contribution > 0 && { label: "Apport", value: formatEur(optimal.personal_contribution) },
+    optimal.personal_contribution > 0 && { label: "Apport", value: formatCurrency(optimal.personal_contribution) },
     { label: "Taux d\u2019emprunt", value: `${optimal.interest_rate}\u202f%` },
     { label: "Durée du crédit", value: `${optimal.loan_duration}\u202fans` },
-    optimal.renovation_cost > 0 && { label: "Travaux", value: formatEur(optimal.renovation_cost) },
+    optimal.renovation_cost > 0 && { label: "Travaux", value: formatCurrency(optimal.renovation_cost) },
     { label: "Régime fiscal", value: FISCAL_LABELS[optimal.fiscal_regime] || optimal.fiscal_regime },
-    optimal.furniture_cost > 0 && { label: "Mobilier", value: formatEur(optimal.furniture_cost) },
+    optimal.furniture_cost > 0 && { label: "Mobilier", value: formatCurrency(optimal.furniture_cost) },
   ].filter(Boolean) as Array<{ label: string; value: string }>;
 
   return (
@@ -106,6 +112,10 @@ function OptimalSimulationPanel({ propertyId, optimal }: { propertyId: string; o
 
       {optimal.reasoning && (
         <p className="text-xs text-amber-800/80 leading-relaxed mb-3 italic">{optimal.reasoning}</p>
+      )}
+
+      {error && (
+        <p className="text-xs text-red-600 bg-red-50 rounded p-2 mb-2">{error}</p>
       )}
 
       <button
