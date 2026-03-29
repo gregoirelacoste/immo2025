@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { AiEvaluation } from "@/domains/evaluation/types";
+import type { AiEvaluation, AiOptimalSimulation } from "@/domains/evaluation/types";
+import { formatCurrency } from "@/lib/calculations";
 import Spinner from "@/components/ui/Spinner";
 import PremiumGate from "@/components/ui/PremiumGate";
 
@@ -40,6 +41,98 @@ function getGlobalColor(score: number): string {
   if (score >= 51) return "text-blue-600 bg-blue-50 border-blue-200";
   if (score >= 31) return "text-amber-600 bg-amber-50 border-amber-200";
   return "text-red-600 bg-red-50 border-red-200";
+}
+
+const FISCAL_LABELS: Record<string, string> = {
+  micro_bic: "Micro-BIC",
+  lmnp_reel: "LMNP Réel",
+  micro_foncier: "Micro-Foncier",
+  reel_foncier: "Réel Foncier",
+};
+
+interface OptimalSimulationPanelProps {
+  propertyId: string;
+  optimal: AiOptimalSimulation;
+}
+
+function OptimalSimulationPanel({ propertyId, optimal }: OptimalSimulationPanelProps) {
+  const router = useRouter();
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleApply() {
+    setApplying(true);
+    setError(null);
+    try {
+      const { applyOptimalSimulation } = await import("@/domains/evaluation/actions");
+      const result = await applyOptimalSimulation(propertyId, optimal);
+      if (result.success) {
+        setApplied(true);
+        router.refresh();
+      } else {
+        setError(result.error ?? "Erreur inconnue");
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setApplying(false);
+    }
+  }
+
+  const params = [
+    optimal.negotiated_price > 0 && { label: "Prix négocié", value: formatCurrency(optimal.negotiated_price) },
+    optimal.monthly_rent > 0 && { label: "Loyer mensuel", value: formatCurrency(optimal.monthly_rent) },
+    { label: "Taux de vacance", value: `${optimal.vacancy_rate}\u202f%` },
+    optimal.personal_contribution > 0 && { label: "Apport", value: formatCurrency(optimal.personal_contribution) },
+    { label: "Taux d\u2019emprunt", value: `${optimal.interest_rate}\u202f%` },
+    { label: "Durée du crédit", value: `${optimal.loan_duration}\u202fans` },
+    optimal.renovation_cost > 0 && { label: "Travaux", value: formatCurrency(optimal.renovation_cost) },
+    { label: "Régime fiscal", value: FISCAL_LABELS[optimal.fiscal_regime] || optimal.fiscal_regime },
+    optimal.furniture_cost > 0 && { label: "Mobilier", value: formatCurrency(optimal.furniture_cost) },
+  ].filter(Boolean) as Array<{ label: string; value: string }>;
+
+  return (
+    <div className="bg-amber-50 rounded-lg border border-amber-200 p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" />
+        </svg>
+        <p className="text-xs font-semibold text-amber-700 uppercase">Simulation optimale IA</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-2">
+        {params.map(({ label, value }) => (
+          <div key={label} className="flex items-center justify-between">
+            <span className="text-xs text-amber-800/70">{label}</span>
+            <span className="text-xs font-semibold text-amber-900">{value}</span>
+          </div>
+        ))}
+      </div>
+
+      {optimal.reasoning && (
+        <p className="text-xs text-amber-800/80 leading-relaxed mb-3 italic">{optimal.reasoning}</p>
+      )}
+
+      {error && (
+        <p className="text-xs text-red-600 bg-red-50 rounded p-2 mb-2">{error}</p>
+      )}
+
+      <button
+        onClick={handleApply}
+        disabled={applying || applied}
+        className="w-full py-2.5 px-4 text-sm font-medium rounded-lg transition-colors min-h-[44px] disabled:opacity-50 bg-amber-600 text-white hover:bg-amber-700"
+      >
+        {applying ? (
+          <span className="flex items-center justify-center gap-2"><Spinner />Application en cours...</span>
+        ) : applied ? (
+          "Simulation créée"
+        ) : (
+          "Appliquer cette simulation"
+        )}
+      </button>
+    </div>
+  );
 }
 
 export default function AiEvaluationSection({ propertyId, evaluation, evaluatedAt, isPremium }: Props) {
@@ -197,6 +290,14 @@ export default function AiEvaluationSection({ propertyId, evaluation, evaluatedA
               <p className="text-xs font-semibold text-gray-500 uppercase mb-1.5">Avis global</p>
               <p className="text-sm text-gray-700 leading-relaxed">{evaluation.avis_global}</p>
             </div>
+          )}
+
+          {/* Simulation optimale IA */}
+          {evaluation.optimal_simulation && (
+            <OptimalSimulationPanel
+              propertyId={propertyId}
+              optimal={evaluation.optimal_simulation}
+            />
           )}
 
           {/* Disclaimer */}

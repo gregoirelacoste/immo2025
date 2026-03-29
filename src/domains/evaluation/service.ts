@@ -3,8 +3,10 @@ import { extractJsonFromAIResponse } from "@/infrastructure/ai/json-extractor";
 import type { Property, PropertyCalculations } from "@/domains/property/types";
 import type { Simulation } from "@/domains/simulation/types";
 import type { LocalityDataFields } from "@/domains/locality/types";
-import type { AiEvaluation } from "./types";
+import type { AiEvaluation, AiOptimalSimulation } from "./types";
 import { formatCurrency } from "@/lib/calculations";
+import { parseAmenities } from "@/domains/property/amenities";
+import { EQUIPMENT_IMPACTS } from "@/domains/property/equipment-impact";
 
 // ─── Prompt builder ─────────────────────────────────────────────
 
@@ -29,6 +31,29 @@ function buildEvaluationPrompt(
   if (property.renovation_cost > 0) lines.push(`- Travaux prévus : ${formatCurrency(property.renovation_cost)}`);
   lines.push(`- Charges copro : ${formatCurrency(property.condo_charges)}/an`);
   lines.push(`- Taxe foncière : ${formatCurrency(property.property_tax)}/an`);
+  if (property.description) lines.push(`- Description : ${property.description.slice(0, 300)}`);
+  lines.push(`- Statut ameublement : ${property.meuble_status === "meuble" ? "Meublé" : property.meuble_status === "deja_meuble" ? "Déjà meublé" : "Non meublé"}`);
+  if (property.furniture_cost > 0) lines.push(`- Coût mobilier : ${formatCurrency(property.furniture_cost)}`);
+
+  // Équipements / commodités
+  const amenities = parseAmenities(property.amenities);
+  if (amenities.length > 0) {
+    const amenityLabels = amenities.map((key) => {
+      const impact = EQUIPMENT_IMPACTS.find((e) => e.key === key);
+      return impact ? `${impact.icon} ${impact.label}` : key;
+    });
+    lines.push(`- Équipements : ${amenityLabels.join(", ")}`);
+  } else {
+    lines.push(`- Équipements : aucun renseigné`);
+  }
+  // List absent key equipment for context
+  const amenitySet = new Set(amenities);
+  const absentKey = EQUIPMENT_IMPACTS
+    .filter((e) => !amenitySet.has(e.key) && (e.impactPresent >= 0.03 || e.impactAbsent < -0.01))
+    .map((e) => e.label);
+  if (absentKey.length > 0) {
+    lines.push(`- Équipements absents notables : ${absentKey.join(", ")}`);
+  }
 
   // Section 2: La simulation active
   lines.push("\n## SIMULATION ACTIVE");
@@ -133,11 +158,14 @@ CONSIGNES D'ANALYSE :
 
 5. **Hypothèses** (/20) : Les hypothèses de la simulation sont-elles raisonnables ? Taux de vacance réaliste ? Charges sous-estimées ? Taux d'emprunt cohérent ? Régime fiscal optimal ?
 
+6. **Simulation optimale** : Propose une simulation OPTIMALE et RÉALISTE pour maximiser la rentabilité de ce bien. Ajuste les paramètres financiers (prix négocié, loyer, taux vacance, apport, durée crédit, taux emprunt, travaux, régime fiscal, mobilier) en tenant compte du marché local et de tes connaissances. Sois réaliste et cohérent.
+
 IMPORTANT :
 - Score chaque axe sur 20 de façon HONNÊTE (pas de complaisance)
 - Cite des données concrètes trouvées sur internet quand possible
 - Identifie les RED FLAGS et les POINTS FORTS
 - Donne un AVIS GLOBAL sincère en 3-4 phrases
+- La simulation optimale doit être RÉALISTE (pas de loyer irréaliste, pas de négo impossible)
 
 Retourne ta réponse en JSON dans un bloc \`\`\`json ... \`\`\` :
 
@@ -151,9 +179,33 @@ Retourne ta réponse en JSON dans un bloc \`\`\`json ... \`\`\` :
   "score_global": 70,
   "avis_global": "...",
   "red_flags": ["...", "..."],
-  "points_forts": ["...", "..."]
+  "points_forts": ["...", "..."],
+  "optimal_simulation": {
+    "negotiated_price": 0,
+    "monthly_rent": 750,
+    "vacancy_rate": 5,
+    "personal_contribution": 15000,
+    "interest_rate": 3.2,
+    "loan_duration": 20,
+    "renovation_cost": 5000,
+    "fiscal_regime": "lmnp_reel",
+    "furniture_cost": 5000,
+    "reasoning": "Explication en 2-3 phrases des choix..."
+  }
 }
 \`\`\`
+
+Règles pour optimal_simulation :
+- negotiated_price : prix après négociation réaliste (0 = garder le prix affiché, sinon une décote raisonnable de 3-10%)
+- monthly_rent : loyer mensuel atteignable sur ce marché (basé sur les données locales)
+- vacancy_rate : taux de vacance réaliste pour cette ville (1-2% en zone tendue, 5-8% en zone détendue)
+- personal_contribution : apport recommandé (10-20% du prix est standard)
+- interest_rate : taux d'emprunt réaliste au moment actuel (mars 2026)
+- loan_duration : 20 ou 25 ans selon le profil du bien
+- renovation_cost : budget travaux si nécessaire (0 si le bien est en bon état)
+- fiscal_regime : "micro_bic" ou "lmnp_reel" selon ce qui est le plus avantageux
+- furniture_cost : coût mobilier si tu recommandes de meubler (0 sinon)
+- reasoning : explique tes choix en 2-3 phrases
 
 Ne retourne RIEN d'autre que le bloc JSON.`;
 }
@@ -168,6 +220,30 @@ function clampScore(v: unknown, max: number): number {
 function toStringArray(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   return v.filter((s): s is string => typeof s === "string").map(s => s.trim()).filter(Boolean);
+}
+
+function parseOptimalSimulation(raw: unknown): AiOptimalSimulation | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const o = raw as Record<string, unknown>;
+  const safeNum = (v: unknown, fallback: number, min = 0, max = Infinity): number => {
+    const n = typeof v === "number" ? v : parseFloat(String(v));
+    if (isNaN(n)) return fallback;
+    return Math.max(min, Math.min(max, n));
+  };
+  const regime = typeof o.fiscal_regime === "string" ? o.fiscal_regime : "micro_bic";
+  const validRegimes = ["micro_bic", "lmnp_reel", "micro_foncier", "reel_foncier"];
+  return {
+    negotiated_price: safeNum(o.negotiated_price, 0, 0, 50_000_000),
+    monthly_rent: safeNum(o.monthly_rent, 0, 0, 50_000),
+    vacancy_rate: safeNum(o.vacancy_rate, 5, 0, 100),
+    personal_contribution: safeNum(o.personal_contribution, 0, 0, 50_000_000),
+    interest_rate: safeNum(o.interest_rate, 3.5, 0, 30),
+    loan_duration: Math.round(safeNum(o.loan_duration, 20, 1, 50)),
+    renovation_cost: safeNum(o.renovation_cost, 0, 0, 5_000_000),
+    fiscal_regime: validRegimes.includes(regime) ? regime : "micro_bic",
+    furniture_cost: safeNum(o.furniture_cost, 0, 0, 100_000),
+    reasoning: typeof o.reasoning === "string" ? o.reasoning.trim() : "",
+  };
 }
 
 function validateEvaluation(raw: Record<string, unknown>): AiEvaluation {
@@ -197,6 +273,7 @@ function validateEvaluation(raw: Record<string, unknown>): AiEvaluation {
     avis_global: typeof raw.avis_global === "string" ? raw.avis_global.trim() : "",
     red_flags: toStringArray(raw.red_flags),
     points_forts: toStringArray(raw.points_forts),
+    optimal_simulation: parseOptimalSimulation(raw.optimal_simulation),
   };
 }
 
